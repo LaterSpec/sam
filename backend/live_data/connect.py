@@ -1,18 +1,17 @@
 """SAM · live market data connector.
 
-Authenticates against the Newroad API exactly like cuantitov8.py
-(request-code -> 2FA code entered in the terminal -> verify-code -> token),
-opens the live-prices SSE stream, subscribes to our IBKR symbol universe and
-upserts each tick into public.market_quotes (source='live') so the SAM front
-can read real-time prices from Supabase.
+Authenticates against IBKR Gateway (request-code → 2FA entered in terminal →
+verify-code → token), opens the live-prices SSE stream, subscribes to the IBKR
+symbol universe and upserts each tick into public.market_quotes (source='live')
+so the SAM front can read real-time prices from Supabase.
 
 Run it while the market is open to feed live data:
 
     cd backend && source venv/bin/activate
     python -m live_data.connect
 
-Credentials come from backend/.env (NEWROAD_USERNAME / NEWROAD_PASSWORD); the
-2FA code is always prompted interactively because it changes every login.
+Credentials come from backend/.env (IBG_USERNAME / IBG_PASSWORD); the 2FA code
+is always prompted interactively because it changes every login.
 If auth or the stream fails the script exits cleanly and the front simply
 falls back to the last stored snapshot / Yahoo quotes.
 """
@@ -38,7 +37,7 @@ from symbols import ASSET_ID_TO_SYMBOL  # noqa: E402
 
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
-API_BASE_URL = os.getenv("NEWROAD_API_BASE", "https://api.newroadai.com/api/v1")
+API_BASE_URL = os.getenv("IBG_API_BASE", "https://localhost:5000/v1/api")
 SSE_STREAM_ENDPOINT = f"{API_BASE_URL}/analytics/live-prices/stream"
 SSE_SUBSCRIBE_ENDPOINT = f"{API_BASE_URL}/analytics/live-prices/subscribe"
 
@@ -49,12 +48,12 @@ PERSIST_EVERY = 3.0
 
 async def authenticate(session: aiohttp.ClientSession) -> str | None:
     print("\n" + "=" * 44)
-    print("  SAM · Newroad live-data authentication")
+    print("  SAM · IBKR live-data connection")
     print("=" * 44)
-    username = os.getenv("NEWROAD_USERNAME") or input("Newroad user: ").strip()
-    password = os.getenv("NEWROAD_PASSWORD") or getpass("Newroad password: ").strip()
+    username = os.getenv("IBG_USERNAME") or input("IBKR user: ").strip()
+    password = os.getenv("IBG_PASSWORD") or getpass("IBKR password: ").strip()
     if not username or not password:
-        print("[live] missing credentials (set NEWROAD_USERNAME / NEWROAD_PASSWORD in backend/.env)")
+        print("[live] missing credentials (set IBG_USERNAME / IBG_PASSWORD in backend/.env)")
         return None
 
     try:

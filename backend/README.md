@@ -5,7 +5,7 @@ Dos jobs Python escriben en Postgres local; el frontend **solo lee** vía Supaba
 | Módulo | Comando | Salida |
 |--------|---------|--------|
 | Yahoo | `python -m market.yahoo_sync` | `market_quotes` (`yahoo`) + `market_daily_bars` |
-| Live | `python -m live_data.connect` | `market_quotes` (`live`) vía SSE Newroad |
+| Live | `python -m live_data.connect` | `market_quotes` (`live`) vía SSE IBKR Gateway |
 
 ## Setup
 

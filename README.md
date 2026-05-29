@@ -1,6 +1,6 @@
 # SAM — Financial Terminal
 
-Terminal financiero personal estilo consola: onboarding, presupuesto, metas e **Invest** con cotizaciones reales (Yahoo + feed live opcional IBKR vía Newroad), compra/venta **simulada** y portafolio persistido en Supabase local.
+Terminal financiero personal estilo consola: onboarding, presupuesto, metas e **Invest** con cotizaciones reales (Yahoo Finance + feed live opcional vía IBKR Gateway), compra/venta **simulada** y portafolio persistido en Supabase.
 
 > MVP local de punta a punta. No hay broker real ni órdenes reales.
 
@@ -16,8 +16,7 @@ Terminal financiero personal estilo consola: onboarding, presupuesto, metas e **
 
 Opcional para live data:
 
-- Cuenta **Newroad** + credenciales en `backend/.env`
-- Acceso al proyecto **cuantito** (referencia de API; no es dependencia en runtime)
+- Instancia de **IBKR Gateway** corriendo localmente con credenciales de cuenta IBKR Paper Trading o real.
 
 ## Inicio rápido (5 terminales o menos)
 
@@ -67,12 +66,12 @@ python -m market.yahoo_sync
 
 Sin este paso, Invest puede mostrar pocos precios o sparklines vacíos hasta que corra el sync.
 
-### 4. Live data (opcional)
+### 4. Live data via IBKR Gateway (opcional)
 
 ```bash
 cd backend
 source venv/bin/activate
-cp .env.example .env   # rellena NEWROAD_USERNAME / NEWROAD_PASSWORD
+cp .env.example .env   # rellena IBG_USERNAME / IBG_PASSWORD
 python -m live_data.connect
 # Introduce el código 2FA cuando lo pida
 ```
@@ -92,7 +91,7 @@ Tras `supabase db reset`:
 
 Incluye transacciones, metas, cuentas y categorías de demo. **Invest** empieza sin posiciones; el watchlist curated se crea al registrarse.
 
-También puedes **crear una cuenta nueva** en onboarding (mismo flujo MVP con email/contraseña). OAuth Apple/Google está visible pero **no conectado**.
+También puedes **crear una cuenta nueva** en onboarding (mismo flujo MVP con email/contraseña). OAuth Apple/Google está visible pero **no conectado** (ver roadmap).
 
 ---
 
@@ -118,7 +117,7 @@ FinancialTerminal/
 ├── src/interactive/         # App, pantallas, sheets
 ├── supabase/migrations/     # Esquema SQL versionado
 ├── supabase/seed.sql        # Usuario Alex + datos demo
-├── backend/                 # Yahoo sync + live SSE
+├── backend/                 # Yahoo sync + live IBKR feed
 └── docs/                    # Documentación detallada
 ```
 
@@ -126,7 +125,7 @@ Documentación ampliada:
 
 - [Arquitectura y flujos](docs/ARCHITECTURE.md)
 - [Esquema de BD y datos por cliente](docs/DATABASE.md)
-- [Live data y Yahoo](docs/LIVE-DATA.md)
+- [Live data e IBKR Gateway](docs/LIVE-DATA.md)
 - [Backend Python](backend/README.md)
 
 ---
@@ -136,16 +135,54 @@ Documentación ampliada:
 ### Finanzas personales
 
 - Cuentas (cash, tarjeta, checking, savings) con saldos en Supabase.
-- Gastos / ingresos por categoría con topes mensuales.
-- Metas, buckets de ahorro, fuentes de ingreso.
-- Perfil: tema claro/oscuro, sign out, borrar cuenta (`delete_user()`).
+- Gastos / ingresos por categoría con topes mensuales y alertas visuales.
+- Metas de ahorro con progreso, buckets de ahorro con APY simulado.
+- Fuentes de ingreso recurrentes.
+- Perfil: tema claro/oscuro, sign out, borrar cuenta completa (`delete_user()`).
 
 ### Invest (simulado)
 
-- **Market:** watchlist, holdings, top movers, badge LIVE/delayed.
+- **Market:** watchlist con precios reales, holdings, top movers, badge `● LIVE` / `delayed`.
 - **Portfolio:** valor mark-to-market, P&L, gráfico de performance desde **día 0** (`portfolio_snapshots`).
-- **Analysis:** volatilidad, drawdown, Sharpe, beta vs SPY (datos reales de barras).
-- Compra/venta desde sheets → persiste `holdings` + `trades`.
+- **Analysis:** volatilidad, drawdown máximo, Sharpe ratio, beta vs SPY (datos reales de barras históricas).
+- Compra/venta desde sheets deslizantes → persiste `holdings` + `trades`.
+
+---
+
+## Estado del MVP
+
+### ✅ Funcional
+
+| Módulo | Descripción |
+|--------|-------------|
+| **Auth** | Registro y login con email/contraseña. Sesión persistida con JWT Supabase. |
+| **Cuentas** | Cash, tarjeta, checking, savings. Saldos actualizados por transacciones. |
+| **Presupuesto** | Categorías con tope mensual, indicadores de gasto, alertas de límite. |
+| **Transacciones** | Log de gastos e ingresos; filtros por cuenta y categoría. |
+| **Metas** | Metas de ahorro con progreso visual y buckets APY. |
+| **Fuentes de ingreso** | Ingresos recurrentes por fuente. |
+| **Market (Invest)** | Watchlist + top movers con precios reales de Yahoo Finance. |
+| **Live data badge** | Badge `● LIVE` cuando IBKR Gateway está activo. Fallback automático a Yahoo. |
+| **Portfolio (Invest)** | Posiciones abiertas, P&L mark-to-market, gráfico de performance histórico. |
+| **Analysis (Invest)** | Volatilidad, drawdown, Sharpe ratio, beta vs SPY calculados con barras reales. |
+| **Compra/venta simulada** | Sheets deslizantes para comprar y vender; trades persistidos en BD. |
+| **Tema** | Paleta terminal SAM, dark/light toggle. |
+| **Usuario demo** | Cuenta `alex@sam.app` con datos completos de prueba. |
+
+### 🚧 Pendiente / Roadmap
+
+| Área | Descripción |
+|------|-------------|
+| **Órdenes reales** | Integración completa con IBKR API para enviar órdenes al broker. Actualmente simulado. |
+| **App nativa** | Build para iOS/Android. Actualmente es una PWA sin bundler. |
+| **OAuth** | Botones Apple/Google visibles en onboarding; flow sin conectar. |
+| **Gráficos intradía** | 1D/1W son series sintéticas; no hay barras intraday en base de datos. |
+| **Alertas de precio** | Notificaciones push cuando un ticker supera un nivel definido. |
+| **Exportar datos** | CSV / PDF para historial de transacciones, trades y P&L. |
+| **Multi-moneda** | Actualmente toda la UI asume USD. |
+| **Bundler / build step** | Sin webpack/Vite; React cargado vía CDN con Babel standalone. |
+| **Reportes fiscales** | Cálculo de plusvalías realizadas / no realizadas para declaración. |
+| **2FA automático** | El feed live de IBKR requiere introducir el código manualmente en cada inicio. |
 
 ---
 
@@ -176,7 +213,7 @@ python -m live_data.connect
 
 Ver [.gitignore](.gitignore). Resumen:
 
-- `backend/venv/`, `backend/.env` (credenciales Newroad)
+- `backend/venv/`, `backend/.env` (credenciales IBKR Gateway)
 - Cualquier `.env` con secretos
 - Cachés Python, `.DS_Store`, logs
 - Artefactos locales de Supabase (`.branches`, `.temp`)
@@ -190,10 +227,10 @@ La **anon key** en `src/shared/supabase-client.js` es la clave **demo local** de
 | Síntoma | Qué hacer |
 |---------|-----------|
 | Pantalla negra / error en consola | Hard refresh; revisar `serve.py` (no uses `python -m http.server` sin no-cache). |
-| “backend offline” al abrir la app | `supabase start` y recarga. |
+| "backend offline" al abrir la app | `supabase start` y recarga. |
 | Invest sin precios | `python -m market.yahoo_sync` |
 | Badge LIVE pero precios quietos | Comprueba que `connect.py` sigue corriendo; revisa `market_quotes` en Studio. |
-| Sparkline “no data” en un ticker | Re-login o añade el ticker de nuevo; barras se cargan por símbolo. |
+| Sparkline "no data" en un ticker | Re-login o añade el ticker de nuevo; barras se cargan por símbolo. |
 | Puerto 3000 ocupado | `lsof -i :3000` y mata el proceso, o `python3 serve.py 3001`. |
 | Sesión perdida al cambiar puerto | Normal: vuelve a login en el nuevo origen. |
 
@@ -203,7 +240,7 @@ La **anon key** en `src/shared/supabase-client.js` es la clave **demo local** de
 
 - **Frontend:** React 18 (UMD), Babel standalone, sin build step.
 - **Auth / DB:** Supabase (GoTrue + PostgREST + Postgres 17).
-- **Mercado:** `yfinance` + Newroad SSE (`aiohttp`).
+- **Mercado:** `yfinance` (histórico/retrasado) + IBKR Gateway SSE (`aiohttp`, tiempo real).
 - **Estilo:** JetBrains Mono, paleta terminal `SAM` (dark/light).
 
 ---

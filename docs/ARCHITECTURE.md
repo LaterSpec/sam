@@ -26,7 +26,7 @@ SAM (Financial Terminal) es una aplicación **estática** (React vía CDN + Babe
 │  live_data/connect.py   → market_quotes (source=live, SSE)       │
 └─────────────────────────────────────────────────────────────────┘
                                 ▲
-                                │ Newroad API + Yahoo Finance
+                                │ IBKR Gateway (live SSE) + Yahoo Finance (histórico)
 ```
 
 ## Entradas de la aplicación
@@ -49,7 +49,7 @@ FinancialTerminal/
 ├── docs/
 │   ├── ARCHITECTURE.md          # Este archivo
 │   ├── DATABASE.md              # Esquema y RLS
-│   └── LIVE-DATA.md             # Yahoo + live feed
+│   └── LIVE-DATA.md             # IBKR Gateway + Yahoo
 ├── src/
 │   ├── shared/
 │   │   ├── supabase-client.js   # Cliente Supabase + SamDB API
@@ -77,7 +77,7 @@ FinancialTerminal/
 └── backend/
     ├── requirements.txt
     ├── db.py                    # Acceso Postgres
-    ├── symbols.py               # Universo IBKR (cuantito)
+    ├── symbols.py               # Universo de símbolos IBKR
     ├── market/yahoo_sync.py
     └── live_data/connect.py
 ```
@@ -104,14 +104,14 @@ Orden de prioridad en `buildMarket()` (`supabase-client.js`):
 | Performance portfolio | `portfolio_snapshots` (día 0 → adelante) + punto live |
 | Sparklines watchlist/holdings | `market_daily_bars` (Yahoo) |
 | Ticker detail 1M / 3M / 1Y | `market_daily_bars` |
-| Ticker detail 1D / 1W | Serie sintética intradía (no hay barras intraday en BD) |
+| Ticker detail 1D / 1W | Serie sintética intradía (pendiente: barras reales intraday) |
 
 ## Seguridad (MVP local)
 
 - RLS en todas las tablas `user_id`.
 - Tablas `market_*` son **globales**: lectura para `authenticated`, escritura solo vía backend (`postgres`) o `service_role`.
 - La anon key en `supabase-client.js` es la **clave demo de Supabase local** — no subir una clave de producción al repo.
-- OAuth Apple/Google en onboarding está **deshabilitado** (botones visibles, sin redirect).
+- OAuth Apple/Google en onboarding está **deshabilitado** (botones visibles, pendiente de conectar).
 
 ## Convenciones
 

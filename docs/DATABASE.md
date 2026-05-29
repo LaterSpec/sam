@@ -82,7 +82,7 @@ Unique: `(user_id, symbol)`.
 
 Tickers seguidos en Market. Unique: `(user_id, symbol)`.
 
-**Al registrarse:** se insertan los símbolos con `market_symbols.curated = true` (12 tickers por defecto).
+**Al registrarse:** se insertan automáticamente los símbolos con `market_symbols.curated = true` (12 tickers por defecto).
 
 ### `trades`
 
@@ -107,7 +107,7 @@ Lectura para cualquier usuario autenticado. Escritura solo desde el **backend Py
 
 ### `market_symbols`
 
-Catálogo de ~85 tickers IBKR (mapeo `asset_id` de cuantito). `curated = true` define el watchlist inicial.
+Catálogo de ~85 tickers del universo IBKR. El campo `asset_id` permite mapear con el feed live del Gateway. `curated = true` define el watchlist inicial.
 
 ### `market_quotes`
 
@@ -115,7 +115,7 @@ Catálogo de ~85 tickers IBKR (mapeo `asset_id` de cuantito). `curated = true` d
 
 | `source` | Origen |
 |----------|--------|
-| `live` | `live_data/connect.py` (SSE Newroad) |
+| `live` | `live_data/connect.py` (SSE vía IBKR Gateway) |
 | `yahoo` | `market/yahoo_sync.py` |
 
 Columnas útiles: `price`, `bid`, `ask`, `prev_close`, `day_open`, `change_pct`, `captured_at`.

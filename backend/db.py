@@ -31,7 +31,7 @@ def connect():
 
 
 def list_symbols(conn) -> list[dict]:
-    """All active catalog symbols with their cuantito/IBKR asset id."""
+    """All active catalog symbols with their IBKR asset id."""
     with conn.cursor() as cur:
         cur.execute(
             "select symbol, asset_id from public.market_symbols "

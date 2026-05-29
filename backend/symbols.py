@@ -1,12 +1,12 @@
 """Ticker universe shared by the live-data and Yahoo sync jobs.
 
-ASSET_ID_TO_SYMBOL mirrors cuantito's ACTIVOS_DB (asset_id -> IBKR symbol). The
-Newroad live-prices SSE stream keys everything by asset_id, so we need this map
-to translate incoming ticks back into the symbols stored in public.market_symbols.
+ASSET_ID_TO_SYMBOL maps IBKR asset IDs to ticker symbols. The IBGateway
+live-prices SSE stream keys everything by asset_id, so this map translates
+incoming ticks back into the symbols stored in public.market_symbols.
 Keep this in sync with the seed in 20260529100004_market_schema.sql.
 """
 
-# asset_id -> symbol  (cuantitov8.ACTIVOS_DB)
+# asset_id -> symbol
 ASSET_ID_TO_SYMBOL = {
     354: "MSFT", 100: "ORCL", 182: "ADBE", 607: "APLD", 1249: "MRVL",
     366: "NVDA", 95: "NOW", 52: "ACN", 183: "AI", 555: "AMD",
