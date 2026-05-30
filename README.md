@@ -18,6 +18,10 @@ Opcional para live data:
 
 - Instancia de **IBKR Gateway** corriendo localmente con credenciales de cuenta IBKR Paper Trading o real.
 
+## Demo estática (Cloudflare)
+
+Landing mock sin backend: **[sam-demo/README.md](sam-demo/README.md)** — `npm run build` → carpeta `dist/` para Pages.
+
 ## Inicio rápido (5 terminales o menos)
 
 ### 1. Supabase

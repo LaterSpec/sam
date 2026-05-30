@@ -1,0 +1,123 @@
+{
+  "user": {
+    "id": "demo-guest-001",
+    "email": "alex@demo.sam",
+    "full_name": "Alex Morris",
+    "username": "alex_morris",
+    "plan": "pro",
+    "streak": 17,
+    "member_since": "2026-01-15"
+  },
+  "prefs": {
+    "notifications": true,
+    "biometric": true,
+    "theme": "dark",
+    "rollover": false
+  },
+  "accounts": [
+    { "id": "acc-cash", "name": "Cash", "type": "cash", "balance": 320, "creditLimit": null, "last4": null, "icon": "◉", "color": "#56d364" },
+    { "id": "acc-card", "name": "Card", "type": "card", "balance": 0, "creditLimit": 2000, "last4": "7741", "icon": "▭", "color": "#e3b341" },
+    { "id": "acc-check", "name": "Checking", "type": "checking", "balance": 5240.3, "creditLimit": null, "last4": "4281", "icon": "▤", "color": "#58a6ff" },
+    { "id": "acc-save", "name": "Savings", "type": "savings", "balance": 2860.2, "creditLimit": null, "last4": "9920", "icon": "⬢", "color": "#bc8cff" }
+  ],
+  "budgets": [
+    { "id": "cat-food", "key": "food", "name": "Food & Drink", "icon": "🍔", "c": "#e8824a", "cap": 600 },
+    { "id": "cat-housing", "key": "housing", "name": "Housing", "icon": "🏠", "c": "#58a6ff", "cap": 900 },
+    { "id": "cat-transport", "key": "transport", "name": "Transport", "icon": "▶", "c": "#bc8cff", "cap": 250 },
+    { "id": "cat-subs", "key": "subs", "name": "Subscriptions", "icon": "⬡", "c": "#e3b341", "cap": 80 },
+    { "id": "cat-ent", "key": "ent", "name": "Entertainment", "icon": "✦", "c": "#56d364", "cap": 200 },
+    { "id": "cat-misc", "key": "misc", "name": "Misc", "icon": "●", "c": "#8b949e", "cap": 150 }
+  ],
+  "expenses": [
+    { "id": "tx-1", "name": "Starbucks", "amount": 6.5, "category": "food", "catKey": "food", "catColor": "#e8824a", "icon": "☕", "time": "08:12", "occurred_at": "2026-05-28T08:12:00.000Z", "kind": "expense" },
+    { "id": "tx-2", "name": "Uber", "amount": 14.2, "category": "transport", "catKey": "transport", "catColor": "#bc8cff", "icon": "▶", "time": "May 27", "occurred_at": "2026-05-27T18:40:00.000Z", "kind": "expense" },
+    { "id": "tx-3", "name": "Whole Foods", "amount": 87.4, "category": "food", "catKey": "food", "catColor": "#e8824a", "icon": "🛒", "time": "May 26", "occurred_at": "2026-05-26T19:05:00.000Z", "kind": "expense" },
+    { "id": "tx-4", "name": "Netflix", "amount": 15.99, "category": "subs", "catKey": "subs", "catColor": "#e3b341", "icon": "⬡", "time": "May 25", "occurred_at": "2026-05-25T06:00:00.000Z", "kind": "expense" },
+    { "id": "tx-5", "name": "Spotify", "amount": 11.99, "category": "subs", "catKey": "subs", "catColor": "#e3b341", "icon": "⬡", "time": "May 24", "occurred_at": "2026-05-24T06:00:00.000Z", "kind": "expense" },
+    { "id": "tx-6", "name": "Chipotle", "amount": 14.5, "category": "food", "catKey": "food", "catColor": "#e8824a", "icon": "🌯", "time": "May 23", "occurred_at": "2026-05-23T13:20:00.000Z", "kind": "expense" },
+    { "id": "tx-7", "name": "Movie night", "amount": 28, "category": "ent", "catKey": "ent", "catColor": "#56d364", "icon": "✦", "time": "May 22", "occurred_at": "2026-05-22T21:00:00.000Z", "kind": "expense" },
+    { "id": "tx-8", "name": "Gas", "amount": 42, "category": "transport", "catKey": "transport", "catColor": "#bc8cff", "icon": "▶", "time": "May 21", "occurred_at": "2026-05-21T17:30:00.000Z", "kind": "expense" },
+    { "id": "tx-9", "name": "Trader Joe's", "amount": 56.2, "category": "food", "catKey": "food", "catColor": "#e8824a", "icon": "🛒", "time": "May 19", "occurred_at": "2026-05-19T18:10:00.000Z", "kind": "expense" },
+    { "id": "tx-10", "name": "Electric bill", "amount": 64.3, "category": "housing", "catKey": "housing", "catColor": "#58a6ff", "icon": "⚡", "time": "May 15", "occurred_at": "2026-05-15T09:00:00.000Z", "kind": "expense" },
+    { "id": "tx-11", "name": "Gym", "amount": 39, "category": "ent", "catKey": "ent", "catColor": "#56d364", "icon": "🏋", "time": "May 12", "occurred_at": "2026-05-12T07:30:00.000Z", "kind": "expense" },
+    { "id": "tx-12", "name": "Amazon", "amount": 23.99, "category": "misc", "catKey": "misc", "catColor": "#8b949e", "icon": "📦", "time": "May 10", "occurred_at": "2026-05-10T14:45:00.000Z", "kind": "expense" },
+    { "id": "tx-13", "name": "Lyft", "amount": 9.8, "category": "transport", "catKey": "transport", "catColor": "#bc8cff", "icon": "▶", "time": "May 8", "occurred_at": "2026-05-08T22:15:00.000Z", "kind": "expense" },
+    { "id": "tx-14", "name": "Coffee beans", "amount": 18.4, "category": "food", "catKey": "food", "catColor": "#e8824a", "icon": "☕", "time": "May 5", "occurred_at": "2026-05-05T10:30:00.000Z", "kind": "expense" },
+    { "id": "tx-15", "name": "Rent", "amount": 850, "category": "housing", "catKey": "housing", "catColor": "#58a6ff", "icon": "🏠", "time": "May 1", "occurred_at": "2026-05-01T08:00:00.000Z", "kind": "expense" }
+  ],
+  "incomeTx": [
+    { "id": "tx-inc-1", "name": "Acme Corp · payroll", "amount": 3200, "category": "misc", "catKey": "misc", "catColor": "#8b949e", "icon": "⬢", "time": "May 1", "occurred_at": "2026-05-01T09:00:00.000Z", "kind": "income" }
+  ],
+  "goals": [
+    { "id": "goal-1", "name": "Emergency fund", "target": 10000, "saved": 6400, "eta": "Sep 2026", "icon": "🛡", "c": "#e3b341", "done": false },
+    { "id": "goal-2", "name": "Trip to Japan", "target": 4500, "saved": 1230, "eta": "Mar 2027", "icon": "✈", "c": "#58a6ff", "done": false },
+    { "id": "goal-3", "name": "New MacBook", "target": 2400, "saved": 2400, "eta": "done", "icon": "◼", "c": "#56d364", "done": true },
+    { "id": "goal-4", "name": "House down payment", "target": 30000, "saved": 4100, "eta": "2028", "icon": "⌂", "c": "#bc8cff", "done": false }
+  ],
+  "incomeSources": [
+    { "id": "inc-1", "name": "Acme Corp · salary", "amt": 3200, "icon": "⬢", "c": "#56d364", "freq": "monthly", "next": "Jun 1" },
+    { "id": "inc-2", "name": "Freelance · design", "amt": 450, "icon": "◆", "c": "#58a6ff", "freq": "this month", "next": "—" },
+    { "id": "inc-3", "name": "Dividends · VTI", "amt": 28, "icon": "◉", "c": "#e3b341", "freq": "quarterly", "next": "Jun 15" }
+  ],
+  "buckets": [
+    { "id": "bucket-1", "name": "Rainy day", "icon": "☂", "c": "#58a6ff", "balance": 1850, "target": 3000, "apy": 4.2 },
+    { "id": "bucket-2", "name": "Vacation", "icon": "✈", "c": "#bc8cff", "balance": 620, "target": 2000, "apy": 4.2 },
+    { "id": "bucket-3", "name": "Gadgets", "icon": "◼", "c": "#e3b341", "balance": 280, "target": 800, "apy": 4.2 }
+  ],
+  "holdings": [],
+  "watchlist": [
+    { "sym": "AAPL", "name": "Apple" },
+    { "sym": "MSFT", "name": "Microsoft" },
+    { "sym": "NVDA", "name": "NVIDIA" },
+    { "sym": "AMZN", "name": "Amazon" },
+    { "sym": "META", "name": "Meta Platforms" },
+    { "sym": "TSLA", "name": "Tesla" },
+    { "sym": "AVGO", "name": "Broadcom" },
+    { "sym": "AMD", "name": "AMD" },
+    { "sym": "NFLX", "name": "Netflix" },
+    { "sym": "V", "name": "Visa" },
+    { "sym": "SPY", "name": "S&P 500 ETF" },
+    { "sym": "QQQ", "name": "Nasdaq 100 ETF" }
+  ],
+  "tickerPool": [
+    { "sym": "AAPL", "name": "Apple" },
+    { "sym": "MSFT", "name": "Microsoft" },
+    { "sym": "NVDA", "name": "NVIDIA" },
+    { "sym": "AMZN", "name": "Amazon" },
+    { "sym": "META", "name": "Meta Platforms" },
+    { "sym": "TSLA", "name": "Tesla" },
+    { "sym": "AVGO", "name": "Broadcom" },
+    { "sym": "AMD", "name": "AMD" },
+    { "sym": "NFLX", "name": "Netflix" },
+    { "sym": "V", "name": "Visa" },
+    { "sym": "SPY", "name": "S&P 500 ETF" },
+    { "sym": "QQQ", "name": "Nasdaq 100 ETF" },
+    { "sym": "ORCL", "name": "Oracle" },
+    { "sym": "ADBE", "name": "Adobe" },
+    { "sym": "QCOM", "name": "Qualcomm" },
+    { "sym": "ASML", "name": "ASML Holding" },
+    { "sym": "NKE", "name": "Nike" },
+    { "sym": "BABA", "name": "Alibaba" }
+  ],
+  "basePrices": {
+    "AAPL": 198.5,
+    "MSFT": 425.2,
+    "NVDA": 132.8,
+    "AMZN": 188.4,
+    "META": 512.3,
+    "TSLA": 248.6,
+    "AVGO": 168.9,
+    "AMD": 162.4,
+    "NFLX": 628.5,
+    "V": 278.2,
+    "SPY": 528.4,
+    "QQQ": 455.8,
+    "ORCL": 125.3,
+    "ADBE": 485.6,
+    "QCOM": 168.2,
+    "ASML": 945.0,
+    "NKE": 92.4,
+    "BABA": 78.5
+  },
+  "portfolioSnapshots": []
+}
