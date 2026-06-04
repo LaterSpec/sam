@@ -11,6 +11,7 @@
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "db:seed": "tsx drizzle/seed.ts",
+    "db:seed:demo": "tsx drizzle/seed-demo.ts",
     "db:studio": "drizzle-kit studio",
     "market:sync": "tsx scripts/market/yahoo-sync.ts"
   },
@@ -38,6 +39,7 @@
     "@types/node": "^22.15.21",
     "@types/react": "^19.1.4",
     "@types/react-dom": "^19.1.5",
+    "dotenv": "^17.4.2",
     "drizzle-kit": "^0.31.1",
     "eslint": "^9.27.0",
     "eslint-config-next": "^15.3.2",

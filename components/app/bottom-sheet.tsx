@@ -11,11 +11,13 @@ export function BottomSheet({
   onClose,
   state,
   setState,
+  openSheet,
 }: {
   sheet: SheetPayload | null;
   onClose: () => void;
   state: ClientAppState;
   setState: Dispatch<SetStateAction<ClientAppState>>;
+  openSheet: (sheet: SheetPayload | null) => void;
 }) {
   const { sam } = useSam();
   const [closing, setClosing] = useState(false);
@@ -72,7 +74,7 @@ export function BottomSheet({
             margin: "-6px auto 10px",
           }}
         />
-        <SheetContent sheet={sheet} state={state} setState={setState} onClose={close} />
+        <SheetContent sheet={sheet} state={state} setState={setState} onClose={close} openSheet={openSheet} />
       </div>
     </div>
   );

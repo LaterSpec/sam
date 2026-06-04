@@ -11,9 +11,10 @@ cp .env.example .env.local
 # Set DATABASE_URL, BETTER_AUTH_SECRET, BETTER_AUTH_URL
 
 npm install
-npm run db:push      # or db:migrate against Neon
-npm run db:seed      # market symbols
-npm run market:sync  # Yahoo quotes + daily bars
+npm run db:push        # apply schema to Neon
+npm run db:seed        # 85 market symbols (from Supabase migration)
+npm run db:seed:demo   # demo user alex@sam.app / sam12345
+npm run market:sync    # Yahoo quotes + daily bars
 npm run dev          # http://localhost:3000
 ```
 
@@ -21,7 +22,7 @@ npm run dev          # http://localhost:3000
 
 | Route | Purpose |
 |-------|---------|
-| `/onboarding` | Landing + sign up / sign in |
+| `/onboarding` | Landing slides + Google sign-in |
 | `/app` | Main app (auth required) |
 | `/canvas` | Design reference (legacy) |
 
@@ -44,7 +45,31 @@ See [`.env.example`](.env.example):
 - `DATABASE_URL` — Neon Postgres connection string
 - `BETTER_AUTH_SECRET` — session signing secret
 - `BETTER_AUTH_URL` — app URL (e.g. `http://localhost:3000`)
+- `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` — Google OAuth (see below)
+- `BETTER_AUTH_EMAIL_ENABLED` — set `"true"` only to allow email login for demo seed user
 - `CRON_SECRET` — Vercel Cron auth for `/api/cron/market-sync`
+
+## Google OAuth (GCP)
+
+Configura el cliente OAuth como **Aplicación web** con estos valores (local):
+
+| Campo en GCP | Valor |
+|--------------|--------|
+| Orígenes autorizados de JavaScript | `http://localhost:3000` |
+| URIs de redireccionamiento autorizados | `http://localhost:3000/api/auth/callback/google` |
+
+Pasos:
+
+1. [Google Cloud Console](https://console.cloud.google.com/) → proyecto → **APIs y servicios → Credenciales → Crear credenciales → ID de cliente de OAuth → Aplicación web**.
+2. Añade los orígenes y URIs de la tabla (y los mismos con tu dominio de producción en Vercel).
+3. Copia **ID de cliente** y **Secreto** a `.env.local`:
+   - `GOOGLE_CLIENT_ID`
+   - `GOOGLE_CLIENT_SECRET`
+4. `BETTER_AUTH_URL` y `NEXT_PUBLIC_APP_URL` deben ser exactamente `http://localhost:3000` en local (sin barra final). Eso evita `redirect_uri_mismatch`.
+
+Tras login, Google redirige a `/api/auth/callback/google` (Better Auth); luego la app muestra éxito en `/onboarding?auth=success` y entras a `/app`.
+
+Los usuarios nuevos reciben bootstrap automático (perfil, cuentas, categorías, watchlist).
 
 ## Deploy (Vercel)
 

@@ -22,6 +22,7 @@ import { requireSession } from "@/lib/auth/session";
 import { loadUserData, getMarketQuotesOnly, getBarsForSymbols } from "@/lib/db/queries/load-user-data";
 import { mapHolding } from "@/lib/market/build-market";
 import { revalidatePath } from "next/cache";
+import { formatTime } from "@/lib/utils";
 
 export async function fetchUserDataAction() {
   const session = await requireSession();
@@ -71,7 +72,7 @@ export async function addExpenseAction(input: {
     catKey: cat?.key ?? "misc",
     catColor: cat?.c ?? "#8b949e",
     icon: row.icon ?? "●",
-    time: "now",
+    time: formatTime(row.occurredAt.toISOString()),
     occurred_at: row.occurredAt.toISOString(),
     kind: "expense",
   };
@@ -81,6 +82,70 @@ export async function deleteExpenseAction(id: string) {
   const session = await requireSession();
   await db.delete(transactions).where(and(eq(transactions.id, id), eq(transactions.userId, session.user.id)));
   revalidatePath("/app");
+}
+
+export async function updateExpenseAction(input: {
+  id: string;
+  amount?: number;
+  name?: string;
+  catKey?: string;
+  notes?: string;
+  budgets: Array<{ id: string; key: string; icon: string; c: string }>;
+}) {
+  const session = await requireSession();
+  const uid = session.user.id;
+
+  const existing = await db
+    .select()
+    .from(transactions)
+    .where(and(eq(transactions.id, input.id), eq(transactions.userId, uid)))
+    .limit(1);
+
+  if (!existing[0]) {
+    return { error: "not found" as const };
+  }
+
+  const cat = input.catKey != null ? input.budgets.find((b) => b.key === input.catKey) : undefined;
+  const patch: {
+    amount?: string;
+    name?: string;
+    notes?: string | null;
+    categoryId?: string | null;
+    icon?: string;
+  } = {};
+
+  if (input.amount != null) patch.amount = String(input.amount);
+  if (input.name != null) patch.name = input.name;
+  if (input.notes !== undefined) patch.notes = input.notes || null;
+  if (input.catKey != null) {
+    patch.categoryId = cat?.id ?? null;
+    if (cat) patch.icon = cat.icon;
+  }
+
+  const [row] = await db
+    .update(transactions)
+    .set(patch)
+    .where(and(eq(transactions.id, input.id), eq(transactions.userId, uid)))
+    .returning();
+
+  const resolvedCat =
+    cat ??
+    (row.categoryId ? input.budgets.find((b) => b.id === row.categoryId) : undefined);
+
+  revalidatePath("/app");
+  return {
+    id: row.id,
+    name: row.name,
+    amount: Number(row.amount),
+    category: resolvedCat?.key ?? "misc",
+    catKey: resolvedCat?.key ?? "misc",
+    catColor: resolvedCat?.c ?? "#8b949e",
+    icon: row.icon ?? "●",
+    time: formatTime(row.occurredAt.toISOString()),
+    occurred_at: row.occurredAt.toISOString(),
+    kind: row.kind,
+    notes: row.notes ?? undefined,
+  };
 }
 
 export async function addGoalAction(input: { name: string; target: number }) {

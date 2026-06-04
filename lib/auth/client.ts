@@ -5,3 +5,10 @@ export const authClient = createAuthClient({
 });
 
 export const { signIn, signUp, signOut, useSession } = authClient;
+
+export function signInWithGoogle() {
+  return signIn.social({
+    provider: "google",
+    callbackURL: "/onboarding?auth=success",
+  });
+}

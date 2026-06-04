@@ -7,7 +7,6 @@ import { makeSeries, seriesToPrices, symbolSeed } from "@/lib/market/build-marke
 import type { ClientAppState, SheetPayload } from "@/components/screens/types";
 import {
   addExpenseAction,
-  deleteExpenseAction,
   addGoalAction,
   setGoalSavedAction,
   setBudgetCapAction,
@@ -18,20 +17,22 @@ import {
   addWatchAction,
   fetchBarsAction,
 } from "@/lib/actions/data-actions";
+import { TxSheet } from "@/components/sheets/tx-sheet";
 
 type SheetContentProps = {
   sheet: SheetPayload;
   state: ClientAppState;
   setState: React.Dispatch<React.SetStateAction<ClientAppState>>;
   onClose: () => void;
+  openSheet: (sheet: SheetPayload | null) => void;
 };
 
-export function SheetContent({ sheet, state, setState, onClose }: SheetContentProps) {
+export function SheetContent({ sheet, state, setState, onClose, openSheet }: SheetContentProps) {
   switch (sheet.kind) {
     case "tx":
       return <TxSheet sheet={sheet} state={state} setState={setState} onClose={onClose} />;
     case "category":
-      return <CategorySheet sheet={sheet} state={state} onClose={onClose} />;
+      return <CategorySheet sheet={sheet} state={state} onClose={onClose} openSheet={openSheet} />;
     case "goal":
       return <GoalSheet sheet={sheet} setState={setState} onClose={onClose} />;
     case "new-expense":
@@ -59,90 +60,16 @@ export function SheetContent({ sheet, state, setState, onClose }: SheetContentPr
   }
 }
 
-function TxSheet({
-  sheet,
-  state,
-  setState,
-  onClose,
-}: {
-  sheet: Extract<SheetPayload, { kind: "tx" }>;
-  state: ClientAppState;
-  setState: SheetContentProps["setState"];
-  onClose: () => void;
-}) {
-  const { sam } = useSam();
-  const tx = sheet.tx;
-  return (
-    <div>
-      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 14 }}>
-        <span onClick={onClose} style={{ cursor: "pointer", color: sam.comment }}>
-          [cancel]
-        </span>
-        <Mono c={sam.cyan} b>
-          $ tx --view
-        </Mono>
-        <span style={{ color: sam.yellow, cursor: "pointer" }}>[edit]</span>
-      </div>
-      <div style={{ textAlign: "center", marginTop: 10, marginBottom: 18 }}>
-        <div style={{ fontSize: 36, color: tx.catColor }}>{tx.icon}</div>
-        <div
-          style={{
-            fontSize: 30,
-            fontWeight: 700,
-            color: sam.red,
-            fontVariantNumeric: "tabular-nums",
-            marginTop: 4,
-          }}
-        >
-          -${tx.amount.toFixed(2)}
-        </div>
-        <div style={{ fontSize: 14, color: sam.text, marginTop: 2, fontWeight: 600 }}>{tx.name}</div>
-      </div>
-      <div style={{ fontSize: 13, borderTop: `1px solid ${sam.border}`, paddingTop: 12 }}>
-        {(
-          [
-            ["├─", "category", tx.category],
-            ["├─", "account", "checking ····4281"],
-            ["├─", "date", `Apr 19, ${tx.time}`],
-            ["├─", "merchant", tx.name],
-            ["└─", "notes", "none"],
-          ] as const
-        ).map(([t, k, v], i) => (
-          <div key={i} style={{ display: "flex", marginTop: 6 }}>
-            <Mono c={sam.comment}>{t} </Mono>
-            <Mono c={sam.text}>{k}</Mono>
-            <span style={{ flex: 1 }} />
-            <Mono c={sam.comment}>{v}</Mono>
-          </div>
-        ))}
-      </div>
-      <div style={{ marginTop: 18, display: "flex", gap: 12 }}>
-        <span style={{ color: sam.cyan, cursor: "pointer" }}>[split]</span>
-        <span style={{ color: sam.cyan, cursor: "pointer" }}>[recategorize]</span>
-        <span style={{ flex: 1 }} />
-        <span
-          onClick={async () => {
-            await deleteExpenseAction(tx.id);
-            setState((s) => ({ ...s, expenses: s.expenses.filter((e) => e.id !== tx.id) }));
-            onClose();
-          }}
-          style={{ color: sam.red, cursor: "pointer" }}
-        >
-          [delete]
-        </span>
-      </div>
-    </div>
-  );
-}
-
 function CategorySheet({
   sheet,
   state,
   onClose,
+  openSheet,
 }: {
   sheet: Extract<SheetPayload, { kind: "category" }>;
   state: ClientAppState;
   onClose: () => void;
+  openSheet: (sheet: SheetPayload | null) => void;
 }) {
   const { sam } = useSam();
   const { cat, spent, pct } = sheet;
@@ -189,7 +116,11 @@ function CategorySheet({
         {state.expenses
           .filter((e) => e.catKey === cat.key)
           .map((e) => (
-            <div key={e.id} style={{ fontSize: 13, marginTop: 8, display: "flex" }}>
+            <div
+              key={e.id}
+              onClick={() => openSheet({ kind: "tx", tx: e })}
+              style={{ fontSize: 13, marginTop: 8, display: "flex", cursor: "pointer" }}
+            >
               <Mono c={sam.comment}>├─ </Mono>
               <Mono c={sam.text}>{e.name}</Mono>
               <span style={{ flex: 1 }} />
@@ -348,13 +279,12 @@ function NewExpenseSheet({
   const [amount, setAmount] = useState("");
   const [name, setName] = useState("");
   const [catKey, setCatKey] = useState("food");
-  const cats = [
-    { key: "food", icon: "🍔", name: "Food", c: sam.orange },
-    { key: "housing", icon: "🏠", name: "Housing", c: sam.cyan },
-    { key: "transport", icon: "▶", name: "Transport", c: sam.magenta },
-    { key: "subs", icon: "⬡", name: "Subs", c: sam.yellow },
-    { key: "ent", icon: "✦", name: "Ent.", c: sam.green },
-  ];
+  const cats = (state.budgets || []).map((b) => ({
+    key: b.key,
+    icon: b.icon,
+    name: b.name,
+    c: b.c,
+  }));
   const canSave = !!(amount && name && !isNaN(parseFloat(amount)));
 
   const save = async () => {

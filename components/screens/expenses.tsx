@@ -1,12 +1,18 @@
 "use client";
 
+import { useMemo } from "react";
 import { useSam } from "@/lib/theme/sam-theme";
 import { Mono, Comment, Prompt, BlockBar, TabBar } from "@/components/ui/sam-primitives";
+import { dayOfMonth, formatMonthYear } from "@/lib/utils";
 import type { ScreenProps } from "./types";
 import { SCREEN_PAD } from "./types";
 
 export function ExpensesScreen({ state, setState, openSheet }: ScreenProps) {
   const { sam } = useSam();
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth();
+
   const cats = (state.budgets || []).map((b) => ({
     key: b.key,
     icon: b.icon,
@@ -14,26 +20,58 @@ export function ExpensesScreen({ state, setState, openSheet }: ScreenProps) {
     budget: b.cap,
     c: b.c,
   }));
+
   const byCat: Record<string, number> = {};
-  state.expenses.forEach((e) => {
-    byCat[e.catKey] = (byCat[e.catKey] || 0) + e.amount;
-  });
   const txByCat: Record<string, number> = {};
   state.expenses.forEach((e) => {
+    byCat[e.catKey] = (byCat[e.catKey] || 0) + e.amount;
     txByCat[e.catKey] = (txByCat[e.catKey] || 0) + 1;
   });
 
   const totalSpent = state.expenses.reduce((a, e) => a + e.amount, 0);
   const monthTarget = (state.budgets || []).reduce((a, b) => a + b.cap, 0) || 1;
-  const days = [
-    { d: "Mon", n: 13, pct: 30 },
-    { d: "Tue", n: 14, pct: 70 },
-    { d: "Wed", n: 15, pct: 45 },
-    { d: "Thu", n: 16, pct: 90 },
-    { d: "Fri", n: 17, pct: 60 },
-    { d: "Sat", n: 18, pct: 20 },
-    { d: "Sun", n: 19, pct: 55 },
-  ];
+
+  const { days, filteredTx } = useMemo(() => {
+    const spendByDay: Record<number, number> = {};
+    state.expenses.forEach((e) => {
+      const d = new Date(e.occurred_at);
+      if (d.getFullYear() === year && d.getMonth() === month) {
+        const day = d.getDate();
+        spendByDay[day] = (spendByDay[day] || 0) + e.amount;
+      }
+    });
+    const maxSpend = Math.max(...Object.values(spendByDay), 1);
+
+    const weekDays = Array.from({ length: 7 }, (_, i) => {
+      const dayNum = state.selectedDay - 3 + i;
+      const date = new Date(year, month, dayNum);
+      const inMonth = date.getMonth() === month;
+      const n = date.getDate();
+      const spent = inMonth ? spendByDay[n] || 0 : 0;
+      return {
+        d: date.toLocaleDateString("en", { weekday: "short" }).slice(0, 3),
+        n,
+        pct: inMonth ? Math.round((spent / maxSpend) * 100) : 0,
+        inMonth,
+      };
+    });
+
+    const tx = [...state.expenses]
+      .filter((e) => dayOfMonth(e.occurred_at) === state.selectedDay)
+      .sort((a, b) => new Date(b.occurred_at).getTime() - new Date(a.occurred_at).getTime());
+
+    return { days: weekDays, filteredTx: tx };
+  }, [state.expenses, state.selectedDay, year, month]);
+
+  const allTxSorted = useMemo(
+    () =>
+      [...state.expenses].sort(
+        (a, b) => new Date(b.occurred_at).getTime() - new Date(a.occurred_at).getTime()
+      ),
+    [state.expenses]
+  );
+
+  const listTx = filteredTx.length > 0 ? filteredTx : allTxSorted;
 
   return (
     <div style={{ padding: SCREEN_PAD }}>
@@ -43,7 +81,7 @@ export function ExpensesScreen({ state, setState, openSheet }: ScreenProps) {
         <Comment>
           {totalSpent.toFixed(0)} logged across {state.expenses.length} tx. on pace.
         </Comment>
-        <div style={{ marginTop: 12, color: sam.comment, fontSize: 12 }}>📊 April 2026</div>
+        <div style={{ marginTop: 12, color: sam.comment, fontSize: 12 }}>📊 {formatMonthYear(now)}</div>
         <div style={{ fontSize: 13, marginTop: 2 }}>
           <Mono c={sam.red} b>-${totalSpent.toFixed(0)}</Mono>
           <Mono c={sam.comment}> of </Mono>
@@ -58,12 +96,13 @@ export function ExpensesScreen({ state, setState, openSheet }: ScreenProps) {
             return (
               <div
                 key={i}
-                onClick={() => setState((s) => ({ ...s, selectedDay: d.n }))}
+                onClick={() => d.inMonth && setState((s) => ({ ...s, selectedDay: d.n }))}
                 style={{
                   flex: 1,
                   textAlign: "center",
-                  cursor: "pointer",
+                  cursor: d.inMonth ? "pointer" : "default",
                   padding: "4px 0",
+                  opacity: d.inMonth ? 1 : 0.35,
                   background: isActive ? "rgba(227,179,65,0.15)" : "transparent",
                   border: isActive ? `1px solid ${sam.yellow}` : "1px solid transparent",
                   transition: "background 140ms",
@@ -129,12 +168,52 @@ export function ExpensesScreen({ state, setState, openSheet }: ScreenProps) {
             );
           })}
         </div>
+        <div style={{ marginTop: 20 }}>
+          <div style={{ fontSize: 13, color: sam.cyan, fontWeight: 600 }}>
+            ▸ Transactions
+            <span style={{ float: "right", color: sam.textDim, fontWeight: 400 }}>
+              [{listTx.length}] ▾
+            </span>
+          </div>
+          <Comment>
+            {filteredTx.length > 0 ? `day ${state.selectedDay} · tap to view` : "all expenses · tap to view"}
+          </Comment>
+          {listTx.length === 0 && (
+            <div style={{ marginTop: 12, fontSize: 12, color: sam.comment }}>{`// no transactions`}</div>
+          )}
+          {listTx.map((e, i) => {
+            const isLast = i === listTx.length - 1;
+            return (
+              <div
+                key={e.id}
+                onClick={() => openSheet({ kind: "tx", tx: e })}
+                style={{ marginTop: 10, fontSize: 13, cursor: "pointer", padding: "4px 6px", marginLeft: -6, marginRight: -6 }}
+              >
+                <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
+                  <Mono c={sam.comment}>{isLast ? "└─" : "├─"}</Mono>
+                  <Mono c={e.catColor}>{e.icon}</Mono>
+                  <Mono c={sam.text} b>
+                    {e.name}
+                  </Mono>
+                  <span style={{ flex: 1 }} />
+                  <Mono c={sam.red} b>
+                    -${e.amount.toFixed(2)}
+                  </Mono>
+                </div>
+                <div style={{ paddingLeft: 26, color: sam.comment, fontSize: 11 }}>{`// ${e.category} · ${e.time}`}</div>
+              </div>
+            );
+          })}
+        </div>
         <div style={{ marginTop: 20, fontSize: 14 }}>
           <span onClick={() => openSheet({ kind: "new-expense" })} style={{ cursor: "pointer" }}>
             <Mono c={sam.green} b>[+ new expense]</Mono>
           </span>
           <Mono c={sam.comment}> · </Mono>
-          <Mono c={sam.cyan}>[import]</Mono>
+          <Mono c={sam.comment} style={{ opacity: 0.6 }}>
+            [import]
+          </Mono>
+          <span style={{ fontSize: 10, color: sam.comment, marginLeft: 4 }}>{`// coming soon`}</span>
         </div>
       </div>
     </div>

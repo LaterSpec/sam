@@ -1,34 +1,46 @@
 /**
- * Seed market symbols. Demo user seed requires Better Auth signup or manual insert.
- * Run: npm run db:seed (requires DATABASE_URL)
+ * Seed global market catalog (85 symbols from Supabase migration 0004).
+ *
+ * Original SQL: docs/database/supabase-archive/seed.sql (demo user)
+ *               docs/database/supabase-archive/20260529100004_market_schema.sql (symbols)
+ *
+ * Demo user alex@sam.app: npm run db:seed:demo
  */
-import { db, getDb } from "@/lib/db";
-import { marketSymbols } from "@/lib/db/schema";
+import { config } from "dotenv";
+config({ path: ".env.local" });
 
-const SYMBOLS: Array<[string, string, boolean, number]> = [
-  ["AAPL", "Apple", true, 0],
-  ["MSFT", "Microsoft", true, 1],
-  ["NVDA", "NVIDIA", true, 2],
-  ["AMZN", "Amazon", true, 3],
-  ["META", "Meta Platforms", true, 4],
-  ["TSLA", "Tesla", true, 5],
-  ["AVGO", "Broadcom", true, 6],
-  ["AMD", "AMD", true, 7],
-  ["NFLX", "Netflix", true, 8],
-  ["V", "Visa", true, 9],
-  ["SPY", "SPDR S&P 500", true, 10],
-  ["QQQ", "Invesco QQQ", true, 11],
-];
+import { getDb, db } from "@/lib/db";
+import { marketSymbols } from "@/lib/db/schema";
+import { MARKET_SYMBOLS_SEED } from "@/lib/db/seed/market-symbols";
 
 async function seed() {
   getDb();
-  for (const [symbol, name, curated, sort] of SYMBOLS) {
+
+  for (const row of MARKET_SYMBOLS_SEED) {
     await db
       .insert(marketSymbols)
-      .values({ symbol, name, curated, sort, active: true })
-      .onConflictDoNothing();
+      .values({
+        symbol: row.symbol,
+        name: row.name,
+        assetId: row.assetId,
+        curated: row.curated,
+        sort: row.sort,
+        active: true,
+      })
+      .onConflictDoUpdate({
+        target: marketSymbols.symbol,
+        set: {
+          name: row.name,
+          assetId: row.assetId,
+          curated: row.curated,
+          sort: row.sort,
+          active: true,
+        },
+      });
   }
-  console.log(`Seeded ${SYMBOLS.length} market symbols`);
+
+  console.log(`✓ Seeded ${MARKET_SYMBOLS_SEED.length} market_symbols`);
+  console.log("  Demo user: npm run db:seed:demo  (alex@sam.app / sam12345)");
 }
 
 seed()

@@ -2,11 +2,13 @@
 
 import { useSam } from "@/lib/theme/sam-theme";
 import { Mono, Comment, Prompt, BlockBar, TabBar } from "@/components/ui/sam-primitives";
+import { formatDateLong, formatMonthYear } from "@/lib/utils";
 import type { ScreenProps } from "./types";
 import { SCREEN_PAD } from "./types";
 
 export function HomeScreen({ state, setState, openSheet }: ScreenProps) {
   const { sam } = useSam();
+  const now = new Date();
   const totalIncome = (state.incomeSources || []).reduce((a, s) => a + s.amt, 0);
   const totalExpenses = state.expenses.reduce((a, e) => a + e.amount, 0);
   const balance = (state.accounts || []).reduce((a, x) => a + x.balance, 0);
@@ -15,7 +17,12 @@ export function HomeScreen({ state, setState, openSheet }: ScreenProps) {
   const accountCount = (state.accounts || []).length;
   const net = totalIncome - totalExpenses;
   const money = (n: number) => `${n < 0 ? "-" : ""}$${Math.abs(n).toLocaleString()}`;
-  const recent = state.expenses.slice(-3).reverse();
+  const recent = [...state.expenses]
+    .sort((a, b) => new Date(b.occurred_at).getTime() - new Date(a.occurred_at).getTime())
+    .slice(0, 3);
+  const daysLeft =
+    new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate() - now.getDate();
+  const monthLabel = formatMonthYear(now).split(" ")[0];
 
   return (
     <div style={{ padding: SCREEN_PAD }}>
@@ -30,7 +37,7 @@ export function HomeScreen({ state, setState, openSheet }: ScreenProps) {
           good morning. tracking {accountCount} accounts, {state.expenses.length} tx this week.
         </Comment>
         <div style={{ marginTop: 18 }}>
-          <div style={{ color: sam.comment, fontSize: 12, marginBottom: 4 }}>📅 Sunday, April 19 2026</div>
+          <div style={{ color: sam.comment, fontSize: 12, marginBottom: 4 }}>📅 {formatDateLong(now)}</div>
           <div style={{ color: sam.comment, fontSize: 13 }}>
             <Mono c={net >= 0 ? sam.green : sam.red}>{net >= 0 ? "▲" : "▼"}</Mono> net{" "}
             {net >= 0 ? "+" : "-"}${Math.abs(net).toLocaleString()} · <Mono c={sam.cyan}>◆</Mono> {state.streak}{" "}
@@ -68,9 +75,12 @@ export function HomeScreen({ state, setState, openSheet }: ScreenProps) {
             +4.2% <span style={{ color: sam.comment }}>// vs last month</span>
           </div>
         </div>
-        <div style={{ marginTop: 18 }}>
+        <div
+          style={{ marginTop: 18, cursor: "pointer" }}
+          onClick={() => setState((s) => ({ ...s, tab: "expenses", expTab: "budget" }))}
+        >
           <div style={{ fontSize: 13, color: sam.cyan, fontWeight: 600 }}>
-            ▸ April budget
+            ▸ {monthLabel} budget
             <span style={{ float: "right", color: sam.textDim, fontWeight: 400 }}>[{budgetPct}%] ▾</span>
           </div>
           <Comment>
@@ -78,7 +88,9 @@ export function HomeScreen({ state, setState, openSheet }: ScreenProps) {
           </Comment>
           <div style={{ marginTop: 6, fontSize: 12 }}>
             <BlockBar pct={budgetPct} width={22} c={budgetPct > 90 ? sam.red : sam.yellow} />
-            <span style={{ color: sam.comment, marginLeft: 8 }}>11 days left</span>
+            <span style={{ color: sam.comment, marginLeft: 8 }}>
+              {daysLeft} day{daysLeft === 1 ? "" : "s"} left
+            </span>
           </div>
         </div>
         <div style={{ marginTop: 16, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
@@ -100,6 +112,9 @@ export function HomeScreen({ state, setState, openSheet }: ScreenProps) {
             <span style={{ float: "right", color: sam.textDim, fontWeight: 400 }}>[{recent.length}] ▾</span>
           </div>
           <Comment>tap to view details</Comment>
+          {recent.length === 0 && (
+            <div style={{ marginTop: 12, fontSize: 12, color: sam.comment }}>{`// no expenses yet`}</div>
+          )}
           {recent.map((r) => (
             <div
               key={r.id}

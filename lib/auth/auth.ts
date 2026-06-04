@@ -4,6 +4,12 @@ import { db } from "@/lib/db";
 import * as schema from "@/lib/db/schema";
 import { bootstrapNewUser } from "@/lib/auth/onboarding-bootstrap";
 
+/** Must match GCP "Authorized JavaScript origins" (e.g. http://localhost:3000) */
+const baseURL = process.env.BETTER_AUTH_URL || "http://localhost:3000";
+
+const googleClientId = process.env.GOOGLE_CLIENT_ID;
+const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
+
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
     provider: "pg",
@@ -15,9 +21,19 @@ export const auth = betterAuth({
     },
   }),
   emailAndPassword: {
-    enabled: true,
+    enabled: process.env.BETTER_AUTH_EMAIL_ENABLED !== "false",
     minPasswordLength: 8,
   },
+  ...(googleClientId && googleClientSecret
+    ? {
+        socialProviders: {
+          google: {
+            clientId: googleClientId,
+            clientSecret: googleClientSecret,
+          },
+        },
+      }
+    : {}),
   user: {
     additionalFields: {},
   },
@@ -30,9 +46,12 @@ export const auth = betterAuth({
       },
     },
   },
-  trustedOrigins: [process.env.BETTER_AUTH_URL || "http://localhost:3000"],
+  trustedOrigins: [
+    baseURL,
+    process.env.NEXT_PUBLIC_APP_URL || baseURL,
+  ].filter((v, i, a) => v && a.indexOf(v) === i),
   secret: process.env.BETTER_AUTH_SECRET,
-  baseURL: process.env.BETTER_AUTH_URL,
+  baseURL,
 });
 
 export type Session = typeof auth.$Infer.Session;

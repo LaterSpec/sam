@@ -35,3 +35,20 @@ export function fmtMoneyShort(v: number): string {
   if (a >= 1e3) return `$${(v / 1e3).toFixed(1)}k`;
   return `$${v.toFixed(a < 10 ? 2 : 0)}`;
 }
+
+export function formatDateLong(d = new Date()): string {
+  return d.toLocaleDateString("en", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+export function formatMonthYear(d = new Date()): string {
+  return d.toLocaleDateString("en", { month: "long", year: "numeric" });
+}
+
+export function dayOfMonth(iso: string): number {
+  return new Date(iso).getDate();
+}

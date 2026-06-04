@@ -43,7 +43,7 @@ const UI_DEFAULTS = {
   goalsTab: "goals",
   investTab: "portfolio",
   profileTab: "profile",
-  selectedDay: 19,
+  selectedDay: new Date().getDate(),
   selectedGoal: null as string | null,
   pending: 3,
   hiddenCards: [] as string[],
@@ -300,7 +300,7 @@ function AppShellInner({
       </main>
 
       <BottomNav active={state.tab} onChange={setTab} />
-      <BottomSheet sheet={sheet} onClose={() => setSheet(null)} state={state} setState={setState} />
+      <BottomSheet sheet={sheet} onClose={() => setSheet(null)} state={state} setState={setState} openSheet={setSheet} />
     </div>
   );
 }
