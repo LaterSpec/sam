@@ -1,0 +1,16 @@
+---
+description: SAM project migration rules and stack conventions
+globs:
+alwaysApply: true
+---
+
+# SAM Project Rules
+
+- Next.js App Router + TypeScript + Tailwind + shadcn/ui + Drizzle + Neon + Better Auth + Zod.
+- Deploy target: Vercel. Database: Neon Postgres. No Supabase as active dependency.
+- Ignore `sam-demo/` completely.
+- Full-viewport PWA layout — no iOS device frames or phone chrome.
+- Prefer Server Actions / Route Handlers over separate Python backend.
+- Market ingestion: Vercel Cron or external worker; IBKR live is optional long-running worker.
+- Extract and document DB schema before removing Supabase files.
+- Make small, reviewable changes. Do not delete legacy until documented.

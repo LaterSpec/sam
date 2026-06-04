@@ -54,19 +54,16 @@ tmp/
 temp/
 .cache/
 
-# ── Node (if added later) ─────────────────────────────────────
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
+# ── Legacy (archived) ────────────────────────────────────────
+docs/legacy/
 
-# ── Build / artifacts ─────────────────────────────────────────
-dist/
-out/
+# ── Node / Next.js ───────────────────────────────────────────
+node_modules/
 .next/
-.nuxt/
-coverage/
+out/
+
+# ── Python (backend workers) ─────────────────────────────────
+backend/venv/
 
 # ── Cursor / agent artifacts (optional local only) ─────────────
 .cursor/projects/

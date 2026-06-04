@@ -1,254 +1,73 @@
 # SAM — Financial Terminal
 
-Terminal financiero personal estilo consola: onboarding, presupuesto, metas e **Invest** con cotizaciones reales (Yahoo Finance + feed live opcional vía IBKR Gateway), compra/venta **simulada** y portafolio persistido en Supabase.
+Personal financial terminal PWA: onboarding, budget, goals, and simulated invest with real market data.
 
-> MVP local de punta a punta. No hay broker real ni órdenes reales.
+**Stack:** Next.js 15 · React 19 · TypeScript · Tailwind CSS · Drizzle ORM · Neon Postgres · Better Auth · PWA (Serwist) · Vercel
 
-## Requisitos
-
-| Herramienta | Versión / notas |
-|-------------|-----------------|
-| **macOS / Linux** | Desarrollo probado en macOS con Docker |
-| **Docker Desktop** | Para Supabase local |
-| **Supabase CLI** | `supabase --version` |
-| **Python 3.10+** | Backend de mercado (`backend/venv`) |
-| **Navegador moderno** | Chrome / Safari / Firefox |
-
-Opcional para live data:
-
-- Instancia de **IBKR Gateway** corriendo localmente con credenciales de cuenta IBKR Paper Trading o real.
-
-## Demo estática (Cloudflare)
-
-Landing mock sin backend: **[sam-demo/README.md](sam-demo/README.md)** — `npm run build` → carpeta `dist/` para Pages.
-
-## Inicio rápido (5 terminales o menos)
-
-### 1. Supabase
+## Quick start
 
 ```bash
-cd FinancialTerminal
-supabase start
+cp .env.example .env.local
+# Set DATABASE_URL, BETTER_AUTH_SECRET, BETTER_AUTH_URL
+
+npm install
+npm run db:push      # or db:migrate against Neon
+npm run db:seed      # market symbols
+npm run market:sync  # Yahoo quotes + daily bars
+npm run dev          # http://localhost:3000
 ```
 
-Anota la salida de `supabase status` (API URL, anon key, Studio). Tras el primer clone:
+## Routes
+
+| Route | Purpose |
+|-------|---------|
+| `/onboarding` | Landing + sign up / sign in |
+| `/app` | Main app (auth required) |
+| `/canvas` | Design reference (legacy) |
+
+## Scripts
 
 ```bash
-supabase db reset    # aplica migraciones + seed (usuario demo)
+npm run dev
+npm run build
+npm run lint
+npm run db:generate
+npm run db:migrate
+npm run db:seed
+npm run market:sync
 ```
 
-Solo migraciones nuevas sin borrar datos:
+## Environment
 
-```bash
-supabase migration up
-```
+See [`.env.example`](.env.example):
 
-### 2. Frontend
+- `DATABASE_URL` — Neon Postgres connection string
+- `BETTER_AUTH_SECRET` — session signing secret
+- `BETTER_AUTH_URL` — app URL (e.g. `http://localhost:3000`)
+- `CRON_SECRET` — Vercel Cron auth for `/api/cron/market-sync`
 
-```bash
-python3 serve.py
-# → http://localhost:3000
-```
+## Deploy (Vercel)
 
-| Página | URL |
-|--------|-----|
-| Onboarding (registro / login) | http://localhost:3000/SAM-Onboarding.html |
-| App principal | http://localhost:3000/SAM-Interactive.html |
+1. Connect repo to Vercel
+2. Set env vars from `.env.example`
+3. Add Neon `DATABASE_URL`
+4. Optional: Vercel Cron → `GET /api/cron/market-sync` with `Authorization: Bearer $CRON_SECRET`
 
-> El servidor usa puerto **3000** a propósito (evita conflicto con Docker en 8080).  
-> Si cambias de puerto, tendrás que volver a iniciar sesión (`localStorage` por origen).
+## PWA
 
-### 3. Datos de mercado (Yahoo)
+Install from Chrome (Android) or Safari → Add to Home Screen (iOS). See [`docs/PWA.md`](docs/PWA.md).
 
-```bash
-cd backend
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-python -m market.yahoo_sync
-```
+## Legacy
 
-Sin este paso, Invest puede mostrar pocos precios o sparklines vacíos hasta que corra el sync.
+Previous HTML/CDN app archived in [`docs/legacy/`](docs/legacy/). Supabase SQL in [`docs/database/supabase-archive/`](docs/database/supabase-archive/).
 
-### 4. Live data via IBKR Gateway (opcional)
+## Docs
 
-```bash
-cd backend
-source venv/bin/activate
-cp .env.example .env   # rellena IBG_USERNAME / IBG_PASSWORD
-python -m live_data.connect
-# Introduce el código 2FA cuando lo pida
-```
+- [Database schema](docs/database/schema-summary.md)
+- [Supabase migration notes](docs/database/supabase-migration-notes.md)
+- [PWA](docs/PWA.md)
+- [Architecture (legacy)](docs/ARCHITECTURE.md)
 
-Mientras corre, Market y Portfolio muestran `● LIVE`. Al cerrar el script, vuelve el fallback Yahoo.
+## Disclaimer
 
----
-
-## Usuario de prueba
-
-Tras `supabase db reset`:
-
-| | |
-|--|--|
-| **Email** | `alex@sam.app` |
-| **Contraseña** | `sam12345` |
-
-Incluye transacciones, metas, cuentas y categorías de demo. **Invest** empieza sin posiciones; el watchlist curated se crea al registrarse.
-
-También puedes **crear una cuenta nueva** en onboarding (mismo flujo MVP con email/contraseña). OAuth Apple/Google está visible pero **no conectado** (ver roadmap).
-
----
-
-## Puertos y URLs
-
-| Servicio | Puerto | URL |
-|----------|--------|-----|
-| App estática | 3000 | http://localhost:3000 |
-| Supabase API | 54321 | http://127.0.0.1:54321 |
-| Postgres | 54322 | `postgresql://postgres:postgres@127.0.0.1:54322/postgres` |
-| Supabase Studio | 54323 | http://127.0.0.1:54323 |
-
----
-
-## Estructura del repositorio
-
-```
-FinancialTerminal/
-├── SAM-Onboarding.html      # Auth + landing invest
-├── SAM-Interactive.html     # App React (CDN)
-├── serve.py                 # HTTP sin caché
-├── src/shared/              # supabase-client.js, ios-frame
-├── src/interactive/         # App, pantallas, sheets
-├── supabase/migrations/     # Esquema SQL versionado
-├── supabase/seed.sql        # Usuario Alex + datos demo
-├── backend/                 # Yahoo sync + live IBKR feed
-└── docs/                    # Documentación detallada
-```
-
-Documentación ampliada:
-
-- [Arquitectura y flujos](docs/ARCHITECTURE.md)
-- [Esquema de BD y datos por cliente](docs/DATABASE.md)
-- [Live data e IBKR Gateway](docs/LIVE-DATA.md)
-- [Backend Python](backend/README.md)
-
----
-
-## Funcionalidades principales
-
-### Finanzas personales
-
-- Cuentas (cash, tarjeta, checking, savings) con saldos en Supabase.
-- Gastos / ingresos por categoría con topes mensuales y alertas visuales.
-- Metas de ahorro con progreso, buckets de ahorro con APY simulado.
-- Fuentes de ingreso recurrentes.
-- Perfil: tema claro/oscuro, sign out, borrar cuenta completa (`delete_user()`).
-
-### Invest (simulado)
-
-- **Market:** watchlist con precios reales, holdings, top movers, badge `● LIVE` / `delayed`.
-- **Portfolio:** valor mark-to-market, P&L, gráfico de performance desde **día 0** (`portfolio_snapshots`).
-- **Analysis:** volatilidad, drawdown máximo, Sharpe ratio, beta vs SPY (datos reales de barras históricas).
-- Compra/venta desde sheets deslizantes → persiste `holdings` + `trades`.
-
----
-
-## Estado del MVP
-
-### ✅ Funcional
-
-| Módulo | Descripción |
-|--------|-------------|
-| **Auth** | Registro y login con email/contraseña. Sesión persistida con JWT Supabase. |
-| **Cuentas** | Cash, tarjeta, checking, savings. Saldos actualizados por transacciones. |
-| **Presupuesto** | Categorías con tope mensual, indicadores de gasto, alertas de límite. |
-| **Transacciones** | Log de gastos e ingresos; filtros por cuenta y categoría. |
-| **Metas** | Metas de ahorro con progreso visual y buckets APY. |
-| **Fuentes de ingreso** | Ingresos recurrentes por fuente. |
-| **Market (Invest)** | Watchlist + top movers con precios reales de Yahoo Finance. |
-| **Live data badge** | Badge `● LIVE` cuando IBKR Gateway está activo. Fallback automático a Yahoo. |
-| **Portfolio (Invest)** | Posiciones abiertas, P&L mark-to-market, gráfico de performance histórico. |
-| **Analysis (Invest)** | Volatilidad, drawdown, Sharpe ratio, beta vs SPY calculados con barras reales. |
-| **Compra/venta simulada** | Sheets deslizantes para comprar y vender; trades persistidos en BD. |
-| **Tema** | Paleta terminal SAM, dark/light toggle. |
-| **Usuario demo** | Cuenta `alex@sam.app` con datos completos de prueba. |
-
-### 🚧 Pendiente / Roadmap
-
-| Área | Descripción |
-|------|-------------|
-| **Órdenes reales** | Integración completa con IBKR API para enviar órdenes al broker. Actualmente simulado. |
-| **App nativa** | Build para iOS/Android. Actualmente es una PWA sin bundler. |
-| **OAuth** | Botones Apple/Google visibles en onboarding; flow sin conectar. |
-| **Gráficos intradía** | 1D/1W son series sintéticas; no hay barras intraday en base de datos. |
-| **Alertas de precio** | Notificaciones push cuando un ticker supera un nivel definido. |
-| **Exportar datos** | CSV / PDF para historial de transacciones, trades y P&L. |
-| **Multi-moneda** | Actualmente toda la UI asume USD. |
-| **Bundler / build step** | Sin webpack/Vite; React cargado vía CDN con Babel standalone. |
-| **Reportes fiscales** | Cálculo de plusvalías realizadas / no realizadas para declaración. |
-| **2FA automático** | El feed live de IBKR requiere introducir el código manualmente en cada inicio. |
-
----
-
-## Comandos de referencia
-
-```bash
-# Supabase
-supabase start
-supabase stop
-supabase status
-supabase db reset          # migraciones + seed
-supabase migration up      # solo migraciones pendientes
-
-# Frontend
-python3 serve.py
-python3 serve.py 3001      # otro puerto
-
-# Backend
-cd backend && source venv/bin/activate
-python -m market.yahoo_sync
-python -m market.yahoo_sync --help
-python -m live_data.connect
-```
-
----
-
-## Qué no subir a Git
-
-Ver [.gitignore](.gitignore). Resumen:
-
-- `backend/venv/`, `backend/.env` (credenciales IBKR Gateway)
-- Cualquier `.env` con secretos
-- Cachés Python, `.DS_Store`, logs
-- Artefactos locales de Supabase (`.branches`, `.temp`)
-
-La **anon key** en `src/shared/supabase-client.js` es la clave **demo local** de Supabase; está pensada solo para desarrollo en `127.0.0.1`. En producción usa variables de entorno y RLS revisado.
-
----
-
-## Solución de problemas
-
-| Síntoma | Qué hacer |
-|---------|-----------|
-| Pantalla negra / error en consola | Hard refresh; revisar `serve.py` (no uses `python -m http.server` sin no-cache). |
-| "backend offline" al abrir la app | `supabase start` y recarga. |
-| Invest sin precios | `python -m market.yahoo_sync` |
-| Badge LIVE pero precios quietos | Comprueba que `connect.py` sigue corriendo; revisa `market_quotes` en Studio. |
-| Sparkline "no data" en un ticker | Re-login o añade el ticker de nuevo; barras se cargan por símbolo. |
-| Puerto 3000 ocupado | `lsof -i :3000` y mata el proceso, o `python3 serve.py 3001`. |
-| Sesión perdida al cambiar puerto | Normal: vuelve a login en el nuevo origen. |
-
----
-
-## Stack técnico
-
-- **Frontend:** React 18 (UMD), Babel standalone, sin build step.
-- **Auth / DB:** Supabase (GoTrue + PostgREST + Postgres 17).
-- **Mercado:** `yfinance` (histórico/retrasado) + IBKR Gateway SSE (`aiohttp`, tiempo real).
-- **Estilo:** JetBrains Mono, paleta terminal `SAM` (dark/light).
-
----
-
-## Licencia y disclaimer
-
-Proyecto de demostración / desarrollo local. Los precios y métricas **no son asesoría financiera**. Las órdenes en la UI son simuladas.
+Demo / development project. Not financial advice. Trades are simulated.
