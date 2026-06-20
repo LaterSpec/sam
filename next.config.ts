@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 import withSerwistInit from "@serwist/next";
+import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
 
 const withSerwist = withSerwistInit({
   swSrc: "app/sw.ts",
@@ -9,7 +10,23 @@ const withSerwist = withSerwistInit({
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  serverExternalPackages: ["better-auth", "drizzle-orm", "@neondatabase/serverless"],
+  // @better-auth/core ships workerd-specific instrumentation (pure.index.mjs).
+  // OpenNext copies those files only for packages listed here — see:
+  // https://opennext.js.org/cloudflare/howtos/workerd
+  serverExternalPackages: [
+    "better-auth",
+    "@better-auth/core",
+    "drizzle-orm",
+    "@neondatabase/serverless",
+  ],
+  outputFileTracingIncludes: {
+    "*": [
+      "./node_modules/@better-auth/core/dist/instrumentation/**",
+      "./node_modules/better-auth/node_modules/@better-auth/core/dist/instrumentation/**",
+    ],
+  },
 };
 
 export default withSerwist(nextConfig);
+
+initOpenNextCloudflareForDev();
