@@ -356,7 +356,7 @@ export function AuthForm({
 
       <div
         style={{
-          padding: "14px 22px max(1.5rem, env(safe-area-inset-bottom))",
+          padding: "14px 22px 1.5rem",
         }}
       >
         <button

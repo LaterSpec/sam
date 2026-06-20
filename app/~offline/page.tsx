@@ -1,7 +1,7 @@
 export default function OfflinePage() {
   return (
     <main
-      className="flex min-h-dvh flex-col items-center justify-center px-6 text-center"
+      className="flex min-h-dvh flex-col items-center justify-center text-center pl-[max(1.5rem,env(safe-area-inset-left))] pr-[max(1.5rem,env(safe-area-inset-right))] pt-[max(1.5rem,env(safe-area-inset-top))] pb-[max(1.5rem,env(safe-area-inset-bottom))]"
       style={{
         background: "radial-gradient(ellipse at top, #1a1f2e, #0a0e14 60%)",
         color: "#c9d1d9",

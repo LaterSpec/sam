@@ -36,6 +36,15 @@ import { useSam } from "@/lib/theme/sam-theme";
 
 const TAB_ORDER = ["home", "expenses", "invest", "goals", "profile"];
 
+// Centralized safe-area handling for every screen. Each screen renders inside an
+// `absolute inset-0` scroll pane, so device insets (notch / status bar at top,
+// home indicator at bottom, rounded corners in landscape) must be reserved on
+// the scroll pane itself — padding on the parent <main> is ignored by abspos
+// children. Top/left/right use the live env() insets; the bottom additionally
+// reserves room for the fixed BottomNav so content never hides behind it.
+const SCREEN_SAFE_PAD =
+  "pt-[env(safe-area-inset-top)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] pb-[calc(5.5rem+env(safe-area-inset-bottom))]";
+
 const UI_DEFAULTS = {
   tab: "home",
   homeTab: "home",
@@ -264,13 +273,13 @@ function AppShellInner({
       }}
     >
       <main
-        className="relative flex-1 overflow-hidden pb-[calc(5.5rem+env(safe-area-inset-bottom))]"
+        className="relative flex-1 overflow-hidden"
         style={{ background: "var(--sam-bg, #0a0e14)" }}
       >
         {transitioning && (
           <div
             key={`${prevTab}-out`}
-            className="pointer-events-none absolute inset-0 overflow-y-auto"
+            className={`pointer-events-none absolute inset-0 overflow-y-auto ${SCREEN_SAFE_PAD}`}
             style={{
               animation: `slide-out-${animDir > 0 ? "left" : "right"} 320ms cubic-bezier(.2,.9,.2,1) forwards`,
             }}
@@ -289,7 +298,7 @@ function AppShellInner({
         >
           <div
             key={subTab}
-            className="absolute inset-0 overflow-y-auto overscroll-contain"
+            className={`absolute inset-0 overflow-y-auto overscroll-contain ${SCREEN_SAFE_PAD}`}
             style={{ animation: "sam-subtab-in 240ms cubic-bezier(.2,.9,.2,1)" }}
           >
             <ScreenErrorBoundary onReset={hydrate} key={`${state.tab}:${subTab}`}>
