@@ -1,8 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "main": ".open-next/worker.js",
-  // wrangler.jsonc
-  "name": "sam-app",  
+  "name": "sam-app",
   "compatibility_date": "2024-12-30",
   "compatibility_flags": [
     "nodejs_compat",
@@ -15,7 +14,7 @@
   "services": [
     {
       "binding": "WORKER_SELF_REFERENCE",
-      "service": "sam"
+      "service": "sam-app"
     }
   ]
 }
