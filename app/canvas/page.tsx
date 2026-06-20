@@ -5,7 +5,7 @@ export default function CanvasPage() {
   return (
     <SamThemeProvider theme="dark">
       <div
-        className="min-h-dvh px-4 py-8"
+        className="min-h-dvh pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pt-[calc(2rem+env(safe-area-inset-top))] pb-[calc(2rem+env(safe-area-inset-bottom))]"
         style={{
           background: "#f0eee9",
           fontFamily: '"JetBrains Mono", ui-monospace, monospace',
