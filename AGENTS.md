@@ -12,4 +12,4 @@
 - The app must be PWA-ready and installable on iOS/Android.
 - No iOS device frames — full viewport native-like layout.
 - Make small, reviewable changes.
-- Do not delete legacy files until migration notes are created.
+- Do not delete legacy files until migration notes are created. 
