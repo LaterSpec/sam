@@ -24,7 +24,7 @@ export function BottomNav({
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-40 pb-[max(1.75rem,env(safe-area-inset-bottom))] pt-2 pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]"
+      className="fixed bottom-0 left-0 right-0 z-40 pb-[calc(0.5rem+env(safe-area-inset-bottom))] pt-2.5 pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]"
       style={{
         background: "var(--sam-bg, #0a0e14)",
         borderTop: `1px solid var(--sam-border-nav, rgba(240,246,252,0.08))`,
