@@ -154,7 +154,7 @@ export function AuthForm({
 
   return (
     <div
-      className="flex min-h-dvh flex-col overflow-hidden"
+      className="flex h-full min-h-0 flex-1 flex-col overflow-hidden"
       style={{ background: sam.bg, color: sam.text, fontFamily: sam.font }}
     >
       <div

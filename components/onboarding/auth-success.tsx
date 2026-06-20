@@ -21,7 +21,7 @@ export function AuthSuccess({
 
   return (
     <div
-      className="flex min-h-dvh flex-col items-center justify-center px-[22px] pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(0.75rem,env(safe-area-inset-top))]"
+      className="flex h-full min-h-0 flex-1 flex-col items-center justify-center px-[22px]"
       style={{ background: sam.bg, color: sam.text, fontFamily: sam.font }}
     >
       <div

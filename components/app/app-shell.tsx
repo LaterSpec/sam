@@ -257,7 +257,7 @@ function AppShellInner({
 
   return (
     <div
-      className="flex min-h-dvh flex-col"
+      className="flex min-h-dvh min-h-[-webkit-fill-available] flex-col"
       style={{
         background: "var(--sam-page-bg)",
         fontFamily: '"JetBrains Mono", ui-monospace, monospace',

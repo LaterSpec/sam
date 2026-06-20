@@ -10,17 +10,54 @@
   --font-mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
 }
 
+html {
+  background-color: #0a0e14;
+  color-scheme: dark;
+  height: 100%;
+  height: 100dvh;
+  height: -webkit-fill-available;
+}
+
 html,
 body {
   margin: 0;
   padding: 0;
   min-height: 100%;
+  min-height: 100dvh;
+  min-height: -webkit-fill-available;
   overscroll-behavior: none;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
 }
 
+body {
+  font-family: var(--font-mono);
+  background-color: #0a0e14;
+  background: var(--sam-page-bg);
+  color: #c9d1d9;
+}
+
+/* Full viewport shell — fills iOS standalone safe areas without white gaps */
+.sam-pwa-shell {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 100dvh;
+  min-height: -webkit-fill-available;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left: env(safe-area-inset-left, 0px);
+  overflow: hidden;
+}
+
 @media (display-mode: standalone) {
+  html,
+  body {
+    background-color: #0a0e14;
+  }
+
   body {
     user-select: none;
   }
@@ -30,12 +67,6 @@ body {
   [contenteditable="true"] {
     user-select: text;
   }
-}
-
-body {
-  font-family: var(--font-mono);
-  background: var(--sam-page-bg);
-  color: #c9d1d9;
 }
 
 input::placeholder {

@@ -72,7 +72,7 @@ function AuthPicker({
 
   return (
     <div
-      className="flex min-h-dvh flex-col overflow-hidden px-[18px] pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(0.75rem,env(safe-area-inset-top))]"
+      className="flex h-full min-h-0 flex-1 flex-col overflow-hidden px-[18px]"
       style={{ background: sam.bg, color: sam.text, fontFamily: sam.font }}
     >
       <div style={{ display: "flex", alignItems: "center", fontSize: 11, color: sam.comment }}>

@@ -35,10 +35,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: [
-    { media: "(prefers-color-scheme: dark)", color: "#0a0e14" },
-    { media: "(prefers-color-scheme: light)", color: "#f6f8fa" },
-  ],
+  themeColor: "#0a0e14",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -48,8 +45,8 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es" className={jetbrains.variable}>
-      <body className="antialiased">
+    <html lang="es" className={`${jetbrains.variable} h-full`}>
+      <body className="min-h-full antialiased">
         {children}
         <ServiceWorkerRegistration />
         <PwaProvider />
