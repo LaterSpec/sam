@@ -14,7 +14,6 @@ const nextConfig: NextConfig = {
   // OpenNext copies those files only for packages listed here — see:
   // https://opennext.js.org/cloudflare/howtos/workerd
   serverExternalPackages: [
-    "better-auth",
     "@better-auth/core",
     "drizzle-orm",
     "@neondatabase/serverless",
