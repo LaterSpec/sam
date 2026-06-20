@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { JetBrains_Mono } from "next/font/google";
+import { PwaProvider } from "@/components/pwa/pwa-provider";
+import { ServiceWorkerRegistration } from "@/components/pwa/service-worker-registration";
 import "./globals.css";
 
 const jetbrains = JetBrains_Mono({
@@ -18,6 +20,18 @@ export const metadata: Metadata = {
     title: "SAM",
   },
   formatDetection: { telephone: false },
+  icons: {
+    icon: [
+      { url: "/icons/sam-app.svg", type: "image/svg+xml" },
+      { url: "/icons/sam-icon.png", sizes: "1254x1254", type: "image/png" },
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+  },
+  other: {
+    "mobile-web-app-capable": "yes",
+  },
 };
 
 export const viewport: Viewport = {
@@ -34,12 +48,12 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={jetbrains.variable}>
-      <head>
-        <link rel="apple-touch-icon" href="/icons/icon.svg" />
-        <link rel="icon" href="/icons/icon.svg" type="image/svg+xml" />
-      </head>
-      <body className="antialiased">{children}</body>
+    <html lang="es" className={jetbrains.variable}>
+      <body className="antialiased">
+        {children}
+        <ServiceWorkerRegistration />
+        <PwaProvider />
+      </body>
     </html>
   );
 }

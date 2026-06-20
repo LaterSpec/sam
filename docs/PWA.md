@@ -1,19 +1,53 @@
 # SAM PWA
 
-## Install
-- **Android (Chrome):** Menú → "Instalar app" o "Añadir a pantalla de inicio"
-- **iOS (Safari):** Compartir → "Añadir a pantalla de inicio"
+## Instalar
 
-## Configuration
-- `app/manifest.ts` — `display: standalone`, `start_url: /app`
-- Serwist service worker — `app/sw.ts` → `public/sw.js`
-- Icons: `public/icons/icon.svg`
+- **Android (Chrome):** Menú → "Instalar app" o banner nativo / botón "Instalar app" en la app
+- **iOS (Safari):** Compartir → "Añadir a pantalla de inicio" (banner con instrucciones tras unos segundos)
 
-## iOS limitations
-- No App Store distribution; install only via Safari
-- Push notifications limited compared to native apps
-- Service worker caching more restrictive than Android
-- Standalone mode hides Safari UI — feels like an installed app
+## Requisitos cumplidos
+
+- HTTPS en Cloudflare Workers
+- `manifest.webmanifest` con `display: standalone`, `scope: /`, iconos PNG 192/512 + maskable
+- Service worker (`public/sw.js`) con precache, navegación y fallback offline
+- Meta tags iOS: `apple-mobile-web-app-capable`, `apple-touch-icon` 180×180, `viewport-fit: cover`
+- Safe areas (`env(safe-area-inset-*)`) en shell, onboarding y navegación inferior
+
+## Archivos
+
+| Archivo | Rol |
+|---------|-----|
+| `app/manifest.ts` | Web App Manifest |
+| `app/sw.ts` | Service worker (Serwist) |
+| `app/~offline/page.tsx` | Pantalla offline |
+| `components/pwa/pwa-provider.tsx` | Prompt de instalación Android + hint iOS |
+| `components/pwa/service-worker-registration.tsx` | Registro del SW en producción |
+| `public/icons/sam-app.svg` | Icono vectorial principal |
+| `public/icons/sam-icon.png` | Icono raster principal (1254×1254) |
+| `public/icons/icon-*.png` | Tamaños PWA derivados de `sam-icon.png` |
+| `scripts/generate-pwa-icons.mjs` | Regenerar PNG PWA desde `sam-icon.png` |
+
+## Regenerar iconos
+
+```bash
+npm run icons:generate
+```
+
+## Limitaciones iOS
+
+- No hay distribución en App Store; solo instalación vía Safari
+- Notificaciones push más limitadas que en apps nativas
+- Caché del service worker más restrictiva que en Android
+- El modo standalone oculta la UI de Safari
 
 ## Offline
-Network-first for API routes. Static assets precached. No full offline data sync.
+
+Network-first en rutas API. Assets estáticos en precache. Página `/~offline` como fallback de documentos sin red.
+
+## Deploy
+
+Tras cambios PWA, redeploy a Cloudflare:
+
+```bash
+npm run deploy:cloudflare
+```

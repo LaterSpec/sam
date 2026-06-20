@@ -17,6 +17,19 @@ body {
   min-height: 100%;
   overscroll-behavior: none;
   -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+@media (display-mode: standalone) {
+  body {
+    user-select: none;
+  }
+
+  input,
+  textarea,
+  [contenteditable="true"] {
+    user-select: text;
+  }
 }
 
 body {

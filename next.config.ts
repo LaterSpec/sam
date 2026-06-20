@@ -6,6 +6,10 @@ const withSerwist = withSerwistInit({
   swSrc: "app/sw.ts",
   swDest: "public/sw.js",
   disable: process.env.NODE_ENV === "development",
+  register: false,
+  cacheOnNavigation: true,
+  reloadOnOnline: true,
+  additionalPrecacheEntries: [{ url: "/~offline", revision: "1" }],
 });
 
 const nextConfig: NextConfig = {
