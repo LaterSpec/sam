@@ -24,25 +24,32 @@ export function BottomNav({
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-40 pb-[calc(0.5rem+env(safe-area-inset-bottom))] pt-2.5 pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]"
+      className="relative shrink-0 pb-[calc(0.5rem+max(env(safe-area-inset-bottom,0px),0px))] pt-2.5 pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]"
       style={{
         background: "var(--sam-bg, #0a0e14)",
         borderTop: `1px solid var(--sam-border-nav, rgba(240,246,252,0.08))`,
         fontFamily: sam.font,
+        isolation: "isolate",
       }}
     >
       <div
-        style={{
-          position: "absolute",
-          top: -1,
-          height: 2,
-          width: `${pct}%`,
-          left: `${pct * activeIdx}%`,
-          background: sam.yellow,
-          boxShadow: `0 0 10px ${sam.yellow}aa`,
-          transition: "left 340ms cubic-bezier(.2,.9,.2,1)",
-        }}
-      />
+        aria-hidden
+        className="pointer-events-none absolute left-0 right-0 top-0 h-0.5 overflow-hidden"
+        style={{ isolation: "isolate" }}
+      >
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            height: 2,
+            width: `${pct}%`,
+            left: `${pct * activeIdx}%`,
+            background: sam.yellow,
+            boxShadow: `0 2px 8px ${sam.yellow}88`,
+            transition: "left 340ms cubic-bezier(.2,.9,.2,1)",
+          }}
+        />
+      </div>
       <div className="flex">
         {ITEMS.map((it) => {
           const isActive = it.k === active;

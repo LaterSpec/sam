@@ -53,6 +53,7 @@ export type AppState = {
     time: string;
     occurred_at: string;
     kind: string;
+    accountId?: string;
   }>;
   incomeTx: AppState["expenses"];
   goals: Array<{
@@ -107,6 +108,7 @@ function mapExpense(
     time: formatTime(t.occurredAt.toISOString()),
     occurred_at: t.occurredAt.toISOString(),
     kind: t.kind,
+    accountId: t.accountId ?? undefined,
   };
 }
 

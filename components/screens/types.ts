@@ -29,19 +29,11 @@ export type SheetPayload =
   | { kind: "edit-budget"; budget: AppState["budgets"][number]; spent: number }
   | { kind: "income-src"; src: AppState["incomeSources"][number] | Record<string, unknown> }
   | { kind: "new-income" }
-  | {
-      kind: "card";
-      card: {
-        id: string;
-        label: string;
-        digits: string;
-        color: string;
-        balance: number;
-        bank: string;
-        icon: string;
-        limit?: number;
-      };
-    }
+  | { kind: "account"; accountId: string }
+  | { kind: "new-account" }
+  | { kind: "edit-account"; accountId: string }
+  | { kind: "transfer"; fromId?: string }
+  | { kind: "change-credentials" }
   | { kind: "bucket"; bucket: AppState["buckets"][number] }
   | { kind: "trade"; holding: AppState["holdings"][number] }
   | {

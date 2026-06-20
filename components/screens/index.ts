@@ -1,7 +1,7 @@
 export type { ClientAppState, ScreenProps, SheetPayload } from "./types";
 export { HomeScreen } from "./home";
 export { ActivityScreen } from "./activity";
-export { CardsScreen } from "./cards";
+export { AccountsScreen, CardsScreen } from "./cards";
 export { ExpensesScreen } from "./expenses";
 export { IncomeScreen } from "./income";
 export { BudgetScreen } from "./budget";

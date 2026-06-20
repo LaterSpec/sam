@@ -9,7 +9,7 @@ const withSerwist = withSerwistInit({
   register: false,
   cacheOnNavigation: true,
   reloadOnOnline: true,
-  additionalPrecacheEntries: [{ url: "/~offline", revision: "1" }],
+  additionalPrecacheEntries: [{ url: "/~offline", revision: "2" }],
 });
 
 const nextConfig: NextConfig = {

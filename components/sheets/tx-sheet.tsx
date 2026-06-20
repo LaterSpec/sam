@@ -35,8 +35,7 @@ export function TxSheet({ sheet, state, setState, onClose }: TxSheetProps) {
     c: b.c,
   }));
 
-  const accountLabel =
-    state.accounts.find((a) => a.type === "checking" || a.type === "card")?.name ?? "account";
+  const accountLabel = state.accounts[0]?.name ?? "—";
 
   const shortId = tx.id.slice(0, 8);
 

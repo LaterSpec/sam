@@ -110,6 +110,7 @@ export function TabBar({
         borderBottom: `1px solid ${sam.border}`,
         padding: "0 0 12px",
         position: "relative",
+        overflow: "hidden",
       }}
     >
       {tabs.map((t) => {

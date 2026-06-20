@@ -39,7 +39,7 @@ export function HelpScreen({ state, setState }: ScreenProps) {
     {
       q: "How do I add accounts and expenses?",
       c: sam.cyan,
-      a: "Cards → [+ account] to add a cash or card balance. Expenses → [+ new expense] to log spending against a category.",
+      a: "Accounts → [+ create account] to add a cash or card balance. Expenses → [+ new expense] to log spending against a category.",
     },
     {
       q: "How do I export my data?",

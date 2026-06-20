@@ -7,7 +7,7 @@ import { BottomSheet } from "@/components/app/bottom-sheet";
 import {
   HomeScreen,
   ActivityScreen,
-  CardsScreen,
+  AccountsScreen,
   ExpensesScreen,
   IncomeScreen,
   BudgetScreen,
@@ -36,14 +36,10 @@ import { useSam } from "@/lib/theme/sam-theme";
 
 const TAB_ORDER = ["home", "expenses", "invest", "goals", "profile"];
 
-// Centralized safe-area handling for every screen. Each screen renders inside an
-// `absolute inset-0` scroll pane, so device insets (notch / status bar at top,
-// home indicator at bottom, rounded corners in landscape) must be reserved on
-// the scroll pane itself — padding on the parent <main> is ignored by abspos
-// children. Top/left/right use the live env() insets; the bottom additionally
-// reserves room for the fixed BottomNav so content never hides behind it.
+// Scroll panes reserve top/side safe areas; bottom padding is light because
+// BottomNav is an in-flow flex sibling (not fixed) and consumes its own height.
 const SCREEN_SAFE_PAD =
-  "pt-[env(safe-area-inset-top)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] pb-[calc(4rem+env(safe-area-inset-bottom))]";
+  "pt-[env(safe-area-inset-top)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] pb-3";
 
 const UI_DEFAULTS = {
   tab: "home",
@@ -62,7 +58,7 @@ const UI_DEFAULTS = {
 function resolveScreen(tab: string, subTab: string) {
   if (tab === "home") {
     if (subTab === "activity") return ActivityScreen;
-    if (subTab === "cards") return CardsScreen;
+    if (subTab === "accounts") return AccountsScreen;
     return HomeScreen;
   }
   if (tab === "expenses") {

@@ -3,6 +3,11 @@
 import { useSam } from "@/lib/theme/sam-theme";
 import { Mono, Comment, Prompt, BlockBar, TabBar } from "@/components/ui/sam-primitives";
 import { formatDateLong, formatMonthYear } from "@/lib/utils";
+import {
+  hasTrendHistory,
+  monthOverMonthFromTx,
+  monthOverMonthPct,
+} from "@/lib/finance/metrics";
 import type { ScreenProps } from "./types";
 import { SCREEN_PAD } from "./types";
 
@@ -24,10 +29,21 @@ export function HomeScreen({ state, setState, openSheet }: ScreenProps) {
     new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate() - now.getDate();
   const monthLabel = formatMonthYear(now).split(" ")[0];
 
+  const canTrend = hasTrendHistory(state.user.member_since);
+  const incomeMom = monthOverMonthFromTx(state.incomeTx || [], now);
+  const expenseMom = monthOverMonthFromTx(state.expenses, now);
+  const netCurrent = incomeMom.current - expenseMom.current;
+  const netPrevious = incomeMom.previous - expenseMom.previous;
+  const netPct = monthOverMonthPct(netCurrent, netPrevious);
+  const showNetTrend =
+    canTrend &&
+    netPct !== null &&
+    (incomeMom.previous > 0 || expenseMom.previous > 0 || incomeMom.current > 0 || expenseMom.current > 0);
+
   return (
     <div style={{ padding: SCREEN_PAD }}>
       <TabBar
-        tabs={["home", "activity", "cards"]}
+        tabs={["home", "activity", "accounts"]}
         active={state.homeTab}
         onChange={(t) => setState((s) => ({ ...s, homeTab: t }))}
       />
@@ -71,8 +87,15 @@ export function HomeScreen({ state, setState, openSheet }: ScreenProps) {
               .{(balance % 1).toFixed(2).slice(2)}
             </span>
           </div>
-          <div style={{ fontSize: 11, color: sam.green, marginTop: 4 }}>
-            +4.2% <span style={{ color: sam.comment }}>// vs last month</span>
+          <div style={{ fontSize: 11, color: sam.comment, marginTop: 4 }}>
+            {showNetTrend ? (
+              <span style={{ color: netPct! >= 0 ? sam.green : sam.red }}>
+                {netPct! >= 0 ? "+" : ""}
+                {netPct!.toFixed(1)}% <span style={{ color: sam.comment }}>// net cashflow vs last month</span>
+              </span>
+            ) : (
+              <span>{`// keep using sam to calculate metrics`}</span>
+            )}
           </div>
         </div>
         <div

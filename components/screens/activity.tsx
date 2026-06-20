@@ -49,7 +49,7 @@ export function ActivityScreen({ state, setState, openSheet }: ScreenProps) {
 
   return (
     <div style={{ padding: SCREEN_PAD }}>
-      <TabBar tabs={["home", "activity", "cards"]} active="activity" onChange={(t) => setState((s) => ({ ...s, homeTab: t }))} />
+      <TabBar tabs={["home", "activity", "accounts"]} active="activity" onChange={(t) => setState((s) => ({ ...s, homeTab: t }))} />
       <div style={{ marginTop: 20 }}>
         <Prompt host="init.Activity" cmd="log --all" />
         <Comment>{counts.all} tx · filter live · tap to view</Comment>

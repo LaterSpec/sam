@@ -14,7 +14,7 @@ function samUserHandle(state: ScreenProps["state"]) {
   return (String(base).trim().split(/\s+/)[0] || "you").toLowerCase();
 }
 
-export function ProfileScreen({ state, setState }: ScreenProps) {
+export function ProfileScreen({ state, setState, openSheet }: ScreenProps) {
   const { sam } = useSam();
   const router = useRouter();
   const [confirmDel, setConfirmDel] = useState(false);
@@ -245,6 +245,15 @@ export function ProfileScreen({ state, setState }: ScreenProps) {
             <Mono c={sam.text}>sign out</Mono>
             <span style={{ flex: 1 }} />
             <Mono c={sam.red}>{busy === "out" ? "..." : "→"}</Mono>
+          </div>
+          <div
+            onClick={busy ? undefined : () => openSheet({ kind: "change-credentials" })}
+            style={{ display: "flex", fontSize: 13, marginTop: 6, alignItems: "baseline", cursor: "pointer" }}
+          >
+            <Mono c={sam.comment}>├─ </Mono>
+            <Mono c={sam.yellow}>change credentials</Mono>
+            <span style={{ flex: 1 }} />
+            <Mono c={sam.yellow}>→</Mono>
           </div>
           {!confirmDel ? (
             <div

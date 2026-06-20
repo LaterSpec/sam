@@ -16,7 +16,18 @@ import {
   sellHoldingAction,
   addWatchAction,
   fetchBarsAction,
+  addAccountAction,
+  updateAccountAction,
+  transferAction,
+  setCredentialsAction,
 } from "@/lib/actions/data-actions";
+import {
+  ACCOUNT_TYPES,
+  ACCOUNT_EMOJIS,
+  accountColor,
+  accountDefaultIcon,
+  accountLabel,
+} from "@/lib/accounts/account-types";
 import { TxSheet } from "@/components/sheets/tx-sheet";
 
 type SheetContentProps = {
@@ -42,11 +53,25 @@ export function SheetContent({ sheet, state, setState, onClose, openSheet }: She
     case "edit-budget":
       return <EditBudgetSheet sheet={sheet} setState={setState} onClose={onClose} />;
     case "income-src":
-      return <IncomeSrcSheet sheet={sheet} onClose={onClose} />;
+      return <IncomeSrcSheet sheet={sheet} state={state} onClose={onClose} />;
     case "new-income":
-      return <NewIncomeSheet setState={setState} onClose={onClose} />;
-    case "card":
-      return <CardSheet sheet={sheet} onClose={onClose} />;
+      return <NewIncomeSheet state={state} setState={setState} onClose={onClose} />;
+    case "account":
+      return (
+        <AccountSheet sheet={sheet} state={state} openSheet={openSheet} onClose={onClose} />
+      );
+    case "new-account":
+      return <CreateAccountSheet setState={setState} onClose={onClose} />;
+    case "edit-account":
+      return (
+        <EditAccountSheet sheet={sheet} state={state} setState={setState} openSheet={openSheet} onClose={onClose} />
+      );
+    case "transfer":
+      return (
+        <TransferSheet sheet={sheet} state={state} setState={setState} onClose={onClose} />
+      );
+    case "change-credentials":
+      return <ChangeCredentialsSheet onClose={onClose} />;
     case "bucket":
       return <BucketSheet sheet={sheet} setState={setState} onClose={onClose} />;
     case "trade":
@@ -279,13 +304,19 @@ function NewExpenseSheet({
   const [amount, setAmount] = useState("");
   const [name, setName] = useState("");
   const [catKey, setCatKey] = useState("food");
+  const defaultAccount =
+    state.accounts.find((a) => a.type === "checking") ||
+    state.accounts.find((a) => a.type === "cash") ||
+    state.accounts[0];
+  const [accountId, setAccountId] = useState(defaultAccount?.id ?? "");
   const cats = (state.budgets || []).map((b) => ({
     key: b.key,
     icon: b.icon,
     name: b.name,
     c: b.c,
   }));
-  const canSave = !!(amount && name && !isNaN(parseFloat(amount)));
+  const selectedAccount = state.accounts.find((a) => a.id === accountId);
+  const canSave = !!(amount && name && !isNaN(parseFloat(amount)) && accountId);
 
   const save = async () => {
     if (!canSave) return;
@@ -293,6 +324,7 @@ function NewExpenseSheet({
       amount: parseFloat(amount),
       name,
       catKey,
+      accountId,
       budgets: state.budgets,
       accounts: state.accounts,
     });
@@ -417,8 +449,50 @@ function NewExpenseSheet({
           ))}
         </div>
       </div>
+      <div style={{ marginTop: 16 }}>
+        <div style={{ fontSize: 13, fontWeight: 600 }}>
+          <Mono c={sam.cyan}>◉</Mono>{" "}
+          <Mono c={sam.cyan} b>
+            account
+          </Mono>
+        </div>
+        <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 6 }}>
+          {state.accounts.map((a) => {
+            const c = accountColor(a.type);
+            const selected = accountId === a.id;
+            return (
+              <div
+                key={a.id}
+                onClick={() => setAccountId(a.id)}
+                style={{
+                  padding: "8px 10px",
+                  border: `1px solid ${selected ? c : sam.border}`,
+                  background: selected ? `${c}15` : "transparent",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  fontSize: 13,
+                }}
+              >
+                <Mono c={c} b>
+                  {a.icon}
+                </Mono>
+                <Mono c={sam.text} b>
+                  {a.name}
+                </Mono>
+                <Mono c={sam.comment} style={{ fontSize: 11 }}>
+                  {accountLabel(a.type)}
+                </Mono>
+                <span style={{ flex: 1 }} />
+                {selected && <Mono c={c}>✓</Mono>}
+              </div>
+            );
+          })}
+        </div>
+      </div>
       <div style={{ marginTop: 18, fontSize: 11, color: sam.comment }}>
-        {`// will log to ${new Date().toLocaleString("en", { month: "short", day: "numeric" })} · checking ····4281`}
+        {`// will log to ${new Date().toLocaleString("en", { month: "short", day: "numeric" })} · ${selectedAccount?.name ?? "account"}`}
       </div>
     </div>
   );
@@ -634,14 +708,24 @@ function EditBudgetSheet({
 
 function IncomeSrcSheet({
   sheet,
+  state,
   onClose,
 }: {
   sheet: Extract<SheetPayload, { kind: "income-src" }>;
+  state: ClientAppState;
   onClose: () => void;
 }) {
   const { sam } = useSam();
   const s = sheet.src as { icon?: string; c?: string; name?: string; amt?: number; amount?: number; freq?: string; next?: string };
   const amt = s.amt ?? (s.amount as number) ?? 0;
+  const payments = (state.incomeTx || [])
+    .filter((t) => t.name.toLowerCase() === (s.name || "").toLowerCase())
+    .sort((a, b) => new Date(b.occurred_at).getTime() - new Date(a.occurred_at).getTime())
+    .slice(0, 6);
+  const depositAccountId = payments.find((p) => p.accountId)?.accountId;
+  const depositAccount = depositAccountId
+    ? state.accounts.find((a) => a.id === depositAccountId)
+    : undefined;
 
   return (
     <div>
@@ -671,18 +755,30 @@ function IncomeSrcSheet({
         <div style={{ fontSize: 12, color: sam.comment, marginTop: 2 }}>
           {s.freq || "recurring"} · next {s.next || "tbd"}
         </div>
+        {depositAccount && (
+          <div style={{ fontSize: 12, color: sam.comment, marginTop: 8 }}>
+            deposit to ·{" "}
+            <Mono c={depositAccount.color || accountColor(depositAccount.type)}>
+              {depositAccount.icon || accountDefaultIcon(depositAccount.type)}
+            </Mono>{" "}
+            <Mono c={sam.text}>{depositAccount.name}</Mono>
+          </div>
+        )}
       </div>
       <div style={{ fontSize: 13, borderTop: `1px solid ${sam.border}`, paddingTop: 12 }}>
         <Mono c={sam.cyan} b>
-          ▸ last 6 payments
+          ▸ recent payments
         </Mono>
-        {[0, 1, 2, 3, 4, 5].map((i) => (
-          <div key={i} style={{ display: "flex", marginTop: 6, fontSize: 12 }}>
-            <Mono c={sam.comment}>{i === 5 ? "└─ " : "├─ "}</Mono>
-            <Mono c={sam.text}>{["Apr", "Mar", "Feb", "Jan", "Dec", "Nov"][i]} 1</Mono>
+        {payments.length === 0 && (
+          <div style={{ marginTop: 8, fontSize: 12, color: sam.comment }}>{`// no payments logged yet`}</div>
+        )}
+        {payments.map((p, i) => (
+          <div key={p.id} style={{ display: "flex", marginTop: 6, fontSize: 12 }}>
+            <Mono c={sam.comment}>{i === payments.length - 1 ? "└─ " : "├─ "}</Mono>
+            <Mono c={sam.text}>{p.time}</Mono>
             <span style={{ flex: 1 }} />
             <Mono c={sam.green} b>
-              +${amt.toLocaleString()}
+              +${p.amount.toLocaleString()}
             </Mono>
           </div>
         ))}
@@ -692,21 +788,42 @@ function IncomeSrcSheet({
 }
 
 function NewIncomeSheet({
+  state,
   setState,
   onClose,
 }: {
+  state: ClientAppState;
   setState: SheetContentProps["setState"];
   onClose: () => void;
 }) {
   const { sam } = useSam();
   const [name, setName] = useState("");
   const [amt, setAmt] = useState("");
-  const canSave = !!(name && amt && !isNaN(parseFloat(amt)));
+  const defaultAccount =
+    state.accounts.find((a) => a.type === "checking") ||
+    state.accounts.find((a) => a.type === "cash") ||
+    state.accounts[0];
+  const [accountId, setAccountId] = useState(defaultAccount?.id ?? "");
+  const selectedAccount = state.accounts.find((a) => a.id === accountId);
+  const canSave = !!(name && amt && !isNaN(parseFloat(amt)) && accountId);
 
   const save = async () => {
     if (!canSave) return;
-    const row = await addIncomeAction({ name, amt: parseFloat(amt), freq: "one-time", next: "—" });
-    setState((st) => ({ ...st, incomeSources: [...st.incomeSources, row] }));
+    const row = await addIncomeAction({
+      name,
+      amt: parseFloat(amt),
+      freq: "one-time",
+      next: "—",
+      accountId,
+    });
+    setState((st) => ({
+      ...st,
+      incomeSources: [...st.incomeSources, row],
+      incomeTx: row.incomeTx ? [...st.incomeTx, row.incomeTx] : st.incomeTx,
+      accounts: row.account
+        ? st.accounts.map((a) => (a.id === row.account!.id ? { ...a, balance: row.account!.balance } : a))
+        : st.accounts,
+    }));
     onClose();
   };
 
@@ -787,19 +904,79 @@ function NewIncomeSheet({
           }}
         />
       </div>
+      <div style={{ marginTop: 16 }}>
+        <div style={{ fontSize: 13, fontWeight: 600 }}>
+          <Mono c={sam.cyan}>◉</Mono>{" "}
+          <Mono c={sam.cyan} b>
+            deposit to
+          </Mono>
+        </div>
+        <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 6 }}>
+          {state.accounts.map((a) => {
+            const c = accountColor(a.type);
+            const selected = accountId === a.id;
+            return (
+              <div
+                key={a.id}
+                onClick={() => setAccountId(a.id)}
+                style={{
+                  padding: "8px 10px",
+                  border: `1px solid ${selected ? c : sam.border}`,
+                  background: selected ? `${c}15` : "transparent",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  fontSize: 13,
+                }}
+              >
+                <Mono c={c} b>
+                  {a.icon}
+                </Mono>
+                <Mono c={sam.text} b>
+                  {a.name}
+                </Mono>
+                <Mono c={sam.comment} style={{ fontSize: 11 }}>
+                  {accountLabel(a.type)}
+                </Mono>
+                <span style={{ flex: 1 }} />
+                {selected && <Mono c={c}>✓</Mono>}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      <div style={{ marginTop: 18, fontSize: 11, color: sam.comment }}>
+        {`// credits ${selectedAccount?.name ?? "account"} on save`}
+      </div>
     </div>
   );
 }
 
-function CardSheet({
+function AccountSheet({
   sheet,
+  state,
+  openSheet,
   onClose,
 }: {
-  sheet: Extract<SheetPayload, { kind: "card" }>;
+  sheet: Extract<SheetPayload, { kind: "account" }>;
+  state: ClientAppState;
+  openSheet: SheetContentProps["openSheet"];
   onClose: () => void;
 }) {
   const { sam } = useSam();
-  const c = sheet.card;
+  const a = state.accounts.find((x) => x.id === sheet.accountId);
+  if (!a) {
+    return (
+      <div style={{ fontSize: 13, color: sam.comment }}>
+        // account not found
+        <div onClick={onClose} style={{ marginTop: 12, cursor: "pointer", color: sam.cyan }}>
+          [close]
+        </div>
+      </div>
+    );
+  }
+  const color = accountColor(a.type);
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 14 }}>
@@ -807,40 +984,40 @@ function CardSheet({
           [close]
         </span>
         <Mono c={sam.cyan} b>
-          $ account --view {c.digits}
+          $ account --view
         </Mono>
-        <span style={{ color: sam.yellow, cursor: "pointer" }}>[edit]</span>
+        <span
+          onClick={() => openSheet({ kind: "edit-account", accountId: a.id })}
+          style={{ color: sam.yellow, cursor: "pointer" }}
+        >
+          [edit]
+        </span>
       </div>
       <div style={{ textAlign: "center", marginTop: 8 }}>
-        <div style={{ fontSize: 34, color: c.color }}>{c.icon}</div>
+        <div style={{ fontSize: 34, color }}>{a.icon}</div>
         <div style={{ fontSize: 15, color: sam.text, fontWeight: 600, marginTop: 4 }}>
-          {c.bank} {c.label}
+          {a.name}
         </div>
-        <div style={{ fontSize: 11, color: sam.comment, marginTop: 2 }}>····{c.digits}</div>
+        <div style={{ fontSize: 11, color, marginTop: 2 }}>{accountLabel(a.type)}</div>
         <div
           style={{
             fontSize: 28,
             fontWeight: 700,
             marginTop: 10,
-            color: c.balance < 0 ? sam.red : c.color,
+            color: a.balance < 0 ? sam.red : color,
             fontVariantNumeric: "tabular-nums",
           }}
         >
-          {c.balance < 0 ? "-" : ""}$
-          {Math.abs(c.balance).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+          {a.balance < 0 ? "-" : ""}$
+          {Math.abs(a.balance).toLocaleString(undefined, { minimumFractionDigits: 2 })}
         </div>
-        {c.limit != null && (
-          <div style={{ fontSize: 12, color: sam.comment, marginTop: 4 }}>
-            limit ${c.limit.toLocaleString()} · {Math.round((Math.abs(c.balance) / c.limit) * 100)}% used
-          </div>
-        )}
       </div>
-      <div style={{ marginTop: 18, display: "flex", gap: 8, fontSize: 13 }}>
+      <div style={{ marginTop: 18, fontSize: 13 }}>
         <div
+          onClick={() => openSheet({ kind: "transfer", fromId: a.id })}
           style={{
-            flex: 1,
             textAlign: "center",
-            padding: "8px 0",
+            padding: "10px 0",
             border: `1px solid ${sam.border}`,
             cursor: "pointer",
             color: sam.cyan,
@@ -848,38 +1025,570 @@ function CardSheet({
         >
           [transfer]
         </div>
-        <div
-          style={{
-            flex: 1,
-            textAlign: "center",
-            padding: "8px 0",
-            border: `1px solid ${sam.border}`,
-            cursor: "pointer",
-            color: sam.yellow,
-          }}
-        >
-          [sync now]
+      </div>
+    </div>
+  );
+}
+
+function AccountFormFields({
+  type,
+  setType,
+  name,
+  setName,
+  icon,
+  setIcon,
+}: {
+  type: string;
+  setType: (t: string) => void;
+  name: string;
+  setName: (n: string) => void;
+  icon: string;
+  setIcon: (i: string) => void;
+}) {
+  const { sam } = useSam();
+  const inputStyle: React.CSSProperties = {
+    width: "100%",
+    background: "transparent",
+    border: "none",
+    outline: "none",
+    color: sam.text,
+    fontFamily: sam.font,
+    fontSize: 14,
+  };
+
+  return (
+    <>
+      <div style={{ marginTop: 10 }}>
+        <div style={{ fontSize: 13, fontWeight: 600 }}>
+          <Mono c={sam.magenta}>◎</Mono>{" "}
+          <Mono c={sam.magenta} b>
+            type
+          </Mono>
+        </div>
+        <div style={{ marginTop: 8, display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 6 }}>
+          {ACCOUNT_TYPES.map((t) => {
+            const selected = type === t.key;
+            return (
+              <div
+                key={t.key}
+                onClick={() => {
+                  setType(t.key);
+                  setIcon(t.defaultIcon);
+                }}
+                style={{
+                  padding: "8px 6px",
+                  textAlign: "center",
+                  border: `1px solid ${selected ? t.color : sam.border}`,
+                  background: selected ? `${t.color}15` : "transparent",
+                  cursor: "pointer",
+                }}
+              >
+                <Mono c={t.color} b>
+                  {t.defaultIcon} {t.label}
+                </Mono>
+              </div>
+            );
+          })}
         </div>
       </div>
-      <div style={{ marginTop: 18, fontSize: 13 }}>
-        <Mono c={sam.cyan} b>
-          ▸ balance history
-        </Mono>
-        <pre
-          style={{
-            fontFamily: sam.font,
-            fontSize: 10,
-            color: c.color,
-            lineHeight: 1.2,
-            margin: "8px 0 0",
-            opacity: 0.8,
-          }}
-        >{`  hi ┤        ╭──╮ ╭────
-     │    ╭───╯  ╰─╯
-  lo ┤────╯
-     └──────────────────
-       M  T  W  T  F  S  S`}</pre>
+      <div style={{ marginTop: 16 }}>
+        <div style={{ fontSize: 13, fontWeight: 600 }}>
+          <Mono c={sam.green}>✎</Mono>{" "}
+          <Mono c={sam.green} b>
+            name
+          </Mono>
+        </div>
+        <div style={{ marginTop: 6, padding: "10px 12px", border: `1px solid ${sam.border}` }}>
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="e.g. Cash, Main Card..."
+            style={inputStyle}
+          />
+        </div>
       </div>
+      <div style={{ marginTop: 16 }}>
+        <div style={{ fontSize: 13, fontWeight: 600 }}>
+          <Mono c={sam.yellow}>◉</Mono>{" "}
+          <Mono c={sam.yellow} b>
+            icon
+          </Mono>
+        </div>
+        <div style={{ marginTop: 8, display: "grid", gridTemplateColumns: "repeat(8, 1fr)", gap: 4 }}>
+          {ACCOUNT_EMOJIS.map((e) => (
+            <div
+              key={e}
+              onClick={() => setIcon(e)}
+              style={{
+                padding: "8px 0",
+                textAlign: "center",
+                border: `1px solid ${icon === e ? accountColor(type) : sam.border}`,
+                background: icon === e ? `${accountColor(type)}15` : "transparent",
+                cursor: "pointer",
+                fontSize: 16,
+              }}
+            >
+              {e}
+            </div>
+          ))}
+        </div>
+      </div>
+    </>
+  );
+}
+
+function CreateAccountSheet({
+  setState,
+  onClose,
+}: {
+  setState: SheetContentProps["setState"];
+  onClose: () => void;
+}) {
+  const { sam } = useSam();
+  const [type, setType] = useState("cash");
+  const [name, setName] = useState("");
+  const [icon, setIcon] = useState(accountDefaultIcon("cash"));
+  const [error, setError] = useState("");
+  const canSave = name.trim().length >= 1;
+
+  const save = async () => {
+    if (!canSave) return;
+    setError("");
+    try {
+      const row = await addAccountAction({ name: name.trim(), type, icon });
+      setState((s) => ({ ...s, accounts: [...s.accounts, row] }));
+      onClose();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "failed to create account");
+    }
+  };
+
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 14 }}>
+        <span onClick={onClose} style={{ cursor: "pointer", color: sam.comment }}>
+          [cancel]
+        </span>
+        <Mono c={sam.cyan} b>
+          $ account --new
+        </Mono>
+        <span
+          onClick={canSave ? save : undefined}
+          style={{
+            cursor: canSave ? "pointer" : "default",
+            color: canSave ? sam.green : sam.comment,
+            fontWeight: 600,
+          }}
+        >
+          [save]
+        </span>
+      </div>
+      <AccountFormFields type={type} setType={setType} name={name} setName={setName} icon={icon} setIcon={setIcon} />
+      {error && <div style={{ marginTop: 12, fontSize: 11, color: sam.red }}>{error}</div>}
+    </div>
+  );
+}
+
+function EditAccountSheet({
+  sheet,
+  state,
+  setState,
+  openSheet,
+  onClose,
+}: {
+  sheet: Extract<SheetPayload, { kind: "edit-account" }>;
+  state: ClientAppState;
+  setState: SheetContentProps["setState"];
+  openSheet: SheetContentProps["openSheet"];
+  onClose: () => void;
+}) {
+  const { sam } = useSam();
+  const existing = state.accounts.find((a) => a.id === sheet.accountId);
+  const [type, setType] = useState(existing?.type ?? "cash");
+  const [name, setName] = useState(existing?.name ?? "");
+  const [icon, setIcon] = useState(existing?.icon ?? accountDefaultIcon("cash"));
+  const [error, setError] = useState("");
+  const canSave = name.trim().length >= 1 && !!existing;
+
+  const cancel = () => openSheet({ kind: "account", accountId: sheet.accountId });
+
+  const save = async () => {
+    if (!canSave || !existing) return;
+    setError("");
+    try {
+      const row = await updateAccountAction({
+        id: existing.id,
+        name: name.trim(),
+        type,
+        icon,
+      });
+      setState((s) => ({
+        ...s,
+        accounts: s.accounts.map((a) => (a.id === row.id ? row : a)),
+      }));
+      openSheet({ kind: "account", accountId: row.id });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "failed to update account");
+    }
+  };
+
+  if (!existing) {
+    return (
+      <div style={{ fontSize: 13, color: sam.comment }}>
+        // account not found
+        <div onClick={onClose} style={{ marginTop: 12, cursor: "pointer", color: sam.cyan }}>
+          [close]
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 14 }}>
+        <span onClick={cancel} style={{ cursor: "pointer", color: sam.comment }}>
+          [cancel]
+        </span>
+        <Mono c={sam.cyan} b>
+          $ account --edit
+        </Mono>
+        <span
+          onClick={canSave ? save : undefined}
+          style={{
+            cursor: canSave ? "pointer" : "default",
+            color: canSave ? sam.green : sam.comment,
+            fontWeight: 600,
+          }}
+        >
+          [save]
+        </span>
+      </div>
+      <AccountFormFields type={type} setType={setType} name={name} setName={setName} icon={icon} setIcon={setIcon} />
+      {error && <div style={{ marginTop: 12, fontSize: 11, color: sam.red }}>{error}</div>}
+    </div>
+  );
+}
+
+function TransferSheet({
+  sheet,
+  state,
+  setState,
+  onClose,
+}: {
+  sheet: Extract<SheetPayload, { kind: "transfer" }>;
+  state: ClientAppState;
+  setState: SheetContentProps["setState"];
+  onClose: () => void;
+}) {
+  const { sam } = useSam();
+  const accounts = state.accounts;
+  const defaultFrom =
+    sheet.fromId && accounts.some((a) => a.id === sheet.fromId)
+      ? sheet.fromId
+      : accounts[0]?.id ?? "";
+  const [fromId, setFromId] = useState(defaultFrom);
+  const [toId, setToId] = useState(
+    accounts.find((a) => a.id !== defaultFrom)?.id ?? ""
+  );
+  const [amount, setAmount] = useState("");
+  const [error, setError] = useState("");
+  const amt = parseFloat(amount);
+  const canSave = !!(fromId && toId && fromId !== toId && amt > 0);
+
+  const save = async () => {
+    if (!canSave) return;
+    setError("");
+    try {
+      const res = await transferAction({ fromId, toId, amount: amt });
+      setState((s) => ({
+        ...s,
+        accounts: s.accounts.map((a) => {
+          if (a.id === res.from.id) return { ...a, balance: res.from.balance };
+          if (a.id === res.to.id) return { ...a, balance: res.to.balance };
+          return a;
+        }),
+      }));
+      onClose();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "transfer failed");
+    }
+  };
+
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 14 }}>
+        <span onClick={onClose} style={{ cursor: "pointer", color: sam.comment }}>
+          [cancel]
+        </span>
+        <Mono c={sam.cyan} b>
+          $ transfer
+        </Mono>
+        <span
+          onClick={canSave ? save : undefined}
+          style={{
+            cursor: canSave ? "pointer" : "default",
+            color: canSave ? sam.green : sam.comment,
+            fontWeight: 600,
+          }}
+        >
+          [save]
+        </span>
+      </div>
+      <div style={{ marginTop: 10 }}>
+        <div style={{ fontSize: 13, fontWeight: 600 }}>
+          <Mono c={sam.cyan}>◉</Mono>{" "}
+          <Mono c={sam.cyan} b>
+            from
+          </Mono>
+        </div>
+        <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 6 }}>
+          {accounts.map((a) => {
+            const c = accountColor(a.type);
+            const selected = fromId === a.id;
+            return (
+              <div
+                key={a.id}
+                onClick={() => {
+                  setFromId(a.id);
+                  if (toId === a.id) {
+                    const other = accounts.find((x) => x.id !== a.id);
+                    if (other) setToId(other.id);
+                  }
+                }}
+                style={{
+                  padding: "8px 10px",
+                  border: `1px solid ${selected ? c : sam.border}`,
+                  background: selected ? `${c}15` : "transparent",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  fontSize: 13,
+                }}
+              >
+                <Mono c={c} b>
+                  {a.icon}
+                </Mono>
+                <Mono c={sam.text} b>
+                  {a.name}
+                </Mono>
+                <span style={{ flex: 1 }} />
+                <Mono c={c} b>
+                  ${a.balance.toFixed(2)}
+                </Mono>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      <div style={{ marginTop: 16 }}>
+        <div style={{ fontSize: 13, fontWeight: 600 }}>
+          <Mono c={sam.yellow}>$</Mono>{" "}
+          <Mono c={sam.yellow} b>
+            amount
+          </Mono>
+        </div>
+        <div
+          style={{
+            marginTop: 6,
+            padding: "10px 12px",
+            border: `1px solid ${sam.border}`,
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+          }}
+        >
+          <Mono c={sam.yellow} b style={{ fontSize: 20 }}>
+            $
+          </Mono>
+          <input
+            value={amount}
+            onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ""))}
+            placeholder="0.00"
+            style={{
+              flex: 1,
+              background: "transparent",
+              border: "none",
+              outline: "none",
+              color: sam.text,
+              fontFamily: sam.font,
+              fontSize: 22,
+              fontWeight: 600,
+            }}
+          />
+        </div>
+      </div>
+      <div style={{ marginTop: 16 }}>
+        <div style={{ fontSize: 13, fontWeight: 600 }}>
+          <Mono c={sam.green}>◎</Mono>{" "}
+          <Mono c={sam.green} b>
+            to
+          </Mono>
+        </div>
+        <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 6 }}>
+          {accounts
+            .filter((a) => a.id !== fromId)
+            .map((a) => {
+              const c = accountColor(a.type);
+              const selected = toId === a.id;
+              return (
+                <div
+                  key={a.id}
+                  onClick={() => setToId(a.id)}
+                  style={{
+                    padding: "8px 10px",
+                    border: `1px solid ${selected ? c : sam.border}`,
+                    background: selected ? `${c}15` : "transparent",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    fontSize: 13,
+                  }}
+                >
+                  <Mono c={c} b>
+                    {a.icon}
+                  </Mono>
+                  <Mono c={sam.text} b>
+                    {a.name}
+                  </Mono>
+                  <span style={{ flex: 1 }} />
+                  {selected && <Mono c={c}>✓</Mono>}
+                </div>
+              );
+            })}
+        </div>
+      </div>
+      {error && <div style={{ marginTop: 12, fontSize: 11, color: sam.red }}>{error}</div>}
+    </div>
+  );
+}
+
+function ChangeCredentialsSheet({ onClose }: { onClose: () => void }) {
+  const { sam } = useSam();
+  const [pw1, setPw1] = useState("");
+  const [pw2, setPw2] = useState("");
+  const [show, setShow] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [done, setDone] = useState(false);
+  const match = pw1 === pw2 && pw1.length >= 8;
+  const canSave = match && !busy;
+
+  const save = async () => {
+    if (!canSave) return;
+    setBusy(true);
+    setError("");
+    try {
+      await setCredentialsAction(pw1);
+      setDone(true);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "failed to update credentials");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const inputStyle: React.CSSProperties = {
+    flex: 1,
+    background: "transparent",
+    border: "none",
+    outline: "none",
+    color: sam.text,
+    fontFamily: sam.font,
+    fontSize: 14,
+  };
+
+  if (done) {
+    return (
+      <div>
+        <div style={{ fontSize: 13, color: sam.green, marginTop: 8 }}>✓ credentials updated</div>
+        <div style={{ fontSize: 11, color: sam.comment, marginTop: 6 }}>
+          {`// you can now sign in with email + password`}
+        </div>
+        <div
+          onClick={onClose}
+          style={{
+            marginTop: 18,
+            padding: "10px 0",
+            textAlign: "center",
+            background: sam.green,
+            color: sam.bg,
+            fontWeight: 700,
+            cursor: "pointer",
+            fontSize: 14,
+          }}
+        >
+          [done]
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 14 }}>
+        <span onClick={onClose} style={{ cursor: "pointer", color: sam.comment }}>
+          [cancel]
+        </span>
+        <Mono c={sam.cyan} b>
+          $ credentials --set
+        </Mono>
+        <span
+          onClick={canSave ? save : undefined}
+          style={{
+            cursor: canSave ? "pointer" : "default",
+            color: canSave ? sam.green : sam.comment,
+            fontWeight: 600,
+          }}
+        >
+          {busy ? "..." : "[save]"}
+        </span>
+      </div>
+      <div style={{ fontSize: 11, color: sam.comment, marginBottom: 12 }}>
+        {`// set or update your email + password login`}
+      </div>
+      {(["new password", "confirm password"] as const).map((label, i) => (
+        <div key={label} style={{ marginTop: i === 0 ? 0 : 14 }}>
+          <div style={{ fontSize: 13, fontWeight: 600 }}>
+            <Mono c={sam.yellow}>◎</Mono>{" "}
+            <Mono c={sam.yellow} b>
+              {label}
+            </Mono>
+          </div>
+          <div
+            style={{
+              marginTop: 6,
+              padding: "10px 12px",
+              border: `1px solid ${sam.border}`,
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+            }}
+          >
+            <input
+              value={i === 0 ? pw1 : pw2}
+              onChange={(e) => (i === 0 ? setPw1 : setPw2)(e.target.value)}
+              type={show ? "text" : "password"}
+              autoComplete={i === 0 ? "new-password" : "new-password"}
+              placeholder="••••••••"
+              style={inputStyle}
+            />
+            {i === 1 && (
+              <span onClick={() => setShow(!show)} style={{ cursor: "pointer", fontSize: 11, color: sam.comment }}>
+                [{show ? "hide" : "show"}]
+              </span>
+            )}
+          </div>
+        </div>
+      ))}
+      {pw2 && pw1 !== pw2 && (
+        <div style={{ marginTop: 8, fontSize: 11, color: sam.red }}>{`// passwords do not match`}</div>
+      )}
+      {pw1 && pw1.length < 8 && (
+        <div style={{ marginTop: 8, fontSize: 11, color: sam.comment }}>{`// minimum 8 characters`}</div>
+      )}
+      {error && <div style={{ marginTop: 12, fontSize: 11, color: sam.red }}>{error}</div>}
     </div>
   );
 }
