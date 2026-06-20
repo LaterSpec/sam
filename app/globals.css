@@ -13,18 +13,14 @@
 html {
   background-color: #0a0e14;
   color-scheme: dark;
-  height: 100%;
   height: 100dvh;
-  height: -webkit-fill-available;
 }
 
 html,
 body {
   margin: 0;
   padding: 0;
-  min-height: 100%;
   min-height: 100dvh;
-  min-height: -webkit-fill-available;
   overscroll-behavior: none;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
@@ -37,14 +33,15 @@ body {
   color: #c9d1d9;
 }
 
-/* Full viewport shell — fills iOS standalone safe areas without white gaps */
+/* Full viewport shell — fills the dynamic viewport and pads iOS safe areas
+   without white gaps. Uses 100dvh (not -webkit-fill-available, which resolves
+   incorrectly on iOS and left bottom actions floating above the safe area). */
 .sam-pwa-shell {
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
   width: 100%;
-  min-height: 100dvh;
-  min-height: -webkit-fill-available;
+  height: 100dvh;
   padding-top: env(safe-area-inset-top, 0px);
   padding-right: env(safe-area-inset-right, 0px);
   padding-bottom: env(safe-area-inset-bottom, 0px);

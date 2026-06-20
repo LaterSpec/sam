@@ -43,7 +43,7 @@ const TAB_ORDER = ["home", "expenses", "invest", "goals", "profile"];
 // children. Top/left/right use the live env() insets; the bottom additionally
 // reserves room for the fixed BottomNav so content never hides behind it.
 const SCREEN_SAFE_PAD =
-  "pt-[env(safe-area-inset-top)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] pb-[calc(5.5rem+env(safe-area-inset-bottom))]";
+  "pt-[env(safe-area-inset-top)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] pb-[calc(4rem+env(safe-area-inset-bottom))]";
 
 const UI_DEFAULTS = {
   tab: "home",
@@ -266,7 +266,7 @@ function AppShellInner({
 
   return (
     <div
-      className="flex min-h-dvh min-h-[-webkit-fill-available] flex-col"
+      className="flex h-dvh flex-col"
       style={{
         background: "var(--sam-page-bg)",
         fontFamily: '"JetBrains Mono", ui-monospace, monospace',
