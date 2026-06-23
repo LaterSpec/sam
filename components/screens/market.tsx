@@ -1,7 +1,7 @@
 "use client";
 
 import { useSam } from "@/lib/theme/sam-theme";
-import { Mono, Prompt, TabBar } from "@/components/ui/sam-primitives";
+import { Mono, Prompt, TabBar, userHandleFromState } from "@/components/ui/sam-primitives";
 import { MiniLineChart } from "@/components/charts/mini-line-chart";
 import type { ScreenProps } from "./types";
 import { SCREEN_PAD } from "./types";
@@ -72,7 +72,7 @@ export function MarketScreen({ state, setState, openSheet }: ScreenProps) {
           marginBottom: 10,
           cursor: noData ? "default" : "pointer",
           border: `1px solid ${noData ? sam.border : (up ? sam.green + "30" : sam.red + "30")}`,
-          background: noData ? "transparent" : up ? "rgba(86,211,100,0.025)" : "rgba(248,81,73,0.025)",
+          background: noData ? "transparent" : up ? `${sam.green}0a` : `${sam.red}0a`,
           transition: "border-color 180ms, background 180ms",
         }}
       >
@@ -155,7 +155,7 @@ export function MarketScreen({ state, setState, openSheet }: ScreenProps) {
     <div style={{ padding: SCREEN_PAD }}>
       <TabBar tabs={["portfolio", "market", "analysis"]} active="market" onChange={(t) => setState((s) => ({ ...s, investTab: t }))} />
       <div style={{ marginTop: 20 }}>
-        <Prompt host="init.Market" cmd="ticker --live" />
+        <Prompt user={userHandleFromState(state)} host="init.Market" cmd="ticker --live" />
         <div
           style={{
             display: "flex",
@@ -163,7 +163,7 @@ export function MarketScreen({ state, setState, openSheet }: ScreenProps) {
             gap: 8,
             padding: "6px 10px",
             border: `1px solid ${(isOpen ? sam.green : sam.comment) + "44"}`,
-            background: isOpen ? "rgba(86,211,100,0.04)" : "rgba(110,118,129,0.06)",
+            background: isOpen ? `${sam.green}10` : sam.overlay,
             marginBottom: 14,
           }}
         >

@@ -1,7 +1,7 @@
 "use client";
 
 import { useSam } from "@/lib/theme/sam-theme";
-import { Mono, Comment, Prompt, BlockBar, TabBar } from "@/components/ui/sam-primitives";
+import { Mono, Comment, Prompt, BlockBar, TabBar, ScreenHeader, userHandleFromState } from "@/components/ui/sam-primitives";
 import { formatDateLong, formatMonthYear } from "@/lib/utils";
 import {
   hasTrendHistory,
@@ -42,30 +42,27 @@ export function HomeScreen({ state, setState, openSheet }: ScreenProps) {
 
   return (
     <div style={{ padding: SCREEN_PAD }}>
-      <TabBar
-        tabs={["home", "activity", "accounts"]}
-        active={state.homeTab}
-        onChange={(t) => setState((s) => ({ ...s, homeTab: t }))}
-      />
+      <ScreenHeader>
+        <TabBar
+          tabs={["home", "activity", "accounts"]}
+          active={state.homeTab}
+          onChange={(t) => setState((s) => ({ ...s, homeTab: t }))}
+        />
+      </ScreenHeader>
       <div style={{ marginTop: 20 }}>
-        <Prompt host="init.Sam" cmd="balance" />
+        <Prompt user={userHandleFromState(state)} host="init.Sam" cmd="balance" />
         <Comment>
           good morning. tracking {accountCount} accounts, {state.expenses.length} tx this week.
         </Comment>
         <div style={{ marginTop: 18 }}>
           <div style={{ color: sam.comment, fontSize: 12, marginBottom: 4 }}>📅 {formatDateLong(now)}</div>
-          <div style={{ color: sam.comment, fontSize: 13 }}>
-            <Mono c={net >= 0 ? sam.green : sam.red}>{net >= 0 ? "▲" : "▼"}</Mono> net{" "}
-            {net >= 0 ? "+" : "-"}${Math.abs(net).toLocaleString()} · <Mono c={sam.cyan}>◆</Mono> {state.streak}{" "}
-            days streak
-          </div>
         </div>
         <div
           style={{
             marginTop: 16,
             padding: "14px 14px 16px",
             border: `1px solid ${sam.border}`,
-            background: "rgba(227,179,65,0.04)",
+            background: sam.overlay,
           }}
         >
           <div style={{ color: sam.comment, fontSize: 11, marginBottom: 2 }}>
@@ -123,7 +120,7 @@ export function HomeScreen({ state, setState, openSheet }: ScreenProps) {
             { l: "savings", v: money(net), c: net >= 0 ? sam.cyan : sam.red },
             { l: "pending", v: `${state.pending} tx`, c: sam.yellow },
           ].map((s, i) => (
-            <div key={i} style={{ border: `1px solid ${sam.border}`, padding: "8px 10px" }}>
+            <div key={i} style={{ border: `1px solid ${sam.border}`, padding: "8px 10px", background: sam.surface }}>
               <div style={{ fontSize: 10, color: sam.comment }}>{`// ${s.l}`}</div>
               <div style={{ fontSize: 16, color: s.c, fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{s.v}</div>
             </div>

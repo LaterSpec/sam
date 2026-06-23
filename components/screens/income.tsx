@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { useSam } from "@/lib/theme/sam-theme";
-import { Mono, Comment, Prompt, TabBar } from "@/components/ui/sam-primitives";
+import { Mono, Comment, Prompt, TabBar, userHandleFromState } from "@/components/ui/sam-primitives";
 import {
   hasTrendHistory,
   monthlyTotals,
@@ -36,7 +36,7 @@ export function IncomeScreen({ state, setState, openSheet }: ScreenProps) {
     <div style={{ padding: SCREEN_PAD }}>
       <TabBar tabs={["expenses", "income", "budget"]} active="income" onChange={(t) => setState((s) => ({ ...s, expTab: t }))} />
       <div style={{ marginTop: 20 }}>
-        <Prompt host="init.Income" cmd="sources" />
+        <Prompt user={userHandleFromState(state)} host="init.Income" cmd="sources" />
         <Comment>
           {sources.length} sources · {sources.filter((s) => s.freq !== "one-time").length} recurring · projected +$
           {projected.toLocaleString()} this month
@@ -46,7 +46,7 @@ export function IncomeScreen({ state, setState, openSheet }: ScreenProps) {
             marginTop: 16,
             padding: 14,
             border: `1px solid ${sam.green}33`,
-            background: "rgba(86,211,100,0.04)",
+            background: sam.overlay,
           }}
         >
           <div style={{ fontSize: 11, color: sam.comment }}>

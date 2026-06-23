@@ -1,7 +1,7 @@
 "use client";
 
 import { useSam } from "@/lib/theme/sam-theme";
-import { Mono, Prompt, TabBar } from "@/components/ui/sam-primitives";
+import { Mono, Prompt, TabBar, ScreenHeader, userHandleFromState } from "@/components/ui/sam-primitives";
 import { accountColor, accountLabel } from "@/lib/accounts/account-types";
 import type { ScreenProps } from "./types";
 import { SCREEN_PAD } from "./types";
@@ -13,19 +13,21 @@ export function AccountsScreen({ state, setState, openSheet }: ScreenProps) {
 
   return (
     <div style={{ padding: SCREEN_PAD }}>
-      <TabBar
-        tabs={["home", "activity", "accounts"]}
-        active="accounts"
-        onChange={(t) => setState((s) => ({ ...s, homeTab: t }))}
-      />
+      <ScreenHeader>
+        <TabBar
+          tabs={["home", "activity", "accounts"]}
+          active="accounts"
+          onChange={(t) => setState((s) => ({ ...s, homeTab: t }))}
+        />
+      </ScreenHeader>
       <div style={{ marginTop: 20 }}>
-        <Prompt host="init.Accounts" cmd="ls --accounts" />
+        <Prompt user={userHandleFromState(state)} host="init.Accounts" cmd="ls --accounts" />
         <div
           style={{
             marginTop: 14,
             padding: 12,
             border: `1px solid ${sam.border}`,
-            background: "rgba(88,166,255,0.04)",
+            background: sam.overlay,
           }}
         >
           <div style={{ fontSize: 11, color: sam.comment }}>

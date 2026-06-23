@@ -1,7 +1,13 @@
 "use client";
 
 import { Component, useEffect, useRef, useState, type ReactNode } from "react";
-import { SamThemeProvider, SHELL_THEME_VARS } from "@/lib/theme/sam-theme";
+import {
+  SamThemeProvider,
+  SHELL_THEME_VARS,
+  SAM_PALETTES,
+  resolveSamTheme,
+  type SamTheme,
+} from "@/lib/theme/sam-theme";
 import { BottomNav, BootScreen } from "@/components/app/bottom-nav";
 import { BottomSheet } from "@/components/app/bottom-sheet";
 import {
@@ -127,7 +133,7 @@ function AppShellInner({
   onThemeChange,
 }: {
   initialData: AppState;
-  onThemeChange: (t: "dark" | "light") => void;
+  onThemeChange: (t: SamTheme) => void;
 }) {
   const [state, setState] = useState<ClientAppState>({
     ...UI_DEFAULTS,
@@ -160,14 +166,14 @@ function AppShellInner({
   };
 
   useEffect(() => {
-    onThemeChange((state.prefs?.theme as "dark" | "light") || "dark");
+    onThemeChange(resolveSamTheme(state.prefs?.theme));
   }, [state.prefs?.theme, onThemeChange]);
 
   useEffect(() => {
-    const t = (state.prefs?.theme as "dark" | "light") || "dark";
-    const vars = SHELL_THEME_VARS[t] || SHELL_THEME_VARS.dark;
+    const t = resolveSamTheme(state.prefs?.theme);
+    const vars = SHELL_THEME_VARS[t];
     document.documentElement.style.setProperty("--sam-page-bg", vars.pageBg);
-    document.documentElement.style.setProperty("--sam-bg", t === "light" ? "#f6f8fa" : "#0a0e14");
+    document.documentElement.style.setProperty("--sam-bg", SAM_PALETTES[t].bg);
     document.documentElement.style.setProperty("--sam-border-nav", vars.navBorder);
   }, [state.prefs?.theme]);
 
@@ -315,9 +321,7 @@ export function AppShell({ initialData }: { initialData: AppState }) {
 }
 
 function AppShellWithTheme({ initialData }: { initialData: AppState }) {
-  const [theme, setTheme] = useState<"dark" | "light">(
-    (initialData.prefs?.theme as "dark" | "light") || "dark"
-  );
+  const [theme, setTheme] = useState<SamTheme>(resolveSamTheme(initialData.prefs?.theme));
 
   return (
     <SamThemeProvider theme={theme}>

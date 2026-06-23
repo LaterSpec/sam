@@ -82,7 +82,7 @@ export const profiles = pgTable("profiles", {
     .default({
       notifications: true,
       biometric: true,
-      theme: "dark",
+      theme: "ayu-mirage",
       rollover: false,
     }),
   memberSince: date("member_since").notNull().defaultNow(),
@@ -333,7 +333,7 @@ export const portfolioSnapshots = pgTable(
 export type UserPrefs = {
   notifications: boolean;
   biometric: boolean;
-  theme: "dark" | "light";
+  theme: "solarized-cream" | "ayu-mirage" | "catppuccin-latte" | "github-light" | "dark" | "light";
   rollover: boolean;
   accentHue?: number;
 };

@@ -15,6 +15,7 @@ type TxSheetProps = {
 };
 
 type TxMode = "view" | "edit" | "recategorize" | "deleting" | "deleted" | "error";
+type AccountStateRow = ClientAppState["accounts"][number];
 
 export function TxSheet({ sheet, state, setState, onClose }: TxSheetProps) {
   const { sam } = useSam();
@@ -24,9 +25,11 @@ export function TxSheet({ sheet, state, setState, onClose }: TxSheetProps) {
   const [amount, setAmount] = useState(String(tx.amount));
   const [name, setName] = useState(tx.name);
   const [catKey, setCatKey] = useState(tx.catKey);
+  const [accountId, setAccountId] = useState(tx.accountId ?? state.accounts[0]?.id ?? "");
   const [notes] = useState("");
   const [logLines, setLogLines] = useState<Array<{ text: string; c: string }>>([]);
   const [busy, setBusy] = useState(false);
+  const [formError, setFormError] = useState("");
 
   const cats = (state.budgets || []).map((b) => ({
     key: b.key,
@@ -35,7 +38,7 @@ export function TxSheet({ sheet, state, setState, onClose }: TxSheetProps) {
     c: b.c,
   }));
 
-  const accountLabel = state.accounts[0]?.name ?? "—";
+  const accountLabel = state.accounts.find((a) => a.id === tx.accountId)?.name ?? "—";
 
   const shortId = tx.id.slice(0, 8);
 
@@ -45,20 +48,26 @@ export function TxSheet({ sheet, state, setState, onClose }: TxSheetProps) {
     const parsed = parseFloat(amount);
     if (!name.trim() || isNaN(parsed)) return;
     setBusy(true);
+    setFormError("");
     try {
       const row = await updateExpenseAction({
         id: tx.id,
         amount: parsed,
         name: name.trim(),
         catKey,
+        accountId,
         budgets: state.budgets,
       });
       if ("error" in row) return;
+      const accountUpdates = row.accounts as AccountStateRow[];
       setState((s) => ({
         ...s,
-        expenses: s.expenses.map((e) => (e.id === tx.id ? { ...e, ...row } : e)),
+        expenses: s.expenses.map((e) => (e.id === tx.id ? { ...e, ...row.tx } : e)),
+        accounts: s.accounts.map((a) => accountUpdates.find((x) => x.id === a.id) ?? a),
       }));
       onClose();
+    } catch (e) {
+      setFormError(e instanceof Error ? e.message : "save failed");
     } finally {
       setBusy(false);
     }
@@ -66,6 +75,7 @@ export function TxSheet({ sheet, state, setState, onClose }: TxSheetProps) {
 
   const saveRecategorize = async (key: string) => {
     setBusy(true);
+    setFormError("");
     try {
       const row = await updateExpenseAction({
         id: tx.id,
@@ -73,11 +83,15 @@ export function TxSheet({ sheet, state, setState, onClose }: TxSheetProps) {
         budgets: state.budgets,
       });
       if ("error" in row) return;
+      const accountUpdates = row.accounts as AccountStateRow[];
       setState((s) => ({
         ...s,
-        expenses: s.expenses.map((e) => (e.id === tx.id ? { ...e, ...row } : e)),
+        expenses: s.expenses.map((e) => (e.id === tx.id ? { ...e, ...row.tx } : e)),
+        accounts: s.accounts.map((a) => accountUpdates.find((x) => x.id === a.id) ?? a),
       }));
       onClose();
+    } catch (e) {
+      setFormError(e instanceof Error ? e.message : "save failed");
     } finally {
       setBusy(false);
     }
@@ -91,8 +105,13 @@ export function TxSheet({ sheet, state, setState, onClose }: TxSheetProps) {
 
     if (reducedMotion) {
       try {
-        await deleteExpenseAction(tx.id);
-        setState((s) => ({ ...s, expenses: s.expenses.filter((e) => e.id !== tx.id) }));
+        const res = await deleteExpenseAction(tx.id);
+        const accountUpdates = res.accounts as AccountStateRow[];
+        setState((s) => ({
+          ...s,
+          expenses: s.expenses.filter((e) => e.id !== tx.id),
+          accounts: s.accounts.map((a) => accountUpdates.find((x) => x.id === a.id) ?? a),
+        }));
         pushLog("✓ deleted", sam.green);
         setMode("deleted");
         await wait(400);
@@ -110,8 +129,13 @@ export function TxSheet({ sheet, state, setState, onClose }: TxSheetProps) {
     await wait(400);
 
     try {
-      await deleteExpenseAction(tx.id);
-      setState((s) => ({ ...s, expenses: s.expenses.filter((e) => e.id !== tx.id) }));
+      const res = await deleteExpenseAction(tx.id);
+      const accountUpdates = res.accounts as AccountStateRow[];
+      setState((s) => ({
+        ...s,
+        expenses: s.expenses.filter((e) => e.id !== tx.id),
+        accounts: s.accounts.map((a) => accountUpdates.find((x) => x.id === a.id) ?? a),
+      }));
       pushLog("✓ deleted", sam.green);
       setMode("deleted");
       await wait(700);
@@ -225,6 +249,22 @@ export function TxSheet({ sheet, state, setState, onClose }: TxSheetProps) {
               ))}
             </select>
           </label>
+          <label className="mt-3 block">
+            <Comment>account</Comment>
+            <select
+              value={accountId}
+              onChange={(e) => setAccountId(e.target.value)}
+              className="mt-1 w-full border bg-transparent px-3 py-2 text-sm outline-none"
+              style={{ borderColor: sam.border, color: sam.text, fontFamily: sam.font }}
+            >
+              {state.accounts.map((a) => (
+                <option key={a.id} value={a.id} style={{ background: sam.bgAlt }}>
+                  {a.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          {formError && <div style={{ marginTop: 8, color: sam.red, fontSize: 11 }}>{formError}</div>}
         </div>
       )}
 
@@ -295,9 +335,6 @@ export function TxSheet({ sheet, state, setState, onClose }: TxSheetProps) {
 
       {mode === "view" && (
         <div style={{ marginTop: 18, display: "flex", gap: 12 }}>
-          <span style={{ color: sam.comment, cursor: "default", opacity: 0.5 }} title="coming soon">
-            [split]
-          </span>
           <span onClick={() => setMode("recategorize")} style={{ color: sam.cyan, cursor: "pointer" }}>
             [recategorize]
           </span>

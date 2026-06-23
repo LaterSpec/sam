@@ -3,8 +3,8 @@
 import { useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { useSam } from "@/lib/theme/sam-theme";
-import { Mono, Comment, Prompt, TabBar } from "@/components/ui/sam-primitives";
-import { signOutAction, deleteAccountAction, updatePrefsAction } from "@/lib/actions/data-actions";
+import { Mono, Comment, Prompt, TabBar, ScreenHeader } from "@/components/ui/sam-primitives";
+import { signOutAction, deleteAccountAction, updatePrefsAction, updateUsernameAction } from "@/lib/actions/data-actions";
 import type { ScreenProps } from "./types";
 import { SCREEN_PAD } from "./types";
 
@@ -19,15 +19,12 @@ export function ProfileScreen({ state, setState, openSheet }: ScreenProps) {
   const router = useRouter();
   const [confirmDel, setConfirmDel] = useState(false);
   const [busy, setBusy] = useState("");
+  const [editingUsername, setEditingUsername] = useState(false);
+  const [usernameDraft, setUsernameDraft] = useState(samUserHandle(state));
+  const [usernameError, setUsernameError] = useState("");
 
   const toggle = (k: "notifications" | "biometric") => {
     const prefs = { ...state.prefs, [k]: !state.prefs[k] };
-    setState((s) => ({ ...s, prefs }));
-    void updatePrefsAction(prefs);
-  };
-
-  const setTheme = (t: "dark" | "light") => {
-    const prefs = { ...state.prefs, theme: t };
     setState((s) => ({ ...s, prefs }));
     void updatePrefsAction(prefs);
   };
@@ -74,6 +71,25 @@ export function ProfileScreen({ state, setState, openSheet }: ScreenProps) {
     URL.revokeObjectURL(url);
   };
 
+  const saveUsername = async () => {
+    const clean = usernameDraft.trim();
+    if (!clean || /\s/.test(clean)) {
+      setUsernameError("username cannot contain spaces");
+      return;
+    }
+    setBusy("username");
+    setUsernameError("");
+    try {
+      const row = await updateUsernameAction(clean);
+      setState((s) => ({ ...s, user: { ...s.user, username: row.username } }));
+      setEditingUsername(false);
+    } catch (e) {
+      setUsernameError(e instanceof Error ? e.message : "could not save username");
+    } finally {
+      setBusy("");
+    }
+  };
+
   const Toggle = ({ value, onChange }: { value: boolean; onChange: () => void }) => (
     <span onClick={onChange} style={{ cursor: "pointer", userSelect: "none" }}>
       <Mono c={value ? sam.cyan : sam.comment} b={value}>
@@ -83,22 +99,6 @@ export function ProfileScreen({ state, setState, openSheet }: ScreenProps) {
         {" "}
         off
       </Mono>
-    </span>
-  );
-
-  const ThemeToggle = () => (
-    <span style={{ userSelect: "none" }}>
-      <span onClick={() => setTheme("dark")} style={{ cursor: "pointer" }}>
-        <Mono c={state.prefs.theme === "dark" ? sam.cyan : sam.comment} b={state.prefs.theme === "dark"}>
-          [dark]
-        </Mono>
-      </span>
-      <Mono c={sam.comment}> </Mono>
-      <span onClick={() => setTheme("light")} style={{ cursor: "pointer" }}>
-        <Mono c={state.prefs.theme === "light" ? sam.cyan : sam.text} b={state.prefs.theme === "light"}>
-          light
-        </Mono>
-      </span>
     </span>
   );
 
@@ -114,7 +114,7 @@ export function ProfileScreen({ state, setState, openSheet }: ScreenProps) {
       c: sam.yellow,
       items: [
         { k: "email", v: <Mono c={sam.comment}>{user.email}</Mono> },
-        { k: "handle", v: <Mono c={sam.comment}>@{handle}</Mono> },
+        { k: "username", v: <Mono c={sam.comment}>@{handle}</Mono>, onClick: () => setEditingUsername(true) },
         { k: "member since", v: <Mono c={sam.comment}>{memberSince}</Mono> },
       ],
     },
@@ -124,7 +124,6 @@ export function ProfileScreen({ state, setState, openSheet }: ScreenProps) {
       c: sam.cyan,
       items: [
         { k: "currency", v: <Mono c={sam.comment}>USD $</Mono> },
-        { k: "theme", v: <ThemeToggle /> },
         { k: "notifications", v: <Toggle value={state.prefs.notifications} onChange={() => toggle("notifications")} /> },
         { k: "biometric lock", v: <Toggle value={state.prefs.biometric} onChange={() => toggle("biometric")} /> },
       ],
@@ -143,23 +142,26 @@ export function ProfileScreen({ state, setState, openSheet }: ScreenProps) {
 
   return (
     <div style={{ padding: SCREEN_PAD }}>
-      <TabBar
-        tabs={["profile", "stats", "help", "settings"]}
-        active={state.profileTab}
-        onChange={(t) => setState((s) => ({ ...s, profileTab: t }))}
-      />
+      <ScreenHeader>
+        <TabBar
+          tabs={["profile", "stats", "help", "settings"]}
+          active={state.profileTab}
+          onChange={(t) => setState((s) => ({ ...s, profileTab: t }))}
+        />
+      </ScreenHeader>
       <div style={{ marginTop: 20 }}>
-        <Prompt host="init.Profile" cmd="whoami" />
+        <Prompt user={handle} host="init.Profile" cmd="whoami" />
         <Comment>member of the 0.3% who budget weekly. keep going.</Comment>
         <div
           style={{
             marginTop: 16,
             padding: "12px 14px",
             border: `1px solid ${sam.border}`,
-            display: "flex",
-            gap: 14,
-            alignItems: "center",
-          }}
+              display: "flex",
+              gap: 14,
+              alignItems: "center",
+              minWidth: 0,
+            }}
         >
           <div
             style={{
@@ -177,7 +179,7 @@ export function ProfileScreen({ state, setState, openSheet }: ScreenProps) {
           >
             {initial}
           </div>
-          <div style={{ flex: 1 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 16, fontWeight: 700, color: sam.text }}>{displayName}</div>
             <div style={{ fontSize: 12, color: sam.comment }}>
               {memberSince} · ${totalSaved.toLocaleString()} saved
@@ -185,7 +187,33 @@ export function ProfileScreen({ state, setState, openSheet }: ScreenProps) {
             <div style={{ fontSize: 11, color: sam.green, marginTop: 2 }}>◆ {state.streak} day streak</div>
           </div>
         </div>
-        <div style={{ marginTop: 12, display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+        {editingUsername && (
+          <div style={{ marginTop: 12, padding: 12, border: `1px solid ${sam.border}`, background: sam.surface }}>
+            <Comment>username · no spaces</Comment>
+            <div style={{ display: "flex", gap: 8, marginTop: 8, alignItems: "center" }}>
+              <Mono c={sam.cyan}>@</Mono>
+              <input
+                value={usernameDraft}
+                onChange={(e) => {
+                  setUsernameDraft(e.target.value.replace(/\s/g, ""));
+                  setUsernameError("");
+                }}
+                className="min-w-0 flex-1 border bg-transparent px-3 py-2 text-sm outline-none"
+                style={{ borderColor: sam.border, color: sam.text, fontFamily: sam.font }}
+              />
+            </div>
+            {usernameError && <div style={{ marginTop: 6, color: sam.red, fontSize: 11 }}>{usernameError}</div>}
+            <div style={{ display: "flex", gap: 8, marginTop: 10, fontSize: 12 }}>
+              <span onClick={() => setEditingUsername(false)} style={{ cursor: "pointer", color: sam.comment }}>
+                [cancel]
+              </span>
+              <span onClick={busy === "username" ? undefined : saveUsername} style={{ cursor: "pointer", color: sam.green, fontWeight: 600 }}>
+                {busy === "username" ? "[saving...]" : "[save]"}
+              </span>
+            </div>
+          </div>
+        )}
+        <div style={{ marginTop: 12, display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 8 }}>
           {[
             { v: state.expenses.length, l: "tx logged", c: sam.text },
             { v: state.goals.length, l: "goals", c: sam.cyan },

@@ -1,7 +1,7 @@
 "use client";
 
 import { useSam } from "@/lib/theme/sam-theme";
-import { Mono, Comment, Prompt, BarH, TabBar } from "@/components/ui/sam-primitives";
+import { Mono, Comment, Prompt, BarH, TabBar, userHandleFromState } from "@/components/ui/sam-primitives";
 import type { ScreenProps } from "./types";
 import { SCREEN_PAD } from "./types";
 
@@ -15,7 +15,7 @@ export function SavingsScreen({ state, setState, openSheet }: ScreenProps) {
     <div style={{ padding: SCREEN_PAD }}>
       <TabBar tabs={["goals", "savings"]} active="savings" onChange={(t) => setState((s) => ({ ...s, goalsTab: t }))} />
       <div style={{ marginTop: 20 }}>
-        <Prompt host="init.Savings" cmd="buckets" />
+        <Prompt user={userHandleFromState(state)} host="init.Savings" cmd="buckets" />
         <Comment>
           {buckets.length} buckets · auto-save {rule.enabled ? "on" : "off"} · ${rule.amount}/wk
         </Comment>
@@ -24,7 +24,7 @@ export function SavingsScreen({ state, setState, openSheet }: ScreenProps) {
             marginTop: 14,
             padding: 14,
             border: `1px solid ${sam.green}33`,
-            background: "rgba(86,211,100,0.04)",
+            background: sam.overlay,
           }}
         >
           <div style={{ fontSize: 11, color: sam.comment }}>

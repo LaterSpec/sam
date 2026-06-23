@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useSam } from "@/lib/theme/sam-theme";
-import { Mono, Comment, Prompt, TabBar } from "@/components/ui/sam-primitives";
+import { Mono, Comment, Prompt, TabBar, userHandleFromState } from "@/components/ui/sam-primitives";
 import type { ScreenProps } from "./types";
 import { SCREEN_PAD } from "./types";
 
@@ -72,7 +72,7 @@ export function HelpScreen({ state, setState }: ScreenProps) {
     <div style={{ padding: SCREEN_PAD }}>
       <TabBar tabs={["profile", "stats", "help", "settings"]} active="help" onChange={(t) => setState((s) => ({ ...s, profileTab: t }))} />
       <div style={{ marginTop: 20 }}>
-        <Prompt host="init.Help" cmd="man sam" />
+        <Prompt user={userHandleFromState(state)} host="init.Help" cmd="man sam" />
         <Comment>type to search · avg response &lt; 4h</Comment>
         <div
           style={{

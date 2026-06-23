@@ -14,7 +14,7 @@ import {
   marketDailyBars,
   portfolioSnapshots,
 } from "@/lib/db/schema";
-import { eq, gte, inArray, asc, desc, and } from "drizzle-orm";
+import { eq, gte, inArray, asc, and } from "drizzle-orm";
 import { buildMarket, buildDailyBars, mapHolding } from "@/lib/market/build-market";
 import { formatTime, isoDay, num } from "@/lib/utils";
 import type { UserPrefs } from "@/lib/db/schema";

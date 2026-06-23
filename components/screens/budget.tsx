@@ -1,8 +1,7 @@
 "use client";
 
 import { useSam } from "@/lib/theme/sam-theme";
-import { Mono, Comment, Prompt, BlockBar, TabBar } from "@/components/ui/sam-primitives";
-import { updatePrefsAction } from "@/lib/actions/data-actions";
+import { Mono, Comment, Prompt, BlockBar, TabBar, ScreenHeader, userHandleFromState } from "@/components/ui/sam-primitives";
 import type { ScreenProps } from "./types";
 import { SCREEN_PAD } from "./types";
 
@@ -17,20 +16,15 @@ export function BudgetScreen({ state, setState, openSheet }: ScreenProps) {
   const totalCap = budgets.reduce((a, b) => a + b.cap, 0);
   const totalSpent = budgets.reduce((a, b) => a + (byCat[b.key] || 0), 0);
 
-  const toggleRollover = () => {
-    const rollover = !state.prefs.rollover;
-    setState((s) => ({ ...s, prefs: { ...s.prefs, rollover } }));
-    void updatePrefsAction({ ...state.prefs, rollover });
-  };
-
   return (
     <div style={{ padding: SCREEN_PAD }}>
-      <TabBar tabs={["expenses", "income", "budget"]} active="budget" onChange={(t) => setState((s) => ({ ...s, expTab: t }))} />
+      <ScreenHeader>
+        <TabBar tabs={["expenses", "income", "budget"]} active="budget" onChange={(t) => setState((s) => ({ ...s, expTab: t }))} />
+      </ScreenHeader>
       <div style={{ marginTop: 20 }}>
-        <Prompt host="init.Budget" cmd="config --month" />
+        <Prompt user={userHandleFromState(state)} host="init.Budget" cmd="config --month" />
         <Comment>
-          {budgets.length} envelopes · ${Math.max(0, totalCap - totalSpent).toLocaleString()} unallocated · rollover:{" "}
-          {state.prefs.rollover ? "on" : "off"}
+          {budgets.length} envelopes · ${Math.max(0, totalCap - totalSpent).toLocaleString()} unallocated
         </Comment>
         <div style={{ marginTop: 16, padding: 14, border: `1px solid ${sam.border}` }}>
           <div style={{ fontSize: 11, color: sam.comment }}>{`// budget · spent · remaining`}</div>
@@ -72,7 +66,7 @@ export function BudgetScreen({ state, setState, openSheet }: ScreenProps) {
                   padding: "10px 12px",
                   cursor: "pointer",
                   border: `1px solid ${over ? sam.red : sam.border}`,
-                  background: warn ? "rgba(248,81,73,0.04)" : "transparent",
+                  background: warn ? `${sam.red}10` : sam.surface,
                   transition: "all 140ms",
                 }}
               >
@@ -97,18 +91,10 @@ export function BudgetScreen({ state, setState, openSheet }: ScreenProps) {
             );
           })}
         </div>
-        <div style={{ marginTop: 16, display: "flex", alignItems: "baseline", gap: 8, fontSize: 13 }}>
-          <Mono c={sam.comment}>├─</Mono>
-          <Mono c={sam.text}>rollover unspent</Mono>
-          <span style={{ flex: 1 }} />
-          <span onClick={toggleRollover} style={{ cursor: "pointer" }}>
-            <Mono c={state.prefs.rollover ? sam.cyan : sam.comment} b={state.prefs.rollover}>
-              [{state.prefs.rollover ? "on" : "off"}]
-            </Mono>
-          </span>
-        </div>
         <div style={{ marginTop: 16, fontSize: 14 }}>
-          <Mono c={sam.green} b>[+ new envelope]</Mono>
+          <span onClick={() => openSheet({ kind: "new-budget" })} style={{ cursor: "pointer" }}>
+            <Mono c={sam.green} b>[+ new envelope]</Mono>
+          </span>
         </div>
       </div>
     </div>

@@ -8,8 +8,10 @@ import type { ClientAppState, SheetPayload } from "@/components/screens/types";
 import {
   addExpenseAction,
   addGoalAction,
+  updateGoalAction,
   setGoalSavedAction,
-  setBudgetCapAction,
+  addBudgetAction,
+  updateBudgetAction,
   addIncomeAction,
   setBucketBalanceAction,
   buyHoldingAction,
@@ -28,6 +30,7 @@ import {
   accountDefaultIcon,
   accountLabel,
 } from "@/lib/accounts/account-types";
+import { BUDGET_ICON_PRESETS, GOAL_ICON_PRESETS, type FinanceIconPreset } from "@/lib/finance/icon-presets";
 import { TxSheet } from "@/components/sheets/tx-sheet";
 
 type SheetContentProps = {
@@ -52,6 +55,8 @@ export function SheetContent({ sheet, state, setState, onClose, openSheet }: She
       return <NewGoalSheet setState={setState} onClose={onClose} />;
     case "edit-budget":
       return <EditBudgetSheet sheet={sheet} setState={setState} onClose={onClose} />;
+    case "new-budget":
+      return <NewBudgetSheet setState={setState} onClose={onClose} />;
     case "income-src":
       return <IncomeSrcSheet sheet={sheet} state={state} onClose={onClose} />;
     case "new-income":
@@ -85,6 +90,57 @@ export function SheetContent({ sheet, state, setState, onClose, openSheet }: She
   }
 }
 
+function IconPresetPicker({
+  presets,
+  value,
+  onChange,
+}: {
+  presets: FinanceIconPreset[];
+  value: FinanceIconPreset;
+  onChange: (preset: FinanceIconPreset) => void;
+}) {
+  const { sam } = useSam();
+  return (
+    <div style={{ marginTop: 8, display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 1fr))", gap: 6 }}>
+      {presets.map((preset) => {
+        const selected = preset.key === value.key || (preset.icon === value.icon && preset.color === value.color);
+        return (
+          <button
+            key={preset.key}
+            type="button"
+            onClick={() => onChange(preset)}
+            title={preset.label}
+            style={{
+              minWidth: 0,
+              padding: "8px 4px",
+              border: `1px solid ${selected ? preset.color : sam.border}`,
+              background: selected ? `${preset.color}18` : sam.overlay,
+              color: selected ? preset.color : sam.comment,
+              fontFamily: sam.font,
+              cursor: "pointer",
+              fontSize: 15,
+            }}
+          >
+            <div style={{ fontWeight: 700 }}>{preset.icon}</div>
+            <div style={{ marginTop: 2, fontSize: 8, overflow: "hidden", textOverflow: "ellipsis" }}>
+              {preset.label.toLowerCase()}
+            </div>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function presetFromStored(presets: FinanceIconPreset[], icon: string, color: string) {
+  return presets.find((p) => p.icon === icon && p.color === color) ?? {
+    key: `custom-${icon}-${color}`,
+    label: "Custom",
+    icon,
+    color,
+  };
+}
+
 function CategorySheet({
   sheet,
   state,
@@ -107,7 +163,15 @@ function CategorySheet({
         <Mono c={sam.cyan} b>
           $ cat --view {cat.key}
         </Mono>
-        <span style={{ color: sam.yellow, cursor: "pointer" }}>[edit]</span>
+        <span
+          onClick={() => {
+            const budget = state.budgets.find((b) => b.key === cat.key);
+            if (budget) openSheet({ kind: "edit-budget", budget, spent });
+          }}
+          style={{ color: sam.yellow, cursor: "pointer" }}
+        >
+          [edit]
+        </span>
       </div>
       <div style={{ marginTop: 8 }}>
         <div style={{ fontSize: 13 }}>
@@ -170,17 +234,41 @@ function GoalSheet({
 }) {
   const { sam } = useSam();
   const g = sheet.goal;
-  const pct = Math.min(100, Math.round((g.saved / g.target) * 100));
-  const [amount, setAmount] = useState(50);
+  const pct = Math.min(100, Math.round((g.saved / Math.max(1, g.target)) * 100));
+  const [mode, setMode] = useState<"view" | "edit">("view");
+  const [amount, setAmount] = useState("50");
+  const [name, setName] = useState(g.name);
+  const [target, setTarget] = useState(String(g.target));
+  const [iconPreset, setIconPreset] = useState(presetFromStored(GOAL_ICON_PRESETS, g.icon, g.c));
+  const parsedAmount = parseFloat(amount) || 0;
+  const remaining = Math.max(0, g.target - g.saved);
 
-  const contribute = async () => {
-    const newSaved = Math.min(g.target, g.saved + amount);
+  const applyContribution = async (dir: 1 | -1) => {
+    if (!(parsedAmount > 0)) return;
+    const newSaved = Math.max(0, Math.min(g.target, g.saved + dir * parsedAmount));
     const done = newSaved >= g.target;
     setState((s) => ({
       ...s,
       goals: s.goals.map((gg) => (gg.id === g.id ? { ...gg, saved: newSaved, done } : gg)),
     }));
     await setGoalSavedAction(g.id, newSaved, done);
+    onClose();
+  };
+
+  const saveEdit = async () => {
+    const parsedTarget = parseFloat(target);
+    if (!name.trim() || !Number.isFinite(parsedTarget) || parsedTarget < 0) return;
+    const row = await updateGoalAction({
+      id: g.id,
+      name,
+      target: parsedTarget,
+      icon: iconPreset.icon,
+      color: iconPreset.color,
+    });
+    setState((s) => ({
+      ...s,
+      goals: s.goals.map((gg) => (gg.id === g.id ? row : gg)),
+    }));
     onClose();
   };
 
@@ -191,10 +279,44 @@ function GoalSheet({
           [close]
         </span>
         <Mono c={sam.cyan} b>
-          $ goal --view
+          {mode === "edit" ? "$ goal --edit" : "$ goal --view"}
         </Mono>
-        <span style={{ color: sam.yellow, cursor: "pointer" }}>[edit]</span>
+        {mode === "edit" ? (
+          <span onClick={saveEdit} style={{ color: sam.green, cursor: "pointer", fontWeight: 600 }}>
+            [save]
+          </span>
+        ) : (
+          <span onClick={() => setMode("edit")} style={{ color: sam.yellow, cursor: "pointer" }}>
+            [edit]
+          </span>
+        )}
       </div>
+      {mode === "edit" && (
+        <div style={{ marginBottom: 16 }}>
+          <Comment>edit goal details</Comment>
+          <div style={{ marginTop: 10 }}>
+            <IconPresetPicker presets={GOAL_ICON_PRESETS} value={iconPreset} onChange={setIconPreset} />
+          </div>
+          <label className="mt-3 block">
+            <Comment>name</Comment>
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="mt-1 w-full border bg-transparent px-3 py-2 text-sm outline-none"
+              style={{ borderColor: sam.border, color: sam.text, fontFamily: sam.font }}
+            />
+          </label>
+          <label className="mt-3 block">
+            <Comment>target amount</Comment>
+            <input
+              value={target}
+              onChange={(e) => setTarget(e.target.value.replace(/[^0-9.]/g, ""))}
+              className="mt-1 w-full border bg-transparent px-3 py-2 text-sm outline-none"
+              style={{ borderColor: sam.border, color: sam.text, fontFamily: sam.font }}
+            />
+          </label>
+        </div>
+      )}
       <div style={{ textAlign: "center", marginTop: 8, marginBottom: 12 }}>
         <div style={{ fontSize: 34 }}>{g.icon}</div>
         <div style={{ fontSize: 16, fontWeight: 700, color: sam.text, marginTop: 4 }}>{g.name}</div>
@@ -213,15 +335,15 @@ function GoalSheet({
           </Mono>
         </div>
         <div style={{ fontSize: 12, color: sam.comment, marginTop: 2 }}>
-          {pct}% · eta {g.eta}
+          {pct}% · ${remaining.toLocaleString()} remaining
         </div>
         <div style={{ marginTop: 10, padding: "0 10px" }}>
           <BlockBar pct={pct} width={20} c={g.c} />
         </div>
       </div>
       <div style={{ fontSize: 13, marginTop: 16 }}>
-        <Mono c={sam.green} b>
-          ▸ contribute
+          <Mono c={sam.green} b>
+          ▸ move money
         </Mono>
         <div
           style={{
@@ -234,18 +356,18 @@ function GoalSheet({
           }}
         >
           <span
-            onClick={() => setAmount(Math.max(0, amount - 10))}
+            onClick={() => setAmount(String(Math.max(0, parsedAmount - 10)))}
             style={{ cursor: "pointer", color: sam.comment, fontSize: 18 }}
           >
             [-]
           </span>
           <div style={{ flex: 1, textAlign: "center" }}>
             <Mono c={sam.yellow} b style={{ fontSize: 26, fontVariantNumeric: "tabular-nums" }}>
-              ${amount}
+              ${parsedAmount}
             </Mono>
           </div>
           <span
-            onClick={() => setAmount(amount + 10)}
+            onClick={() => setAmount(String(parsedAmount + 10))}
             style={{ cursor: "pointer", color: sam.comment, fontSize: 18 }}
           >
             [+]
@@ -255,16 +377,16 @@ function GoalSheet({
           {[25, 50, 100, 250].map((v) => (
             <div
               key={v}
-              onClick={() => setAmount(v)}
+              onClick={() => setAmount(String(v))}
               style={{
                 flex: 1,
                 textAlign: "center",
                 padding: "6px 0",
-                border: `1px solid ${amount === v ? sam.yellow : sam.border}`,
-                color: amount === v ? sam.yellow : sam.text,
+                border: `1px solid ${parsedAmount === v ? sam.yellow : sam.border}`,
+                color: parsedAmount === v ? sam.yellow : sam.text,
                 cursor: "pointer",
                 fontSize: 13,
-                background: amount === v ? "rgba(227,179,65,0.06)" : "transparent",
+                background: parsedAmount === v ? sam.active : "transparent",
               }}
             >
               ${v}
@@ -272,20 +394,39 @@ function GoalSheet({
           ))}
         </div>
       </div>
-      <div
-        onClick={contribute}
-        style={{
-          marginTop: 18,
-          padding: "10px 0",
-          textAlign: "center",
-          background: sam.green,
-          color: sam.bg,
-          fontWeight: 700,
-          cursor: "pointer",
-          fontSize: 14,
-        }}
-      >
-        [confirm] add ${amount} to {g.name.toLowerCase()}
+      <div style={{ display: "flex", gap: 8, marginTop: 18 }}>
+        <div
+          onClick={() => applyContribution(1)}
+          style={{
+            flex: 1,
+            padding: "10px 0",
+            textAlign: "center",
+            background: sam.green,
+            color: sam.bg,
+            fontWeight: 700,
+            cursor: parsedAmount > 0 ? "pointer" : "default",
+            opacity: parsedAmount > 0 ? 1 : 0.45,
+            fontSize: 13,
+          }}
+        >
+          [add]
+        </div>
+        <div
+          onClick={() => applyContribution(-1)}
+          style={{
+            flex: 1,
+            padding: "10px 0",
+            textAlign: "center",
+            background: sam.red,
+            color: sam.bg,
+            fontWeight: 700,
+            cursor: parsedAmount > 0 ? "pointer" : "default",
+            opacity: parsedAmount > 0 ? 1 : 0.45,
+            fontSize: 13,
+          }}
+        >
+          [subtract]
+        </div>
       </div>
     </div>
   );
@@ -320,7 +461,7 @@ function NewExpenseSheet({
 
   const save = async () => {
     if (!canSave) return;
-    const row = await addExpenseAction({
+    const res = await addExpenseAction({
       amount: parseFloat(amount),
       name,
       catKey,
@@ -328,7 +469,11 @@ function NewExpenseSheet({
       budgets: state.budgets,
       accounts: state.accounts,
     });
-    setState((s) => ({ ...s, expenses: [...s.expenses, row] }));
+    setState((s) => ({
+      ...s,
+      expenses: [...s.expenses, res.tx],
+      accounts: s.accounts.map((a) => res.accounts.find((x) => x.id === a.id) ?? a),
+    }));
     onClose();
   };
 
@@ -508,11 +653,18 @@ function NewGoalSheet({
   const { sam } = useSam();
   const [name, setName] = useState("");
   const [target, setTarget] = useState("");
-  const canSave = !!(name && target && !isNaN(parseFloat(target)));
+  const [iconPreset, setIconPreset] = useState(GOAL_ICON_PRESETS[0]);
+  const parsedTarget = parseFloat(target);
+  const canSave = !!(name.trim() && target && !isNaN(parsedTarget) && parsedTarget >= 0);
 
   const save = async () => {
     if (!canSave) return;
-    const row = await addGoalAction({ name, target: parseFloat(target) });
+    const row = await addGoalAction({
+      name,
+      target: parsedTarget,
+      icon: iconPreset.icon,
+      color: iconPreset.color,
+    });
     setState((s) => ({ ...s, goals: [...s.goals, row] }));
     onClose();
   };
@@ -538,6 +690,15 @@ function NewGoalSheet({
         </span>
       </div>
       <div style={{ marginTop: 10 }}>
+        <div style={{ fontSize: 13, fontWeight: 600 }}>
+          <Mono c={iconPreset.color}>◆</Mono>{" "}
+          <Mono c={iconPreset.color} b>
+            icon
+          </Mono>
+        </div>
+        <IconPresetPicker presets={GOAL_ICON_PRESETS} value={iconPreset} onChange={setIconPreset} />
+      </div>
+      <div style={{ marginTop: 16 }}>
         <div style={{ fontSize: 13, fontWeight: 600 }}>
           <Mono c={sam.green}>✎</Mono>{" "}
           <Mono c={sam.green} b>
@@ -605,6 +766,76 @@ function NewGoalSheet({
   );
 }
 
+function NewBudgetSheet({
+  setState,
+  onClose,
+}: {
+  setState: SheetContentProps["setState"];
+  onClose: () => void;
+}) {
+  const { sam } = useSam();
+  const [name, setName] = useState("");
+  const [amount, setAmount] = useState("");
+  const [iconPreset, setIconPreset] = useState(BUDGET_ICON_PRESETS[0]);
+  const parsedAmount = parseFloat(amount);
+  const canSave = !!(name.trim() && Number.isFinite(parsedAmount) && parsedAmount >= 0);
+
+  const save = async () => {
+    if (!canSave) return;
+    const row = await addBudgetAction({
+      name,
+      amount: parsedAmount,
+      icon: iconPreset.icon,
+      color: iconPreset.color,
+    });
+    setState((s) => ({ ...s, budgets: [...s.budgets, row] }));
+    onClose();
+  };
+
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 14 }}>
+        <span onClick={onClose} style={{ cursor: "pointer", color: sam.comment }}>
+          [cancel]
+        </span>
+        <Mono c={sam.cyan} b>
+          $ envelope --new
+        </Mono>
+        <span
+          onClick={canSave ? save : undefined}
+          style={{ cursor: canSave ? "pointer" : "default", color: canSave ? sam.green : sam.comment, fontWeight: 600 }}
+        >
+          [save]
+        </span>
+      </div>
+      <Comment>create budget envelope</Comment>
+      <div style={{ marginTop: 12 }}>
+        <IconPresetPicker presets={BUDGET_ICON_PRESETS} value={iconPreset} onChange={setIconPreset} />
+      </div>
+      <label className="mt-3 block">
+        <Comment>name</Comment>
+        <input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Groceries"
+          className="mt-1 w-full border bg-transparent px-3 py-2 text-sm outline-none"
+          style={{ borderColor: sam.border, color: sam.text, fontFamily: sam.font }}
+        />
+      </label>
+      <label className="mt-3 block">
+        <Comment>monthly amount</Comment>
+        <input
+          value={amount}
+          onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ""))}
+          placeholder="500"
+          className="mt-1 w-full border bg-transparent px-3 py-2 text-sm outline-none"
+          style={{ borderColor: sam.border, color: sam.text, fontFamily: sam.font }}
+        />
+      </label>
+    </div>
+  );
+}
+
 function EditBudgetSheet({
   sheet,
   setState,
@@ -616,14 +847,30 @@ function EditBudgetSheet({
 }) {
   const { sam } = useSam();
   const { budget: b, spent } = sheet;
-  const [cap, setCap] = useState(b.cap);
+  const [cap, setCap] = useState(String(b.cap));
+  const [name, setName] = useState(b.name);
+  const [iconPreset, setIconPreset] = useState(presetFromStored(BUDGET_ICON_PRESETS, b.icon, b.c));
+  const parsedCap = parseFloat(cap);
+  const canSave = !!(name.trim() && Number.isFinite(parsedCap) && parsedCap >= 0);
 
   const save = async () => {
+    if (!canSave || !b.id) return;
+    const row = await updateBudgetAction({
+      id: b.id,
+      name,
+      amount: parsedCap,
+      icon: iconPreset.icon,
+      color: iconPreset.color,
+    });
     setState((s) => ({
       ...s,
-      budgets: s.budgets.map((x) => (x.key === b.key ? { ...x, cap } : x)),
+      budgets: s.budgets.map((x) => (x.key === b.key ? row : x)),
+      expenses: s.expenses.map((e) =>
+        e.catKey === b.key
+          ? { ...e, category: row.key, catKey: row.key, catColor: row.c, icon: row.icon }
+          : e
+      ),
     }));
-    if (b.id) await setBudgetCapAction(b.id, cap);
     onClose();
   };
 
@@ -636,17 +883,30 @@ function EditBudgetSheet({
         <Mono c={sam.cyan} b>
           $ budget --edit {b.key}
         </Mono>
-        <span onClick={save} style={{ cursor: "pointer", color: sam.green, fontWeight: 600 }}>
+        <span
+          onClick={canSave ? save : undefined}
+          style={{ cursor: canSave ? "pointer" : "default", color: canSave ? sam.green : sam.comment, fontWeight: 600 }}
+        >
           [save]
         </span>
       </div>
       <div style={{ textAlign: "center", marginTop: 10, marginBottom: 18 }}>
-        <div style={{ fontSize: 34, color: b.c }}>{b.icon}</div>
-        <div style={{ fontSize: 15, color: sam.text, fontWeight: 600, marginTop: 4 }}>{b.name}</div>
+        <div style={{ fontSize: 34, color: iconPreset.color }}>{iconPreset.icon}</div>
+        <div style={{ fontSize: 15, color: sam.text, fontWeight: 600, marginTop: 4 }}>{name || b.name}</div>
         <div style={{ fontSize: 11, color: sam.comment, marginTop: 2 }}>
           spent ${spent.toFixed(0)} this month
         </div>
       </div>
+      <IconPresetPicker presets={BUDGET_ICON_PRESETS} value={iconPreset} onChange={setIconPreset} />
+      <label className="mt-3 block">
+        <Comment>name</Comment>
+        <input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          className="mt-1 w-full border bg-transparent px-3 py-2 text-sm outline-none"
+          style={{ borderColor: sam.border, color: sam.text, fontFamily: sam.font }}
+        />
+      </label>
       <div style={{ fontSize: 13, fontWeight: 600 }}>
         <Mono c={sam.yellow}>◎</Mono>{" "}
         <Mono c={sam.yellow} b>
@@ -657,42 +917,35 @@ function EditBudgetSheet({
       <div
         style={{
           marginTop: 10,
-          padding: 14,
+          padding: "10px 12px",
           border: `1px solid ${sam.border}`,
           display: "flex",
           alignItems: "center",
-          gap: 10,
+          gap: 6,
         }}
       >
-        <span
-          onClick={() => setCap(Math.max(0, cap - 25))}
-          style={{ cursor: "pointer", color: sam.comment, fontSize: 18 }}
-        >
-          [-]
-        </span>
-        <div style={{ flex: 1, textAlign: "center" }}>
-          <Mono c={sam.yellow} b style={{ fontSize: 28, fontVariantNumeric: "tabular-nums" }}>
-            ${cap}
-          </Mono>
-        </div>
-        <span onClick={() => setCap(cap + 25)} style={{ cursor: "pointer", color: sam.comment, fontSize: 18 }}>
-          [+]
-        </span>
+        <Mono c={sam.yellow} b style={{ fontSize: 18 }}>$</Mono>
+        <input
+          value={cap}
+          onChange={(e) => setCap(e.target.value.replace(/[^0-9.]/g, ""))}
+          className="w-full bg-transparent text-xl font-semibold outline-none"
+          style={{ color: sam.text, fontFamily: sam.font }}
+        />
       </div>
       <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
         {[100, 250, 500, 1000].map((v) => (
           <div
             key={v}
-            onClick={() => setCap(v)}
+            onClick={() => setCap(String(v))}
             style={{
               flex: 1,
               textAlign: "center",
               padding: "6px 0",
-              border: `1px solid ${cap === v ? sam.yellow : sam.border}`,
-              color: cap === v ? sam.yellow : sam.text,
+              border: `1px solid ${parsedCap === v ? sam.yellow : sam.border}`,
+              color: parsedCap === v ? sam.yellow : sam.text,
               cursor: "pointer",
               fontSize: 13,
-              background: cap === v ? "rgba(227,179,65,0.06)" : "transparent",
+              background: parsedCap === v ? sam.active : "transparent",
             }}
           >
             ${v}
@@ -700,7 +953,7 @@ function EditBudgetSheet({
         ))}
       </div>
       <div style={{ marginTop: 16, fontSize: 11, color: sam.comment }}>
-        {`// ${cap >= spent ? `$${cap - spent} left this month` : `$${spent - cap} over budget`}`}
+        {`// ${parsedCap >= spent ? `$${(parsedCap - spent).toFixed(0)} left this month` : `$${(spent - parsedCap).toFixed(0)} over budget`}`}
       </div>
     </div>
   );

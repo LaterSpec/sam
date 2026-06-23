@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useSam } from "@/lib/theme/sam-theme";
-import { Mono, Comment, Prompt, BlockBar, TabBar } from "@/components/ui/sam-primitives";
+import { Mono, Comment, Prompt, BlockBar, TabBar, ScreenHeader, userHandleFromState } from "@/components/ui/sam-primitives";
 import { formatMonthYear } from "@/lib/utils";
 import type { ScreenProps } from "./types";
 import { SCREEN_PAD } from "./types";
@@ -11,6 +11,7 @@ export function ExpensesScreen({ state, setState, openSheet }: ScreenProps) {
   const { sam } = useSam();
   const now = new Date();
   const [categoriesExpanded, setCategoriesExpanded] = useState(false);
+  const [txExpanded, setTxExpanded] = useState(false);
 
   const cats = (state.budgets || []).map((b) => ({
     key: b.key,
@@ -51,12 +52,15 @@ export function ExpensesScreen({ state, setState, openSheet }: ScreenProps) {
       ),
     [state.expenses]
   );
+  const visibleTx = txExpanded ? listTx : listTx.slice(0, 3);
 
   return (
     <div style={{ padding: SCREEN_PAD }}>
-      <TabBar tabs={["expenses", "income", "budget"]} active={state.expTab} onChange={(t) => setState((s) => ({ ...s, expTab: t }))} />
+      <ScreenHeader>
+        <TabBar tabs={["expenses", "income", "budget"]} active={state.expTab} onChange={(t) => setState((s) => ({ ...s, expTab: t }))} />
+      </ScreenHeader>
       <div style={{ marginTop: 20 }}>
-        <Prompt host="init.Expenses" cmd="list --month" />
+        <Prompt user={userHandleFromState(state)} host="init.Expenses" cmd="list --month" />
         <Comment>
           {totalSpent.toFixed(0)} logged across {state.expenses.length} tx. on pace.
         </Comment>
@@ -116,18 +120,21 @@ export function ExpensesScreen({ state, setState, openSheet }: ScreenProps) {
           })}
         </div>
         <div style={{ marginTop: 20 }}>
-          <div style={{ fontSize: 13, color: sam.cyan, fontWeight: 600 }}>
+          <div
+            onClick={() => setTxExpanded((v) => !v)}
+            style={{ fontSize: 13, color: sam.cyan, fontWeight: 600, cursor: "pointer" }}
+          >
             ▸ Transactions
             <span style={{ float: "right", color: sam.textDim, fontWeight: 400 }}>
-              [{listTx.length}] ▾
+              [{listTx.length}] {txExpanded ? "▴" : "▾"}
             </span>
           </div>
-          <Comment>all expenses · tap to view</Comment>
+          <Comment>{txExpanded ? "all expenses · tap to view" : "latest 3 · tap title to expand"}</Comment>
           {listTx.length === 0 && (
             <div style={{ marginTop: 12, fontSize: 12, color: sam.comment }}>{`// no transactions`}</div>
           )}
-          {listTx.map((e, i) => {
-            const isLast = i === listTx.length - 1;
+          {visibleTx.map((e, i) => {
+            const isLast = i === visibleTx.length - 1;
             return (
               <div
                 key={e.id}

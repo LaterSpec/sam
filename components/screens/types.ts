@@ -27,6 +27,7 @@ export type SheetPayload =
   | { kind: "new-expense" }
   | { kind: "new-goal" }
   | { kind: "edit-budget"; budget: AppState["budgets"][number]; spent: number }
+  | { kind: "new-budget" }
   | { kind: "income-src"; src: AppState["incomeSources"][number] | Record<string, unknown> }
   | { kind: "new-income" }
   | { kind: "account"; accountId: string }

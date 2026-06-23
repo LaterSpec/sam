@@ -2,13 +2,13 @@
 
 import { useState } from "react";
 import { useSam } from "@/lib/theme/sam-theme";
-import { Mono, Comment, Prompt, TabBar } from "@/components/ui/sam-primitives";
+import { Mono, Comment, Prompt, TabBar, ScreenHeader, userHandleFromState } from "@/components/ui/sam-primitives";
 import type { ScreenProps } from "./types";
 import { SCREEN_PAD } from "./types";
 
 export function StatsScreen({ state, setState }: ScreenProps) {
   const { sam } = useSam();
-  const [period, setPeriod] = useState<"6m" | "1y" | "ytd">("6m");
+  const [period, setPeriod] = useState<"1w" | "6m" | "1y" | "ytd">("6m");
   const money = (n: number) => `${n < 0 ? "-" : ""}$${Math.abs(Math.round(n)).toLocaleString()}`;
 
   const now = new Date();
@@ -33,10 +33,40 @@ export function StatsScreen({ state, setState }: ScreenProps) {
   bucket(state.incomeTx, 1);
   bucket(state.expenses, -1);
 
-  const values = months.map((m) => m.net);
-  const labels = months.map((m) => (nMonths > 6 ? m.label[0] : m.label));
+  const currentWallet = (state.accounts || []).reduce((a, x) => a + x.balance, 0);
+  const weekDays = Array.from({ length: 8 }, (_, idx) => {
+    const d = new Date(now);
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() - (7 - idx));
+    return d;
+  });
+  const snapshotByDay = new Map(
+    (state.portfolioSnapshots || []).map((s) => [new Date(s.t).toISOString().slice(0, 10), s.v])
+  );
+  const weekValues = weekDays.map((day) => {
+    const key = day.toISOString().slice(0, 10);
+    const snap = snapshotByDay.get(key);
+    if (snap != null) return snap;
+    // Fallback: derive historical wallet trend from today's account total by reversing
+    // later transactions. This keeps the 1w chart deterministic when no snapshots exist.
+    const dayEnd = new Date(day);
+    dayEnd.setHours(23, 59, 59, 999);
+    const laterTx = [...(state.incomeTx || []), ...(state.expenses || [])].reduce((sum, tx) => {
+      if (!tx.occurred_at) return sum;
+      const t = new Date(tx.occurred_at);
+      if (t <= dayEnd) return sum;
+      return sum + (tx.kind === "income" ? tx.amount : -tx.amount);
+    }, 0);
+    return currentWallet - laterTx;
+  });
+
+  const values = period === "1w" ? weekValues : months.map((m) => m.net);
+  const labels =
+    period === "1w"
+      ? weekDays.map((d) => d.toLocaleDateString("en", { weekday: "short" }).slice(0, 1))
+      : months.map((m) => (nMonths > 6 ? m.label[0] : m.label));
   const maxAbs = Math.max(1, ...values.map((v) => Math.abs(v)));
-  const totalNet = values.reduce((a, v) => a + v, 0);
+  const totalNet = period === "1w" ? values[values.length - 1] - values[0] : values.reduce((a, v) => a + v, 0);
   const totalSavedGoals = (state.goals || []).reduce((a, g) => a + g.saved, 0);
 
   const byCat: Record<string, number> = {};
@@ -69,14 +99,18 @@ export function StatsScreen({ state, setState }: ScreenProps) {
 
   return (
     <div style={{ padding: SCREEN_PAD }}>
-      <TabBar tabs={["profile", "stats", "help", "settings"]} active="stats" onChange={(t) => setState((s) => ({ ...s, profileTab: t }))} />
+      <ScreenHeader>
+        <TabBar tabs={["profile", "stats", "help", "settings"]} active="stats" onChange={(t) => setState((s) => ({ ...s, profileTab: t }))} />
+      </ScreenHeader>
       <div style={{ marginTop: 20 }}>
-        <Prompt host="init.Stats" cmd={`report --${period}`} />
+        <Prompt user={userHandleFromState(state)} host="init.Stats" cmd={`report --${period}`} />
         <Comment>
-          {`net ${money(totalNet)} over ${nMonths} months · ${(state.expenses || []).length} tx tracked`}
+          {period === "1w"
+            ? `wallet moved ${money(values[values.length - 1] - values[0])} over 1 week · ${(state.expenses || []).length} tx tracked`
+            : `net ${money(totalNet)} over ${nMonths} months · ${(state.expenses || []).length} tx tracked`}
         </Comment>
         <div style={{ marginTop: 14, display: "flex", gap: 6, fontSize: 12 }}>
-          {(["6m", "1y", "ytd"] as const).map((p) => (
+          {(["1w", "6m", "1y", "ytd"] as const).map((p) => (
             <span
               key={p}
               onClick={() => setPeriod(p)}

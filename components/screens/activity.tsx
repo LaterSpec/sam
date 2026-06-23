@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useSam } from "@/lib/theme/sam-theme";
-import { Mono, Comment, Prompt, TabBar } from "@/components/ui/sam-primitives";
+import { Mono, Comment, Prompt, TabBar, ScreenHeader, userHandleFromState } from "@/components/ui/sam-primitives";
 import type { ScreenProps } from "./types";
 import { SCREEN_PAD } from "./types";
 
@@ -10,6 +10,7 @@ export function ActivityScreen({ state, setState, openSheet }: ScreenProps) {
   const { sam } = useSam();
   const [filter, setFilter] = useState("all");
   const [query, setQuery] = useState("");
+  const [expandedDays, setExpandedDays] = useState<Record<string, boolean>>({});
 
   const income = (state.incomeTx || []).map((e) => ({
     id: e.id,
@@ -19,7 +20,7 @@ export function ActivityScreen({ state, setState, openSheet }: ScreenProps) {
     icon: e.icon || "⬢",
     c: sam.green,
     tag: "income",
-    day: e.time,
+    day: e.occurred_at,
   }));
   const expenses = state.expenses.map((e) => ({
     id: e.id,
@@ -29,11 +30,12 @@ export function ActivityScreen({ state, setState, openSheet }: ScreenProps) {
     icon: e.icon,
     c: e.catColor,
     tag: e.category,
-    day: e.time,
+    day: e.occurred_at,
   }));
   let all = [...income, ...expenses];
   if (filter !== "all") all = all.filter((r) => r.type === filter.slice(0, -1));
   if (query) all = all.filter((r) => r.name.toLowerCase().includes(query.toLowerCase()));
+  all.sort((a, b) => new Date(b.day).getTime() - new Date(a.day).getTime());
 
   const counts = {
     all: income.length + expenses.length,
@@ -43,15 +45,27 @@ export function ActivityScreen({ state, setState, openSheet }: ScreenProps) {
 
   const groups: Record<string, typeof all> = {};
   all.forEach((r) => {
-    (groups[r.day] = groups[r.day] || []).push(r);
+    const d = new Date(r.day);
+    const key = Number.isNaN(d.getTime()) ? "Unknown" : d.toISOString().slice(0, 10);
+    (groups[key] = groups[key] || []).push(r);
   });
-  const orderedDays = Object.keys(groups);
+  const orderedDays = Object.keys(groups).sort((a, b) => b.localeCompare(a));
+  const dayLabel = (key: string) =>
+    key === "Unknown"
+      ? "Unknown"
+      : new Date(`${key}T00:00:00`).toLocaleDateString("en", {
+          weekday: "short",
+          month: "short",
+          day: "numeric",
+        });
 
   return (
     <div style={{ padding: SCREEN_PAD }}>
-      <TabBar tabs={["home", "activity", "accounts"]} active="activity" onChange={(t) => setState((s) => ({ ...s, homeTab: t }))} />
+      <ScreenHeader>
+        <TabBar tabs={["home", "activity", "accounts"]} active="activity" onChange={(t) => setState((s) => ({ ...s, homeTab: t }))} />
+      </ScreenHeader>
       <div style={{ marginTop: 20 }}>
-        <Prompt host="init.Activity" cmd="log --all" />
+        <Prompt user={userHandleFromState(state)} host="init.Activity" cmd="log --all" />
         <Comment>{counts.all} tx · filter live · tap to view</Comment>
         <div style={{ marginTop: 14, display: "flex", gap: 8, fontSize: 12, flexWrap: "wrap" }}>
           {(["all", "income", "expenses"] as const).map((f) => (
@@ -105,16 +119,21 @@ export function ActivityScreen({ state, setState, openSheet }: ScreenProps) {
         )}
         {orderedDays.map((day) => {
           const rows = groups[day];
+          const expanded = !!expandedDays[day];
+          const visibleRows = expanded ? rows : rows.slice(0, 3);
           const net = rows.reduce((a, r) => a + (r.type === "income" ? r.amount : -r.amount), 0);
           return (
             <div key={day} style={{ marginTop: 18 }}>
-              <div style={{ fontSize: 12, color: sam.cyan, fontWeight: 600 }}>
-                ▸ {day}
+              <div
+                onClick={() => setExpandedDays((s) => ({ ...s, [day]: !s[day] }))}
+                style={{ fontSize: 12, color: sam.cyan, fontWeight: 600, cursor: "pointer" }}
+              >
+                ▸ {dayLabel(day)}
                 <span style={{ float: "right", color: net >= 0 ? sam.green : sam.comment, fontWeight: 400 }}>
-                  {net >= 0 ? "+" : "-"}${Math.abs(net).toFixed(0)}
+                  [{rows.length}] {expanded ? "▴" : "▾"} · {net >= 0 ? "+" : "-"}${Math.abs(net).toFixed(0)}
                 </span>
               </div>
-              {rows.map((r) => (
+              {visibleRows.map((r) => (
                 <div
                   key={r.id}
                   onClick={() =>

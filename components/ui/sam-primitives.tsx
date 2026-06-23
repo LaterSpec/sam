@@ -51,6 +51,32 @@ export function Prompt({ user, host, cmd }: { user?: string; host: string; cmd: 
   );
 }
 
+export function userHandleFromState(state: {
+  user?: { username?: string | null; full_name?: string | null; email?: string | null };
+}) {
+  const user = state.user;
+  const base = user?.username || user?.full_name || user?.email?.split("@")[0] || "you";
+  return String(base).trim().split(/\s+/)[0].replace(/\s/g, "").toLowerCase() || "you";
+}
+
+export function ScreenHeader({ children }: { children: ReactNode }) {
+  const { sam } = useSam();
+  return (
+    <div
+      style={{
+        position: "sticky",
+        top: 0,
+        zIndex: 20,
+        paddingTop: 0,
+        background: sam.bg,
+        borderBottom: `1px solid ${sam.border}`,
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
 export function BlockBar({
   pct,
   width = 10,
@@ -107,7 +133,6 @@ export function TabBar({
       style={{
         display: "flex",
         fontSize: 15,
-        borderBottom: `1px solid ${sam.border}`,
         padding: "0 0 12px",
         position: "relative",
         overflow: "hidden",
@@ -123,7 +148,7 @@ export function TabBar({
               flex: 1,
               textAlign: "center",
               cursor: "pointer",
-              color: isActive ? sam.yellow : sam.comment,
+              color: isActive ? sam.accent : sam.comment,
               fontWeight: isActive ? 600 : 400,
               position: "relative",
               paddingBottom: 4,
@@ -141,8 +166,8 @@ export function TabBar({
           height: 2,
           width: `${pct * 0.6}%`,
           left: `${pct * idx + pct * 0.2}%`,
-          background: sam.yellow,
-          boxShadow: `0 0 8px ${sam.yellow}66`,
+          background: sam.accent,
+          boxShadow: `0 0 8px ${sam.accent}66`,
           transition: "left 300ms cubic-bezier(.2,.9,.2,1)",
         }}
       />

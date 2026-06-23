@@ -1,7 +1,7 @@
 "use client";
 
 import { useSam } from "@/lib/theme/sam-theme";
-import { Mono, Comment, Prompt, TabBar } from "@/components/ui/sam-primitives";
+import { Mono, Comment, Prompt, TabBar, userHandleFromState } from "@/components/ui/sam-primitives";
 import { PerfChart } from "@/components/charts/perf-chart";
 import { buildPerfSeries } from "@/lib/charts/build-perf-series";
 import type { ScreenProps } from "./types";
@@ -39,7 +39,7 @@ export function InvestScreen({ state, setState, openSheet }: ScreenProps) {
     <div style={{ padding: SCREEN_PAD }}>
       <TabBar tabs={["portfolio", "market", "analysis"]} active="portfolio" onChange={(t) => setState((s) => ({ ...s, investTab: t }))} />
       <div style={{ marginTop: 20 }}>
-        <Prompt host="init.Invest" cmd="portfolio" />
+        <Prompt user={userHandleFromState(state)} host="init.Invest" cmd="portfolio" />
         <Comment>
           {holdings.length} holdings · {liveActive ? "live feed" : "delayed"} · tap to buy/sell
         </Comment>
@@ -48,7 +48,7 @@ export function InvestScreen({ state, setState, openSheet }: ScreenProps) {
             marginTop: 14,
             padding: 14,
             border: `1px solid ${sam.border}`,
-            background: "rgba(88,166,255,0.04)",
+            background: sam.overlay,
           }}
         >
           <div style={{ fontSize: 11, color: sam.comment }}>
