@@ -125,7 +125,7 @@ export function LandingCarousel({ onDone }: { onDone: () => void }) {
 
   return (
     <div
-      className="onboarding-content flex h-full min-h-0 flex-1 flex-col overflow-hidden"
+      className="onboarding-main flex h-full min-h-0 flex-1 flex-col overflow-hidden"
       style={{ fontFamily: sam.font, color: sam.text, background: sam.bg }}
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
@@ -173,7 +173,7 @@ export function LandingCarousel({ onDone }: { onDone: () => void }) {
         </div>
       </div>
 
-      <div style={{ padding: "6px 22px 0", flex: 1, display: "flex", flexDirection: "column" }}>
+      <div className="onboarding-content" style={{ padding: "6px 22px 0", display: "flex", flexDirection: "column" }}>
         <ProgressBars
           idx={idx}
           accent={accent}
@@ -213,29 +213,34 @@ export function LandingCarousel({ onDone }: { onDone: () => void }) {
           </p>
         </div>
         <div style={{ flex: 1 }} />
-        <div className="onboarding-footer" style={{ paddingTop: 8 }}>
-          <button
-            type="button"
-            onClick={next}
-            style={{
-              width: "100%",
-              padding: "14px 0",
-              background: accent,
-              color: sam.bg,
-              fontFamily: sam.font,
-              fontSize: 14,
-              fontWeight: 700,
-              border: "none",
-              cursor: "pointer",
-              letterSpacing: 0.4,
-            }}
-          >
-            {idx < SLIDES.length - 1 ? "[continue ▸]" : "[get started ▸]"}
-          </button>
-          <div style={{ marginTop: 10, fontSize: 10, color: sam.comment, textAlign: "center" }}>
-            {`// swipe or tap dots to navigate`}
-          </div>
-        </div>
+      </div>
+
+      <div className="onboarding-footer" data-onboarding-footer style={{ paddingTop: 8 }}>
+        <button
+          type="button"
+          onClick={next}
+          data-onboarding-button
+          style={{
+            width: "100%",
+            padding: "14px 0",
+            background: accent,
+            color: sam.bg,
+            fontFamily: sam.font,
+            fontSize: 14,
+            fontWeight: 700,
+            border: "none",
+            cursor: "pointer",
+            letterSpacing: 0.4,
+          }}
+        >
+          {idx < SLIDES.length - 1 ? "[continue ▸]" : "[get started ▸]"}
+        </button>
+        <div
+          data-onboarding-hint
+          style={{ marginTop: 10, fontSize: 10, color: sam.comment, textAlign: "center" }}
+        >
+          {`// swipe or tap dots to navigate`}
+      </div>
       </div>
     </div>
   );

@@ -52,9 +52,6 @@ export function BottomNav({
       </div>
       <div
         className="bottom-nav-inner grid items-center"
-        style={{
-          height: "var(--bottom-nav-height)",
-        }}
       >
         {ITEMS.map((it) => {
           const isActive = it.k === active;

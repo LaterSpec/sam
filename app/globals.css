@@ -5,7 +5,7 @@
   --sam-bg: #202430;
   --sam-nav-bg: #202430;
   --sam-border-nav: rgba(240, 246, 252, 0.08);
-  --bottom-nav-height: 76px;
+  --bottom-nav-height: 64px;
 }
 
 @theme inline {
@@ -90,19 +90,25 @@ body {
 }
 
 .onboarding-shell {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  padding-bottom: 0;
+}
+
+.onboarding-main {
+  min-height: 0;
 }
 
 .onboarding-content {
   flex: 1;
+  min-height: 0;
 }
 
 .onboarding-footer {
   margin-top: auto;
   padding-left: 24px;
   padding-right: 24px;
-  padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
   background: var(--sam-bg);
 }
 
@@ -115,6 +121,17 @@ body {
   padding-bottom: env(safe-area-inset-bottom, 0px);
   padding-left: env(safe-area-inset-left, 0px);
   overflow: hidden;
+}
+
+.sam-pwa-shell.onboarding-shell {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  padding-bottom: 0;
+}
+
+.sam-pwa-shell.onboarding-shell > * {
+  grid-row: 1 / -1;
+  min-height: 0;
 }
 
 @supports (-webkit-touch-callout: none) and (not (height: 100dvh)) {

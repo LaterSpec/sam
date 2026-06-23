@@ -273,7 +273,7 @@ function AppShellInner({
       className="app-shell authenticated-shell flex min-h-[100dvh] flex-col"
       data-app-shell="authenticated"
       style={{
-        ["--bottom-nav-height" as string]: "76px",
+        ["--bottom-nav-height" as string]: "64px",
         background: "var(--sam-bg)",
         fontFamily: '"JetBrains Mono", ui-monospace, monospace',
       }}
