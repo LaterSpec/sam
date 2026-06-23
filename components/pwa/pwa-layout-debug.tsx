@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 type DebugState = {
+  viewportMeta: string | null;
   innerHeight: number;
   visualViewportHeight: number | null;
   standaloneMode: boolean;
@@ -21,6 +22,8 @@ function readDebugState(): DebugState {
   probe.remove();
 
   return {
+    viewportMeta:
+      document.querySelector('meta[name="viewport"]')?.getAttribute("content") ?? null,
     innerHeight: window.innerHeight,
     visualViewportHeight: window.visualViewport?.height ?? null,
     standaloneMode: window.matchMedia("(display-mode: standalone)").matches,
@@ -38,7 +41,15 @@ export function PwaLayoutDebug() {
   useEffect(() => {
     if (process.env.NODE_ENV === "production") return;
 
-    const update = () => setDebug(readDebugState());
+    const update = () => {
+      const next = readDebugState();
+      setDebug(next);
+      console.log("viewport:", next.viewportMeta);
+      console.log("innerHeight:", next.innerHeight);
+      console.log("visualViewport:", next.visualViewportHeight);
+      console.log("standalone:", next.standaloneMode, next.iosStandalone);
+      console.log("safe-area-bottom:", next.safeAreaBottom);
+    };
     update();
 
     window.addEventListener("resize", update);
@@ -63,6 +74,7 @@ export function PwaLayoutDebug() {
         fontFamily: '"JetBrains Mono", ui-monospace, monospace',
       }}
     >
+      <div>viewport: {debug.viewportMeta ?? "missing"}</div>
       <div>innerHeight: {debug.innerHeight}</div>
       <div>visualViewport: {debug.visualViewportHeight ?? "n/a"}</div>
       <div>standalone: {String(debug.standaloneMode)}</div>
