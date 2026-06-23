@@ -42,10 +42,9 @@ import { useSam } from "@/lib/theme/sam-theme";
 
 const TAB_ORDER = ["home", "expenses", "invest", "goals", "profile"];
 
-// Scroll panes reserve top/side safe areas; bottom padding is light because
-// BottomNav is an in-flow flex sibling (not fixed) and consumes its own height.
+// Scroll panes reserve safe areas and the fixed bottom nav.
 const SCREEN_SAFE_PAD =
-  "pt-[env(safe-area-inset-top)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] pb-3";
+  "pt-[env(safe-area-inset-top)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] pb-[calc(var(--bottom-nav-height)+env(safe-area-inset-bottom,0px)+0.75rem)]";
 
 const UI_DEFAULTS = {
   tab: "home",
@@ -268,15 +267,19 @@ function AppShellInner({
 
   return (
     <div
-      className="flex h-dvh flex-col"
+      className="flex min-h-[100dvh] flex-col"
       style={{
+        ["--bottom-nav-height" as string]: "72px",
         background: "var(--sam-page-bg)",
         fontFamily: '"JetBrains Mono", ui-monospace, monospace',
       }}
     >
       <main
         className="relative flex-1 overflow-hidden"
-        style={{ background: "var(--sam-bg, #0a0e14)" }}
+        style={{
+          background: "var(--sam-bg, #0a0e14)",
+          paddingBottom: "calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px))",
+        }}
       >
         {transitioning && (
           <div

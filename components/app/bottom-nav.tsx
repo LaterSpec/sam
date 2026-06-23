@@ -24,8 +24,10 @@ export function BottomNav({
 
   return (
     <nav
-      className="relative shrink-0 pb-[calc(0.5rem+max(env(safe-area-inset-bottom,0px),0px))] pt-2.5 pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]"
+      className="fixed bottom-0 left-0 right-0 z-40 box-border pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]"
       style={{
+        height: "calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px))",
+        paddingBottom: "env(safe-area-inset-bottom, 0px)",
         background: "var(--sam-bg, #0a0e14)",
         borderTop: `1px solid var(--sam-border-nav, rgba(240,246,252,0.08))`,
         fontFamily: sam.font,
@@ -50,7 +52,10 @@ export function BottomNav({
           }}
         />
       </div>
-      <div className="flex">
+      <div
+        className="flex items-center"
+        style={{ height: "var(--bottom-nav-height)" }}
+      >
         {ITEMS.map((it) => {
           const isActive = it.k === active;
           return (
@@ -100,7 +105,7 @@ export function BootScreen({ error, onRetry }: { error?: string; onRetry?: () =>
   const { sam } = useSam();
   return (
     <div
-      className="flex min-h-dvh items-center justify-center"
+      className="flex min-h-[100dvh] items-center justify-center"
       style={{
         background: "var(--sam-page-bg)",
         fontFamily: sam.font,

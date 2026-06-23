@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { JetBrains_Mono } from "next/font/google";
+import { PwaLayoutDebug } from "@/components/pwa/pwa-layout-debug";
 import { PwaProvider } from "@/components/pwa/pwa-provider";
 import { ServiceWorkerRegistration } from "@/components/pwa/service-worker-registration";
 import "./globals.css";
@@ -48,6 +49,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="es" className={`${jetbrains.variable} h-full`}>
       <body className="min-h-full antialiased">
         {children}
+        <PwaLayoutDebug />
         <ServiceWorkerRegistration />
         <PwaProvider />
       </body>

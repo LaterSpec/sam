@@ -4,10 +4,10 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     id: "/",
     scope: "/",
-    name: "SAM — Financial Terminal",
+    name: "SAM",
     short_name: "SAM",
     description: "Personal financial terminal PWA",
-    start_url: "/app",
+    start_url: "/",
     display: "standalone",
     display_override: ["standalone", "minimal-ui"],
     background_color: "#0a0e14",

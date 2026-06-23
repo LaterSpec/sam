@@ -92,9 +92,24 @@ export function BlockBar({
   const filled = Math.max(0, Math.min(width, Math.round((safePct / 100) * width)));
   const empty = Math.max(0, width - filled);
   return (
-    <span style={{ color, letterSpacing: -1, fontFamily: sam.font }}>
-      {"█".repeat(filled)}
-      <span style={{ color: sam.track }}>{"░".repeat(empty)}</span>
+    <span
+      aria-label={`${Math.max(0, Math.min(100, Math.round(safePct)))}%`}
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        padding: "1px 2px",
+        border: `1px solid ${sam.progressBorder}`,
+        background: sam.progressTrack,
+        boxShadow: `inset 0 0 0 1px ${sam.overlay}`,
+        color,
+        letterSpacing: -1,
+        lineHeight: 1,
+        fontFamily: sam.font,
+        verticalAlign: "middle",
+      }}
+    >
+      <span>{filled > 0 ? "█".repeat(filled) : ""}</span>
+      <span style={{ color: sam.progressEmpty }}>{empty > 0 ? "░".repeat(empty) : ""}</span>
     </span>
   );
 }
@@ -102,11 +117,23 @@ export function BlockBar({
 export function BarH({ pct, c }: { pct: number; c?: string }) {
   const { sam } = useSam();
   const color = c || sam.yellow;
+  const safePct = Number.isFinite(pct) ? Math.max(0, Math.min(100, pct)) : 0;
   return (
-    <div style={{ width: "100%", height: 4, background: sam.track, overflow: "hidden" }}>
+    <div
+      aria-label={`${Math.round(safePct)}%`}
+      style={{
+        width: "100%",
+        height: 8,
+        padding: 1,
+        background: sam.progressTrack,
+        border: `1px solid ${sam.progressBorder}`,
+        boxShadow: `inset 0 0 0 1px ${sam.overlay}`,
+        overflow: "hidden",
+      }}
+    >
       <div
         style={{
-          width: `${Math.min(100, pct)}%`,
+          width: `${safePct}%`,
           height: "100%",
           background: color,
           transition: "width 420ms cubic-bezier(.2,.9,.2,1)",
