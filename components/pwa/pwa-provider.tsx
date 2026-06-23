@@ -82,13 +82,13 @@ export function PwaProvider() {
         aria-label="Instalar aplicación"
         className={`fixed ${bottomOffset} left-3 right-3 z-50 rounded-xl border px-4 py-3 shadow-lg`}
         style={{
-          background: "#161b22",
-          borderColor: "rgba(240,246,252,0.12)",
-          color: "#c9d1d9",
+          background: "var(--sam-nav-bg, #161b22)",
+          borderColor: "var(--sam-border-nav, rgba(240,246,252,0.12))",
+          color: "var(--sam-text, #c9d1d9)",
           fontFamily: '"JetBrains Mono", ui-monospace, monospace',
         }}
       >
-        <p className="m-0 text-[12px] leading-snug" style={{ color: "#8b949e" }}>
+        <p className="m-0 text-[12px] leading-snug" style={{ color: "var(--sam-comment, #8b949e)" }}>
           // instala SAM en tu dispositivo
         </p>
         <div className="mt-2 flex items-center gap-2">
@@ -96,7 +96,7 @@ export function PwaProvider() {
             type="button"
             onClick={() => void install()}
             className="flex-1 rounded-lg border-0 px-3 py-2 text-[13px] font-semibold"
-            style={{ background: "#e3b341", color: "#0a0e14", cursor: "pointer" }}
+            style={{ background: "var(--sam-accent, #e3b341)", color: "var(--sam-bg, #0a0e14)", cursor: "pointer" }}
           >
             Instalar app
           </button>
@@ -104,7 +104,7 @@ export function PwaProvider() {
             type="button"
             onClick={dismiss}
             className="rounded-lg border-0 bg-transparent px-2 py-2 text-[12px]"
-            style={{ color: "#6e7681", cursor: "pointer" }}
+            style={{ color: "var(--sam-comment, #6e7681)", cursor: "pointer" }}
           >
             Ahora no
           </button>
@@ -120,21 +120,21 @@ export function PwaProvider() {
         aria-label="Añadir a pantalla de inicio"
         className={`fixed ${bottomOffset} left-3 right-3 z-50 rounded-xl border px-4 py-3 shadow-lg`}
         style={{
-          background: "#161b22",
-          borderColor: "rgba(240,246,252,0.12)",
-          color: "#c9d1d9",
+          background: "var(--sam-nav-bg, #161b22)",
+          borderColor: "var(--sam-border-nav, rgba(240,246,252,0.12))",
+          color: "var(--sam-text, #c9d1d9)",
           fontFamily: '"JetBrains Mono", ui-monospace, monospace',
         }}
       >
         <p className="m-0 text-[12px] leading-snug">
-          <span style={{ color: "#e3b341" }}>iOS:</span> Compartir →{" "}
-          <strong style={{ color: "#f0f6fc" }}>Añadir a pantalla de inicio</strong>
+          <span style={{ color: "var(--sam-accent, #e3b341)" }}>iOS:</span> Compartir →{" "}
+          <strong style={{ color: "var(--sam-text, #f0f6fc)" }}>Añadir a pantalla de inicio</strong>
         </p>
         <button
           type="button"
           onClick={dismiss}
           className="mt-2 rounded-lg border-0 bg-transparent p-0 text-[12px]"
-          style={{ color: "#6e7681", cursor: "pointer" }}
+          style={{ color: "var(--sam-comment, #6e7681)", cursor: "pointer" }}
         >
           Entendido
         </button>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useSam } from "@/lib/theme/sam-theme";
-import { Mono, Comment, Prompt, TabBar, userHandleFromState } from "@/components/ui/sam-primitives";
+import { Mono, Comment, Prompt, TabBar, ScreenHeader, userHandleFromState } from "@/components/ui/sam-primitives";
 import { PerfChart } from "@/components/charts/perf-chart";
 import { buildPerfSeries } from "@/lib/charts/build-perf-series";
 import type { ScreenProps } from "./types";
@@ -37,7 +37,9 @@ export function InvestScreen({ state, setState, openSheet }: ScreenProps) {
 
   return (
     <div style={{ padding: SCREEN_PAD }}>
-      <TabBar tabs={["portfolio", "market", "analysis"]} active="portfolio" onChange={(t) => setState((s) => ({ ...s, investTab: t }))} />
+      <ScreenHeader>
+        <TabBar tabs={["portfolio", "market", "analysis"]} active="portfolio" onChange={(t) => setState((s) => ({ ...s, investTab: t }))} />
+      </ScreenHeader>
       <div style={{ marginTop: 20 }}>
         <Prompt user={userHandleFromState(state)} host="init.Invest" cmd="portfolio" />
         <Comment>
@@ -90,7 +92,7 @@ export function InvestScreen({ state, setState, openSheet }: ScreenProps) {
             </Mono>
           </div>
           {perfSeries.length >= 2 ? (
-            <div style={{ border: `1px solid ${sam.border}`, background: "rgba(255,255,255,0.012)", padding: "8px 6px 2px" }}>
+            <div style={{ border: `1px solid ${sam.border}`, background: sam.overlay, padding: "8px 6px 2px" }}>
               <PerfChart points={perfSeries} height={160} intraday={perf.intraday} />
             </div>
           ) : (

@@ -16,7 +16,7 @@ export function AuthScreen({
   onEmailSuccess,
 }: {
   onBack: () => void;
-  onEmailSuccess: (mode: "login" | "signup") => void;
+  onEmailSuccess: (mode: "login" | "signup", displayName?: string) => void;
 }) {
   const [view, setView] = useState<AuthView>("picker");
 
@@ -73,7 +73,13 @@ function AuthPicker({
   return (
     <div
       className="flex h-full min-h-0 flex-1 flex-col overflow-hidden px-[18px]"
-      style={{ background: sam.bg, color: sam.text, fontFamily: sam.font }}
+      style={{
+        background: sam.bg,
+        color: sam.text,
+        fontFamily: sam.font,
+        paddingTop: "max(18px, calc(env(safe-area-inset-top, 0px) + 10px))",
+        paddingBottom: "max(14px, calc(env(safe-area-inset-bottom, 0px) + 8px))",
+      }}
     >
       <div style={{ display: "flex", alignItems: "center", fontSize: 11, color: sam.comment }}>
         <button
@@ -97,7 +103,7 @@ function AuthPicker({
         </Mono>
       </div>
 
-      <div style={{ marginTop: 28 }}>
+      <div style={{ marginTop: 26 }}>
         <div style={{ fontSize: 11, color: sam.comment }}>
           <Mono c={sam.green}>$</Mono> {tagline}
           {!skipMotion && <Cursor c={sam.green} />}
@@ -144,7 +150,7 @@ function AuthPicker({
   └─ ▸ google oauth      → vault access`}</pre>
       </div>
 
-      <div style={{ flex: 1 }} />
+      <div style={{ flex: "0.78 1 28px", minHeight: 18 }} />
 
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         <button
@@ -244,7 +250,7 @@ function AuthPicker({
         <div style={{ marginTop: 10, fontSize: 11, color: sam.red, textAlign: "center" }}>{error}</div>
       )}
 
-      <div style={{ marginTop: 14, fontSize: 10, color: sam.comment, textAlign: "center" }}>
+      <div style={{ marginTop: 16, fontSize: 10, color: sam.comment, textAlign: "center", lineHeight: 1.4 }}>
         {`// by continuing you agree to terms · privacy`}
       </div>
     </div>

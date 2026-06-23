@@ -140,7 +140,7 @@ export function HomeScreen({ state, setState, openSheet }: ScreenProps) {
               key={r.id}
               onClick={() => openSheet({ kind: "tx", tx: r })}
               style={{ marginTop: 10, fontSize: 13, cursor: "pointer", padding: "4px 6px", marginLeft: -6, marginRight: -6, borderRadius: 2, transition: "background 140ms" }}
-              onMouseDown={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.04)"; }}
+              onMouseDown={(e) => { e.currentTarget.style.background = sam.hover; }}
               onMouseUp={(e) => { e.currentTarget.style.background = "transparent"; }}
               onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
             >

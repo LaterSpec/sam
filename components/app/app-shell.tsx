@@ -4,6 +4,7 @@ import { Component, useEffect, useRef, useState, type ReactNode } from "react";
 import {
   SamThemeProvider,
   resolveSamTheme,
+  SHELL_THEME_VARS,
   type SamTheme,
 } from "@/lib/theme/sam-theme";
 import { BottomNav, BootScreen } from "@/components/app/bottom-nav";
@@ -131,6 +132,7 @@ function AppShellInner({
   initialData: AppState;
   onThemeChange: (t: SamTheme) => void;
 }) {
+  const { sam } = useSam();
   const [state, setState] = useState<ClientAppState>({
     ...UI_DEFAULTS,
     ...initialData,
@@ -167,16 +169,16 @@ function AppShellInner({
 
   useEffect(() => {
     const t = resolveSamTheme(state.prefs?.theme);
-    const navBorder =
-      t === "solarized-cream"
-        ? "rgba(101,86,40,0.24)"
-        : t === "ayu-mirage"
-          ? "rgba(203,213,224,0.12)"
-          : t === "catppuccin-latte"
-            ? "rgba(76,79,105,0.18)"
-            : "rgba(31,35,40,0.15)";
-    document.documentElement.style.setProperty("--sam-border-nav", navBorder);
-  }, [state.prefs?.theme]);
+    const shell = SHELL_THEME_VARS[t];
+    document.documentElement.style.setProperty("--sam-page-bg", shell.pageBg);
+    document.documentElement.style.setProperty("--sam-bg", sam.bg);
+    document.documentElement.style.setProperty("--sam-nav-bg", shell.navBg);
+    document.documentElement.style.setProperty("--sam-border-nav", shell.navBorder);
+    document.documentElement.style.setProperty("--sam-text", sam.text);
+    document.documentElement.style.setProperty("--sam-comment", sam.comment);
+    document.documentElement.style.setProperty("--sam-accent", sam.accent);
+    document.body.style.background = sam.bg;
+  }, [sam.accent, sam.bg, sam.comment, sam.text, state.prefs?.theme]);
 
   useEffect(() => {
     if (loading || !state.user) return;
@@ -273,6 +275,13 @@ function AppShellInner({
       data-app-shell="authenticated"
       style={{
         ["--bottom-nav-height" as string]: "64px",
+        ["--sam-page-bg" as string]: sam.pageBg,
+        ["--sam-bg" as string]: sam.bg,
+        ["--sam-nav-bg" as string]: sam.bg,
+        ["--sam-border-nav" as string]: sam.border,
+        ["--sam-text" as string]: sam.text,
+        ["--sam-comment" as string]: sam.comment,
+        ["--sam-accent" as string]: sam.accent,
         background: "var(--sam-bg)",
         fontFamily: '"JetBrains Mono", ui-monospace, monospace',
       }}

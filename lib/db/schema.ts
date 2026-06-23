@@ -333,7 +333,16 @@ export const portfolioSnapshots = pgTable(
 export type UserPrefs = {
   notifications: boolean;
   biometric: boolean;
-  theme: "solarized-cream" | "ayu-mirage" | "catppuccin-latte" | "github-light" | "dark" | "light";
+  theme:
+    | "solarized-cream"
+    | "ayu-mirage"
+    | "catppuccin-latte"
+    | "github-light"
+    | "kanagawa"
+    | "ansi-dark"
+    | "ayu-light"
+    | "dark"
+    | "light";
   rollover: boolean;
   accentHue?: number;
 };

@@ -294,7 +294,7 @@ export function ProfileScreen({ state, setState, openSheet }: ScreenProps) {
               <Mono c={sam.red}>→</Mono>
             </div>
           ) : (
-            <div style={{ marginTop: 8, padding: 10, border: `1px solid ${sam.red}55`, background: "rgba(248,81,73,0.05)" }}>
+            <div style={{ marginTop: 8, padding: 10, border: `1px solid ${sam.red}55`, background: `${sam.red}12` }}>
               <div style={{ fontSize: 11, color: sam.comment }}>
                 {`// this wipes your account + all data. cannot be undone.`}
               </div>

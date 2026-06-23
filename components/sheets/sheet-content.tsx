@@ -2066,8 +2066,8 @@ function TradeSheet({
               background:
                 mode === m
                   ? m === "buy"
-                    ? "rgba(86,211,100,0.06)"
-                    : "rgba(248,81,73,0.06)"
+                    ? `${sam.green}12`
+                    : `${sam.red}12`
                   : "transparent",
             }}
           >
@@ -2291,7 +2291,7 @@ function TickerDetailSheet({
       <div
         style={{
           border: `1px solid ${sam.border}`,
-          background: "rgba(255,255,255,0.012)",
+          background: sam.overlay,
           padding: 4,
         }}
       >

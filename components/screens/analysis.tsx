@@ -1,7 +1,7 @@
 "use client";
 
 import { useSam } from "@/lib/theme/sam-theme";
-import { Mono, Comment, Prompt, BlockBar, TabBar, userHandleFromState } from "@/components/ui/sam-primitives";
+import { Mono, Comment, Prompt, BlockBar, TabBar, ScreenHeader, userHandleFromState } from "@/components/ui/sam-primitives";
 import type { ScreenProps } from "./types";
 import { SCREEN_PAD } from "./types";
 
@@ -143,7 +143,9 @@ export function AnalysisScreen({ state, setState }: ScreenProps) {
   if (holdings.length === 0) {
     return (
       <div style={{ padding: SCREEN_PAD }}>
-        <TabBar tabs={["portfolio", "market", "analysis"]} active="analysis" onChange={(t) => setState((s) => ({ ...s, investTab: t }))} />
+        <ScreenHeader>
+          <TabBar tabs={["portfolio", "market", "analysis"]} active="analysis" onChange={(t) => setState((s) => ({ ...s, investTab: t }))} />
+        </ScreenHeader>
         <div style={{ marginTop: 20 }}>
           <Prompt user={userHandleFromState(state)} host="init.Analysis" cmd="portfolio --analyze" />
           <div
@@ -165,7 +167,9 @@ export function AnalysisScreen({ state, setState }: ScreenProps) {
 
   return (
     <div style={{ padding: SCREEN_PAD }}>
-      <TabBar tabs={["portfolio", "market", "analysis"]} active="analysis" onChange={(t) => setState((s) => ({ ...s, investTab: t }))} />
+      <ScreenHeader>
+        <TabBar tabs={["portfolio", "market", "analysis"]} active="analysis" onChange={(t) => setState((s) => ({ ...s, investTab: t }))} />
+      </ScreenHeader>
       <div style={{ marginTop: 20 }}>
         <Prompt user={userHandleFromState(state)} host="init.Analysis" cmd="portfolio --analyze" />
         <Comment>based on {holdings.length} holdings · {new Date().toLocaleDateString("en", { month: "short", year: "numeric" })}</Comment>

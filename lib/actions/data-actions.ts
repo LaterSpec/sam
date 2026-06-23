@@ -150,7 +150,17 @@ const colorSchema = z
   .optional();
 const symbolSchema = z.string().trim().toUpperCase().regex(/^[A-Z0-9.\-]{1,16}$/);
 
-const themeSchema = z.enum(["solarized-cream", "ayu-mirage", "catppuccin-latte", "github-light", "dark", "light"]);
+const themeSchema = z.enum([
+  "solarized-cream",
+  "ayu-mirage",
+  "catppuccin-latte",
+  "github-light",
+  "kanagawa",
+  "ansi-dark",
+  "ayu-light",
+  "dark",
+  "light",
+]);
 const prefsSchema = z
   .object({
     notifications: z.boolean().default(true),

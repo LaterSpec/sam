@@ -1,11 +1,9 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { useRouter } from "next/navigation";
 import { useSam } from "@/lib/theme/sam-theme";
 import { Mono } from "@/components/ui/sam-primitives";
 import { signIn, signUp } from "@/lib/auth/client";
-import { useReducedMotion } from "@/lib/hooks/use-reduced-motion";
 
 function Field({
   label,
@@ -55,18 +53,15 @@ export function AuthForm({
   mode: "login" | "signup";
   onBack: () => void;
   onSwitchMode: () => void;
-  onSuccess: (mode: "login" | "signup") => void;
+  onSuccess: (mode: "login" | "signup", displayName?: string) => void;
 }) {
   const { sam } = useSam();
-  const router = useRouter();
-  const reducedMotion = useReducedMotion();
   const isSignup = mode === "signup";
   const [email, setEmail] = useState("");
   const [pw, setPw] = useState("");
   const [name, setName] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [logLines, setLogLines] = useState<Array<{ text: string; c: string }>>([]);
   const [error, setError] = useState("");
   const [forgotNote, setForgotNote] = useState(false);
 
@@ -100,21 +95,10 @@ export function AuthForm({
     padding: "10px 12px",
   };
 
-  const push = (text: string, c: string) => setLogLines((p) => [...p, { text, c }]);
-  const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
   const submit = async () => {
     if (!valid || submitting) return;
     setSubmitting(true);
     setError("");
-    setLogLines([]);
-
-    if (!reducedMotion) {
-      push(isSignup ? "› POST /signup" : "› POST /login", sam.cyan);
-      await wait(280);
-      push(isSignup ? "› hashing password..." : "› verifying credentials...", sam.comment);
-      await wait(350);
-    }
 
     try {
       if (isSignup) {
@@ -124,29 +108,13 @@ export function AuthForm({
           name: name.trim() || email.split("@")[0],
         });
         if (res.error) throw new Error(res.error.message || "signup failed");
-        if (!reducedMotion) {
-          push(`✓ vault created · ${email}`, sam.green);
-          await wait(200);
-          push("✓ workspace provisioned", sam.green);
-        }
       } else {
         const res = await signIn.email({ email, password: pw });
         if (res.error) throw new Error(res.error.message || "login failed");
-        if (!reducedMotion) {
-          push("✓ session granted", sam.green);
-          await wait(200);
-          push("✓ vault unlocked", sam.green);
-        }
       }
-      if (!reducedMotion) {
-        push(isSignup ? "➜ launching workspace..." : "➜ welcome back", sam.yellow);
-        await wait(reducedMotion ? 0 : 400);
-      }
-      router.refresh();
-      onSuccess(mode);
+      onSuccess(mode, name.trim() || email.split("@")[0]);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "auth failed";
-      push(`✗ ${msg}`, sam.red);
       setError(msg);
       setSubmitting(false);
     }
@@ -159,7 +127,7 @@ export function AuthForm({
     >
       <div
         style={{
-          padding: "12px 18px",
+          padding: "max(18px, calc(env(safe-area-inset-top, 0px) + 10px)) 18px 10px",
           display: "flex",
           alignItems: "center",
           fontSize: 11,
@@ -333,30 +301,11 @@ export function AuthForm({
           <div style={{ fontSize: 11, color: sam.red, marginBottom: 8 }}>{error}</div>
         )}
 
-        {logLines.length > 0 && (
-          <div
-            style={{
-              marginTop: 6,
-              padding: 10,
-              background: sam.bgAlt,
-              border: `1px solid ${sam.border}`,
-              fontSize: 11,
-              lineHeight: 1.7,
-              minHeight: 90,
-            }}
-          >
-            {logLines.map((l, i) => (
-              <div key={i} className={reducedMotion ? undefined : "sam-fade-in"}>
-                <Mono c={l.c}>{l.text}</Mono>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
 
       <div
         style={{
-          padding: "14px 22px 0.75rem",
+          padding: "12px 22px max(14px, calc(env(safe-area-inset-bottom, 0px) + 8px))",
         }}
       >
         <button

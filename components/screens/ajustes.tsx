@@ -9,8 +9,11 @@ import { SCREEN_PAD } from "./types";
 const THEME_ORDER: SamTheme[] = [
   "solarized-cream",
   "ayu-mirage",
+  "kanagawa",
+  "ansi-dark",
   "catppuccin-latte",
   "github-light",
+  "ayu-light",
 ];
 
 export function AjustesScreen({ state, setState }: ScreenProps) {
@@ -34,7 +37,7 @@ export function AjustesScreen({ state, setState }: ScreenProps) {
       </ScreenHeader>
       <div style={{ marginTop: 20 }}>
         <Prompt user={userHandleFromState(state)} host="sam" cmd="theme --select" />
-        <Comment>four app-wide themes · changes apply everywhere</Comment>
+        <Comment>{THEME_ORDER.length} app-wide themes · changes apply everywhere</Comment>
 
         <div style={{ marginTop: 18 }}>
           <div style={{ fontSize: 13, color: sam.cyan, fontWeight: 600 }}>▸ Themes</div>
@@ -107,4 +110,3 @@ export function AjustesScreen({ state, setState }: ScreenProps) {
     </div>
   );
 }
-

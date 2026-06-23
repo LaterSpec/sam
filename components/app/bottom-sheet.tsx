@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useSam } from "@/lib/theme/sam-theme";
 import { SheetContent } from "@/components/sheets/sheet-content";
 import type { ClientAppState, SheetPayload } from "@/components/screens/types";
 import type { Dispatch, SetStateAction } from "react";
+import { useReducedMotion } from "@/lib/hooks/use-reduced-motion";
 
 export function BottomSheet({
   sheet,
@@ -20,15 +21,28 @@ export function BottomSheet({
   openSheet: (sheet: SheetPayload | null) => void;
 }) {
   const { sam } = useSam();
+  const reducedMotion = useReducedMotion();
+  const [opening, setOpening] = useState(false);
   const [closing, setClosing] = useState(false);
 
   const close = () => {
+    if (closing) return;
     setClosing(true);
     setTimeout(() => {
       onClose();
       setClosing(false);
-    }, 220);
+    }, reducedMotion ? 0 : 220);
   };
+
+  useEffect(() => {
+    if (!sheet || reducedMotion) {
+      setOpening(false);
+      return;
+    }
+    setOpening(true);
+    const frame = window.requestAnimationFrame(() => setOpening(false));
+    return () => window.cancelAnimationFrame(frame);
+  }, [sheet, reducedMotion]);
 
   if (!sheet) return null;
 
@@ -41,8 +55,8 @@ export function BottomSheet({
           position: "absolute",
           inset: 0,
           background: "rgba(0,0,0,0.55)",
-          opacity: closing ? 0 : 1,
-          transition: "opacity 220ms",
+          opacity: closing || opening ? 0 : 1,
+          transition: reducedMotion ? "none" : "opacity 220ms",
         }}
       />
       <div
@@ -58,8 +72,8 @@ export function BottomSheet({
           padding: "16px 18px max(30px, env(safe-area-inset-bottom))",
           fontFamily: sam.font,
           color: sam.text,
-          transform: closing ? "translateY(100%)" : "translateY(0)",
-          transition: "transform 260ms cubic-bezier(.2,.9,.2,1)",
+          transform: closing || opening ? "translateY(100%)" : "translateY(0)",
+          transition: reducedMotion ? "none" : "transform 260ms cubic-bezier(.2,.9,.2,1)",
           maxHeight: "85%",
           overflowY: "auto",
           boxShadow: "0 -20px 60px rgba(0,0,0,0.4)",

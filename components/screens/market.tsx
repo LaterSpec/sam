@@ -1,7 +1,7 @@
 "use client";
 
 import { useSam } from "@/lib/theme/sam-theme";
-import { Mono, Prompt, TabBar, userHandleFromState } from "@/components/ui/sam-primitives";
+import { Mono, Prompt, TabBar, ScreenHeader, userHandleFromState } from "@/components/ui/sam-primitives";
 import { MiniLineChart } from "@/components/charts/mini-line-chart";
 import type { ScreenProps } from "./types";
 import { SCREEN_PAD } from "./types";
@@ -153,7 +153,9 @@ export function MarketScreen({ state, setState, openSheet }: ScreenProps) {
 
   return (
     <div style={{ padding: SCREEN_PAD }}>
-      <TabBar tabs={["portfolio", "market", "analysis"]} active="market" onChange={(t) => setState((s) => ({ ...s, investTab: t }))} />
+      <ScreenHeader>
+        <TabBar tabs={["portfolio", "market", "analysis"]} active="market" onChange={(t) => setState((s) => ({ ...s, investTab: t }))} />
+      </ScreenHeader>
       <div style={{ marginTop: 20 }}>
         <Prompt user={userHandleFromState(state)} host="init.Market" cmd="ticker --live" />
         <div

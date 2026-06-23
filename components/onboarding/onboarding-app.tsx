@@ -7,6 +7,7 @@ import { AuthScreen } from "./auth-screen";
 import { AuthSuccess } from "./auth-success";
 
 type Stage = "landing" | "auth" | "success";
+export type AuthLogLine = { text: string; c: "cyan" | "comment" | "green" | "yellow" | "red" };
 
 export function OnboardingApp({
   authSuccess = false,
@@ -19,6 +20,17 @@ export function OnboardingApp({
 }) {
   const [stage, setStage] = useState<Stage>(authSuccess ? "success" : "landing");
   const [successMode, setSuccessMode] = useState<"login" | "signup">("login");
+  const [successName, setSuccessName] = useState(userName);
+  const [successLogs, setSuccessLogs] = useState<AuthLogLine[]>(
+    authSuccess
+      ? [
+          { text: "› oauth callback received", c: "cyan" },
+          { text: "✓ session granted", c: "green" },
+          { text: "✓ vault unlocked", c: "green" },
+          { text: "➜ ready when you are", c: "yellow" },
+        ]
+      : []
+  );
 
   const isNewUser = (() => {
     if (!userCreatedAt) return successMode === "signup";
@@ -40,14 +52,32 @@ export function OnboardingApp({
         {stage === "auth" && (
           <AuthScreen
             onBack={() => setStage("landing")}
-            onEmailSuccess={(mode) => {
+            onEmailSuccess={(mode, displayName) => {
               setSuccessMode(mode);
+              setSuccessName(displayName || userName);
+              setSuccessLogs(
+                mode === "signup"
+                  ? [
+                      { text: "› POST /signup", c: "cyan" },
+                      { text: "› hashing password...", c: "comment" },
+                      { text: "✓ vault created", c: "green" },
+                      { text: "✓ workspace provisioned", c: "green" },
+                      { text: "➜ ready when you are", c: "yellow" },
+                    ]
+                  : [
+                      { text: "› POST /login", c: "cyan" },
+                      { text: "› verifying credentials...", c: "comment" },
+                      { text: "✓ session granted", c: "green" },
+                      { text: "✓ vault unlocked", c: "green" },
+                      { text: "➜ ready when you are", c: "yellow" },
+                    ]
+              );
               setStage("success");
             }}
           />
         )}
         {stage === "success" && (
-          <AuthSuccess isNewUser={isNewUser} userName={userName} />
+          <AuthSuccess isNewUser={isNewUser} userName={successName} logLines={successLogs} />
         )}
       </div>
     </SamThemeProvider>

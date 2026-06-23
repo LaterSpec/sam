@@ -4,6 +4,9 @@
   --sam-page-bg: #202430;
   --sam-bg: #202430;
   --sam-nav-bg: #202430;
+  --sam-text: #c9d1d9;
+  --sam-comment: #707a8c;
+  --sam-accent: #ffd580;
   --sam-border-nav: rgba(240, 246, 252, 0.08);
   --bottom-nav-height: 64px;
   --app-bottom-reserve: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px) + 0.75rem);
@@ -62,7 +65,7 @@ body {
 .app-main,
 .sam-pwa-shell {
   width: 100%;
-  min-height: 100dvh;
+  min-height: 100svh;
   background: var(--sam-bg);
 }
 
@@ -145,18 +148,22 @@ body {
 }
 
 .onboarding-shell > * {
-  min-height: 100dvh;
+  min-height: 100svh;
+  height: 100svh;
 }
 
 .landing-carousel {
-  min-height: 100dvh;
+  min-height: 100svh;
+  height: 100svh;
   background: var(--sam-bg);
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
+  overflow: hidden;
 }
 
 .onboarding-header {
   background: var(--sam-bg);
+  padding-top: max(18px, calc(env(safe-area-inset-top, 0px) + 10px)) !important;
 }
 
 .onboarding-main {
@@ -178,8 +185,8 @@ body {
 
 .onboarding-visual {
   min-height: 0;
-  height: clamp(220px, 38dvh, 430px);
-  max-height: clamp(220px, 38dvh, 430px);
+  height: clamp(176px, 32svh, 360px);
+  max-height: clamp(176px, 32svh, 360px);
   overflow: hidden;
   box-sizing: border-box;
 }
@@ -192,8 +199,8 @@ body {
   background: var(--sam-bg);
   padding-left: 24px;
   padding-right: 24px;
-  padding-top: 8px;
-  padding-bottom: max(16px, env(safe-area-inset-bottom, 0px));
+  padding-top: 6px;
+  padding-bottom: max(14px, calc(env(safe-area-inset-bottom, 0px) + 8px));
 }
 
 .onboarding-continue-button {
@@ -219,19 +226,41 @@ body {
 
 .sam-pwa-shell.onboarding-shell {
   display: block;
-  min-height: 100dvh;
+  min-height: 100svh;
+  height: 100svh;
   background: var(--sam-bg);
   padding-bottom: 0;
+  overflow: hidden;
 }
 
 @media (max-height: 760px) {
   .onboarding-visual {
-    height: clamp(180px, 34dvh, 300px);
-    max-height: clamp(180px, 34dvh, 300px);
+    height: clamp(142px, 28svh, 240px);
+    max-height: clamp(142px, 28svh, 240px);
   }
 
   .onboarding-title {
     font-size: clamp(2rem, 7vw, 3rem);
+  }
+}
+
+@media (max-height: 680px) {
+  .onboarding-visual {
+    height: clamp(112px, 24svh, 176px);
+    max-height: clamp(112px, 24svh, 176px);
+  }
+
+  .onboarding-content {
+    padding-top: 2px !important;
+    padding-bottom: 8px !important;
+  }
+
+  .onboarding-continue-button {
+    padding: 12px 0;
+  }
+
+  .onboarding-hint {
+    margin-top: 7px;
   }
 }
 

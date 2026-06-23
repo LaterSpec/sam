@@ -119,7 +119,7 @@ export function StatsScreen({ state, setState }: ScreenProps) {
                 cursor: "pointer",
                 border: `1px solid ${period === p ? sam.yellow : sam.border}`,
                 color: period === p ? sam.yellow : sam.comment,
-                background: period === p ? "rgba(227,179,65,0.08)" : "transparent",
+                background: period === p ? sam.active : "transparent",
                 fontWeight: period === p ? 600 : 400,
                 transition: "all 140ms",
               }}
@@ -227,7 +227,7 @@ export function StatsScreen({ state, setState }: ScreenProps) {
           <div style={{ fontSize: 13, color: sam.cyan, fontWeight: 600 }}>▸ Activity · last 28d</div>
           <div style={{ marginTop: 10, display: "grid", gridTemplateColumns: "repeat(14, 1fr)", gap: 3 }}>
             {dayCounts.map((cnt, i) => {
-              const colors = [sam.track, "rgba(86,211,100,0.3)", "rgba(86,211,100,0.6)", sam.green];
+              const colors = [sam.track, `${sam.green}55`, `${sam.green}99`, sam.green];
               return (
                 <div key={i} title={`${cnt} tx`} style={{ aspectRatio: "1", background: colors[intensityOf(cnt)] }} />
               );
@@ -236,8 +236,8 @@ export function StatsScreen({ state, setState }: ScreenProps) {
           <div style={{ marginTop: 6, fontSize: 10, color: sam.comment, display: "flex", alignItems: "center", gap: 4 }}>
             less
             <div style={{ width: 8, height: 8, background: sam.track }} />
-            <div style={{ width: 8, height: 8, background: "rgba(86,211,100,0.3)" }} />
-            <div style={{ width: 8, height: 8, background: "rgba(86,211,100,0.6)" }} />
+            <div style={{ width: 8, height: 8, background: `${sam.green}55` }} />
+            <div style={{ width: 8, height: 8, background: `${sam.green}99` }} />
             <div style={{ width: 8, height: 8, background: sam.green }} />
             more
           </div>
