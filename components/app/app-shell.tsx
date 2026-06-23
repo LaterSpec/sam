@@ -41,8 +41,7 @@ import { useSam } from "@/lib/theme/sam-theme";
 const TAB_ORDER = ["home", "expenses", "invest", "goals", "profile"];
 
 // Scroll panes reserve safe areas and the fixed bottom nav.
-const SCREEN_SAFE_PAD =
-  "pt-[env(safe-area-inset-top)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] pb-[calc(var(--bottom-nav-height)+env(safe-area-inset-bottom,0px)+0.75rem)]";
+const SCREEN_SAFE_PAD = "app-scroll-pane";
 
 const UI_DEFAULTS = {
   tab: "home",

@@ -2,13 +2,27 @@
 
 import { useEffect, useState } from "react";
 
-const APP_BUILD_VERSION = "sam@0.1.0";
+const APP_BUILD_VERSION =
+  process.env.NEXT_PUBLIC_APP_BUILD_ID ??
+  process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA ??
+  "local-build";
 
 type DebugRect = {
   top: number;
   bottom: number;
   height: number;
 } | null;
+
+type ElementDebug = {
+  rect: DebugRect;
+  position: string;
+  bottom: string;
+  height: string;
+  paddingTop: string;
+  paddingBottom: string;
+  marginBottom: string;
+  transform: string;
+};
 
 type DebugState = {
   appVersion: string;
@@ -21,18 +35,25 @@ type DebugState = {
   standaloneMode: boolean;
   iosStandalone: boolean | null;
   safeAreaBottom: string;
-  appShellRect: DebugRect;
-  viewportGapToShell: number | null;
-  bottomNavRect: DebugRect;
-  bottomNavInnerRect: DebugRect;
-  bottomNavPaddingBottom: string;
-  bottomNavInnerPaddingBottom: string;
-  bottomNavHeight: string;
-  bottomNavInnerHeight: string;
-  onboardingFooterPaddingBottom: string;
-  onboardingFooterMarginBottom: string;
-  onboardingButtonMarginBottom: string;
-  onboardingHintMarginBottom: string;
+  appShell: ElementDebug;
+  onboardingMain: ElementDebug;
+  onboardingFooter: ElementDebug;
+  onboardingButton: ElementDebug;
+  onboardingHint: ElementDebug;
+  bottomNav: ElementDebug;
+  bottomNavInner: ElementDebug;
+  bottomNavItem: ElementDebug;
+};
+
+const emptyElement: ElementDebug = {
+  rect: null,
+  position: "n/a",
+  bottom: "n/a",
+  height: "n/a",
+  paddingTop: "n/a",
+  paddingBottom: "n/a",
+  marginBottom: "n/a",
+  transform: "n/a",
 };
 
 function toDebugRect(rect?: DOMRect): DebugRect {
@@ -44,8 +65,19 @@ function toDebugRect(rect?: DOMRect): DebugRect {
   };
 }
 
-function readComputed(element: Element | null | undefined, property: string): string {
-  return element ? getComputedStyle(element).getPropertyValue(property) || "0px" : "n/a";
+function readElement(element: Element | null | undefined): ElementDebug {
+  if (!element) return emptyElement;
+  const styles = getComputedStyle(element);
+  return {
+    rect: toDebugRect(element.getBoundingClientRect()),
+    position: styles.position,
+    bottom: styles.bottom,
+    height: styles.height,
+    paddingTop: styles.paddingTop,
+    paddingBottom: styles.paddingBottom,
+    marginBottom: styles.marginBottom,
+    transform: styles.transform,
+  };
 }
 
 function readNextStaticId(): string {
@@ -54,7 +86,7 @@ function readNextStaticId(): string {
   return src.match(/\/_next\/static\/([^/]+)\//)?.[1] ?? "n/a";
 }
 
-function readDebugState(): DebugState {
+function readSafeAreaBottom(): string {
   const probe = document.createElement("div");
   probe.style.position = "fixed";
   probe.style.visibility = "hidden";
@@ -63,16 +95,10 @@ function readDebugState(): DebugState {
   document.body.appendChild(probe);
   const safeAreaBottom = getComputedStyle(probe).paddingBottom;
   probe.remove();
-  const appShell = document.querySelector<HTMLElement>("[data-app-shell]");
-  const bottomNav = document.querySelector<HTMLElement>("[data-bottom-nav]");
-  const bottomNavInner = document.querySelector<HTMLElement>(".bottom-nav-inner");
-  const onboardingFooter = document.querySelector<HTMLElement>("[data-onboarding-footer]");
-  const onboardingButton = document.querySelector<HTMLElement>("[data-onboarding-button]");
-  const onboardingHint = document.querySelector<HTMLElement>("[data-onboarding-hint]");
-  const appShellRect = appShell?.getBoundingClientRect();
-  const bottomNavRect = bottomNav?.getBoundingClientRect();
-  const bottomNavInnerRect = bottomNavInner?.getBoundingClientRect();
+  return safeAreaBottom;
+}
 
+function readDebugState(): DebugState {
   return {
     appVersion: APP_BUILD_VERSION,
     nextStaticId: readNextStaticId(),
@@ -87,20 +113,31 @@ function readDebugState(): DebugState {
       "standalone" in navigator
         ? (navigator as Navigator & { standalone?: boolean }).standalone === true
         : null,
-    safeAreaBottom,
-    appShellRect: toDebugRect(appShellRect),
-    viewportGapToShell: appShellRect ? window.innerHeight - appShellRect.bottom : null,
-    bottomNavRect: toDebugRect(bottomNavRect),
-    bottomNavInnerRect: toDebugRect(bottomNavInnerRect),
-    bottomNavPaddingBottom: readComputed(bottomNav, "padding-bottom"),
-    bottomNavInnerPaddingBottom: readComputed(bottomNavInner, "padding-bottom"),
-    bottomNavHeight: readComputed(bottomNav, "height"),
-    bottomNavInnerHeight: readComputed(bottomNavInner, "height"),
-    onboardingFooterPaddingBottom: readComputed(onboardingFooter, "padding-bottom"),
-    onboardingFooterMarginBottom: readComputed(onboardingFooter, "margin-bottom"),
-    onboardingButtonMarginBottom: readComputed(onboardingButton, "margin-bottom"),
-    onboardingHintMarginBottom: readComputed(onboardingHint, "margin-bottom"),
+    safeAreaBottom: readSafeAreaBottom(),
+    appShell: readElement(document.querySelector("[data-app-shell]")),
+    onboardingMain: readElement(document.querySelector(".onboarding-main")),
+    onboardingFooter: readElement(document.querySelector("[data-onboarding-footer]")),
+    onboardingButton: readElement(document.querySelector("[data-onboarding-button]")),
+    onboardingHint: readElement(document.querySelector("[data-onboarding-hint]")),
+    bottomNav: readElement(document.querySelector("[data-bottom-nav]")),
+    bottomNavInner: readElement(document.querySelector("[data-bottom-nav-inner]")),
+    bottomNavItem: readElement(document.querySelector(".bottom-nav-item")),
   };
+}
+
+function formatRect(rect: DebugRect): string {
+  return rect ? `${rect.top}/${rect.bottom}/${rect.height}` : "n/a";
+}
+
+function formatElement(label: string, value: ElementDebug) {
+  return (
+    <>
+      <div>{label}: {formatRect(value.rect)}</div>
+      <div>{label} pos/bottom: {value.position}/{value.bottom}</div>
+      <div>{label} h/pt/pb/mb: {value.height}/{value.paddingTop}/{value.paddingBottom}/{value.marginBottom}</div>
+      <div>{label} transform: {value.transform}</div>
+    </>
+  );
 }
 
 export function PwaLayoutDebug() {
@@ -115,26 +152,7 @@ export function PwaLayoutDebug() {
     const update = () => {
       const next = readDebugState();
       setDebug(next);
-      console.log("build:", next.appVersion, next.nextStaticId);
-      console.log("viewport:", next.viewportMeta);
-      console.log("innerHeight:", next.innerHeight);
-      console.log("documentElement.clientHeight:", next.documentClientHeight);
-      console.log("body.height:", next.bodyHeight);
-      console.log("visualViewport:", next.visualViewportHeight);
-      console.log("standalone:", next.standaloneMode, next.iosStandalone);
-      console.log("safe-area-bottom:", next.safeAreaBottom);
-      console.log("appShell.rect:", next.appShellRect);
-      console.log("innerHeight - appShellBottom:", next.viewportGapToShell);
-      console.log("bottomNav.rect:", next.bottomNavRect);
-      console.log("bottomNavInner.rect:", next.bottomNavInnerRect);
-      console.log("bottomNav padding-bottom:", next.bottomNavPaddingBottom);
-      console.log("bottomNavInner padding-bottom:", next.bottomNavInnerPaddingBottom);
-      console.log("bottomNav height:", next.bottomNavHeight);
-      console.log("bottomNavInner height:", next.bottomNavInnerHeight);
-      console.log("onboarding footer padding-bottom:", next.onboardingFooterPaddingBottom);
-      console.log("onboarding footer margin-bottom:", next.onboardingFooterMarginBottom);
-      console.log("onboarding button margin-bottom:", next.onboardingButtonMarginBottom);
-      console.log("onboarding hint margin-bottom:", next.onboardingHintMarginBottom);
+      console.log("SAM layout debug:", next);
     };
     update();
 
@@ -152,9 +170,9 @@ export function PwaLayoutDebug() {
   return (
     <div
       aria-hidden="true"
-      className="fixed left-2 top-2 z-[60] max-w-[calc(100vw-1rem)] border px-2 py-1 text-[10px] leading-tight"
+      className="fixed left-2 top-2 z-[60] max-h-[80dvh] max-w-[calc(100vw-1rem)] overflow-auto border px-2 py-1 text-[10px] leading-tight"
       style={{
-        background: "rgba(10,14,20,0.9)",
+        background: "rgba(10,14,20,0.92)",
         borderColor: "rgba(240,246,252,0.14)",
         color: "#c9d1d9",
         fontFamily: '"JetBrains Mono", ui-monospace, monospace',
@@ -163,25 +181,17 @@ export function PwaLayoutDebug() {
       <div>build: {debug.appVersion}</div>
       <div>nextStatic: {debug.nextStaticId}</div>
       <div>viewport: {debug.viewportMeta ?? "missing"}</div>
-      <div>doc.clientHeight: {debug.documentClientHeight}</div>
-      <div>body.height: {debug.bodyHeight}</div>
-      <div>innerHeight: {debug.innerHeight}</div>
-      <div>visualViewport: {debug.visualViewportHeight ?? "n/a"}</div>
-      <div>standalone: {String(debug.standaloneMode)}</div>
-      <div>navigator.standalone: {debug.iosStandalone === null ? "n/a" : String(debug.iosStandalone)}</div>
+      <div>inner/visual/doc/body: {debug.innerHeight}/{debug.visualViewportHeight ?? "n/a"}/{debug.documentClientHeight}/{debug.bodyHeight}</div>
+      <div>standalone: {String(debug.standaloneMode)}/{debug.iosStandalone === null ? "n/a" : String(debug.iosStandalone)}</div>
       <div>safe-area-bottom: {debug.safeAreaBottom}</div>
-      <div>appShell: {debug.appShellRect ? `${debug.appShellRect.top}/${debug.appShellRect.bottom}/${debug.appShellRect.height}` : "n/a"}</div>
-      <div>innerHeight-appShellBottom: {debug.viewportGapToShell ?? "n/a"}</div>
-      <div>bottomNav: {debug.bottomNavRect ? `${debug.bottomNavRect.top}/${debug.bottomNavRect.bottom}/${debug.bottomNavRect.height}` : "n/a"}</div>
-      <div>bottomNavInner: {debug.bottomNavInnerRect ? `${debug.bottomNavInnerRect.top}/${debug.bottomNavInnerRect.bottom}/${debug.bottomNavInnerRect.height}` : "n/a"}</div>
-      <div>nav pb: {debug.bottomNavPaddingBottom}</div>
-      <div>nav inner pb: {debug.bottomNavInnerPaddingBottom}</div>
-      <div>nav h: {debug.bottomNavHeight}</div>
-      <div>nav inner h: {debug.bottomNavInnerHeight}</div>
-      <div>footer pb: {debug.onboardingFooterPaddingBottom}</div>
-      <div>footer mb: {debug.onboardingFooterMarginBottom}</div>
-      <div>button mb: {debug.onboardingButtonMarginBottom}</div>
-      <div>hint mb: {debug.onboardingHintMarginBottom}</div>
+      {formatElement("appShell", debug.appShell)}
+      {formatElement("onboardingMain", debug.onboardingMain)}
+      {formatElement("footer", debug.onboardingFooter)}
+      {formatElement("button", debug.onboardingButton)}
+      {formatElement("hint", debug.onboardingHint)}
+      {formatElement("bottomNav", debug.bottomNav)}
+      {formatElement("bottomNavInner", debug.bottomNavInner)}
+      {formatElement("bottomNavItem", debug.bottomNavItem)}
     </div>
   );
 }

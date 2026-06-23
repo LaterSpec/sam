@@ -52,6 +52,7 @@ export function BottomNav({
       </div>
       <div
         className="bottom-nav-inner grid items-center"
+        data-bottom-nav-inner
       >
         {ITEMS.map((it) => {
           const isActive = it.k === active;
@@ -60,7 +61,7 @@ export function BottomNav({
               key={it.k}
               type="button"
               onClick={() => onChange(it.k)}
-              className="flex-1 border-0 bg-transparent p-0 text-center"
+              className="bottom-nav-item text-center"
               style={{
                 color: isActive ? sam.yellow : sam.comment,
                 cursor: "pointer",
@@ -68,12 +69,11 @@ export function BottomNav({
               }}
             >
               <div
+                className="bottom-nav-icon"
                 style={{
                   fontSize: 16,
-                  lineHeight: 1,
-                  marginBottom: 2,
                   fontWeight: isActive ? 600 : 400,
-                  transform: isActive ? "translateY(-2px) scale(1.12)" : "translateY(0) scale(1)",
+                  transform: isActive ? "scale(1.08)" : "scale(1)",
                   transition: "transform 280ms cubic-bezier(.2,.9,.2,1)",
                   textShadow: isActive ? `0 0 12px ${sam.yellow}66` : "none",
                 }}
@@ -81,6 +81,7 @@ export function BottomNav({
                 {it.icon}
               </div>
               <div
+                className="bottom-nav-label"
                 style={{
                   fontSize: 9,
                   fontWeight: isActive ? 600 : 400,

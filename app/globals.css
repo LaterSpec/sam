@@ -6,6 +6,7 @@
   --sam-nav-bg: #202430;
   --sam-border-nav: rgba(240, 246, 252, 0.08);
   --bottom-nav-height: 64px;
+  --app-bottom-reserve: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px) + 0.75rem);
 }
 
 @theme inline {
@@ -66,7 +67,6 @@ body {
 .app-main {
   min-height: 100dvh;
   background: var(--sam-bg);
-  padding-bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px));
 }
 
 .bottom-nav {
@@ -85,31 +85,93 @@ body {
   height: var(--bottom-nav-height);
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
+  align-items: stretch;
+  transform: none;
+}
+
+.bottom-nav-item {
+  height: 100%;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  transform: translateY(4px);
+  justify-content: center;
+  gap: 4px;
+}
+
+.bottom-nav-icon,
+.bottom-nav-label {
+  line-height: 1;
+}
+
+.app-scroll-pane {
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+  padding-bottom: var(--app-bottom-reserve);
+  padding-left: env(safe-area-inset-left, 0px);
 }
 
 .onboarding-shell {
+  padding-bottom: 0;
+}
+
+.onboarding-shell > * {
+  min-height: 100dvh;
+}
+
+.landing-carousel {
+  min-height: 100dvh;
+  background: var(--sam-bg);
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
-  padding-bottom: 0;
+}
+
+.onboarding-header {
+  background: var(--sam-bg);
 }
 
 .onboarding-main {
   min-height: 0;
+  overflow-y: auto;
+  background: var(--sam-bg);
+  -webkit-overflow-scrolling: touch;
+}
+
+.onboarding-slide {
+  min-height: 0;
+  display: grid;
+  grid-template-rows: minmax(0, auto) minmax(0, 1fr);
+}
+
+.onboarding-visual {
+  min-height: 0;
+  max-height: clamp(260px, 46dvh, 520px);
+  overflow: hidden;
 }
 
 .onboarding-content {
-  flex: 1;
   min-height: 0;
 }
 
 .onboarding-footer {
-  margin-top: auto;
+  background: var(--sam-bg);
   padding-left: 24px;
   padding-right: 24px;
+  padding-top: 8px;
   padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
-  background: var(--sam-bg);
+}
+
+.onboarding-continue-button {
+  width: 100%;
+  padding: 14px 0;
+}
+
+.onboarding-hint {
+  margin-top: 10px;
+  margin-bottom: 0;
 }
 
 .sam-pwa-shell {
@@ -124,14 +186,26 @@ body {
 }
 
 .sam-pwa-shell.onboarding-shell {
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  display: block;
+  min-height: 100dvh;
+  background: var(--sam-bg);
   padding-bottom: 0;
 }
 
-.sam-pwa-shell.onboarding-shell > * {
-  grid-row: 1 / -1;
-  min-height: 0;
+@media (max-height: 760px) {
+  .onboarding-visual {
+    max-height: 38dvh;
+  }
+
+  .onboarding-title {
+    font-size: clamp(2rem, 7vw, 3rem);
+  }
+}
+
+@media (max-width: 768px) {
+  .sam-fade-up {
+    animation-duration: 160ms;
+  }
 }
 
 @supports (-webkit-touch-callout: none) and (not (height: 100dvh)) {

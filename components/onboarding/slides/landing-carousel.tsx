@@ -125,12 +125,13 @@ export function LandingCarousel({ onDone }: { onDone: () => void }) {
 
   return (
     <div
-      className="onboarding-main flex h-full min-h-0 flex-1 flex-col overflow-hidden"
+      className="landing-carousel"
       style={{ fontFamily: sam.font, color: sam.text, background: sam.bg }}
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
     >
-      <div
+      <header
+        className="onboarding-header"
         style={{
           padding: "12px 18px",
           display: "flex",
@@ -146,83 +147,89 @@ export function LandingCarousel({ onDone }: { onDone: () => void }) {
         <button type="button" onClick={onDone} style={{ cursor: "pointer", color: sam.comment, background: "none", border: "none", fontFamily: sam.font, fontSize: 11 }}>
           [skip]
         </button>
-      </div>
+      </header>
 
-      <div style={{ flex: "0 0 62%", padding: "4px 18px 12px", display: "flex", flexDirection: "column" }}>
-        <div style={{ fontSize: 11, marginBottom: 8, lineHeight: 1.4 }}>
-          <Mono c={sam.text} b>
-            sam
-          </Mono>
-          <Mono c={sam.text} b>
-            @init.SAM
-          </Mono>
-          <Mono c={sam.yellow} b>
-            {" "}
-            ${" "}
-          </Mono>
-          <Mono c={accent} b>
-            ./welcome --slide={idx + 1}
-          </Mono>
-        </div>
-        <div
-          key={animKey}
-          className={skipMotion ? undefined : direction >= 0 ? "sam-slide-in-r" : "sam-slide-in-l"}
-          style={{ flex: 1, position: "relative" }}
-        >
-          <Illustration active={true} slideKey={animKey} skipMotion={skipMotion} />
-        </div>
-      </div>
-
-      <div className="onboarding-content" style={{ padding: "6px 22px 0", display: "flex", flexDirection: "column" }}>
-        <ProgressBars
-          idx={idx}
-          accent={accent}
-          onJump={(i) => {
-            setDirection(i > idx ? 1 : -1);
-            setIdx(i);
-          }}
-        />
-        <div key={`t-${animKey}`} className={skipMotion ? undefined : "sam-fade-up"}>
-          <div style={{ fontSize: 11, color: sam.comment, marginBottom: 6 }}>
-            {`// ${(idx + 1).toString().padStart(2, "0")} of ${SLIDES.length.toString().padStart(2, "0")}`}
-          </div>
-          <h2
-            style={{
-              margin: 0,
-              fontFamily: sam.font,
-              fontSize: 26,
-              lineHeight: 1.15,
-              color: sam.text,
-              fontWeight: 700,
-              letterSpacing: -0.5,
-            }}
+      <main className="onboarding-main">
+        <div className="onboarding-slide">
+          <section
+            className="onboarding-visual"
+            style={{ padding: "4px 18px 12px", display: "flex", flexDirection: "column" }}
           >
-            <span style={{ color: accent }}>›</span> {slide.title}
-          </h2>
-          <p
-            style={{
-              margin: "10px 0 0",
-              fontFamily: sam.font,
-              fontSize: 13,
-              lineHeight: 1.55,
-              color: sam.textDim,
-            }}
-          >
-            <span style={{ color: sam.comment }}>// </span>
-            {slide.sub}
-          </p>
-        </div>
-        <div style={{ flex: 1 }} />
-      </div>
+            <div style={{ fontSize: 11, marginBottom: 8, lineHeight: 1.4 }}>
+              <Mono c={sam.text} b>
+                sam
+              </Mono>
+              <Mono c={sam.text} b>
+                @init.SAM
+              </Mono>
+              <Mono c={sam.yellow} b>
+                {" "}
+                ${" "}
+              </Mono>
+              <Mono c={accent} b>
+                ./welcome --slide={idx + 1}
+              </Mono>
+            </div>
+            <div
+              key={animKey}
+              className={skipMotion ? undefined : direction >= 0 ? "sam-slide-in-r" : "sam-slide-in-l"}
+              style={{ flex: 1, minHeight: 0, position: "relative" }}
+            >
+              <Illustration active={true} slideKey={animKey} skipMotion={skipMotion} />
+            </div>
+          </section>
 
-      <div className="onboarding-footer" data-onboarding-footer style={{ paddingTop: 8 }}>
+          <section className="onboarding-content" style={{ padding: "6px 22px 16px" }}>
+            <ProgressBars
+              idx={idx}
+              accent={accent}
+              onJump={(i) => {
+                setDirection(i > idx ? 1 : -1);
+                setIdx(i);
+              }}
+            />
+            <div key={`t-${animKey}`} className={skipMotion ? undefined : "sam-fade-up"}>
+              <div style={{ fontSize: 11, color: sam.comment, marginBottom: 6 }}>
+                {`// ${(idx + 1).toString().padStart(2, "0")} of ${SLIDES.length.toString().padStart(2, "0")}`}
+              </div>
+              <h2
+                className="onboarding-title"
+                style={{
+                  margin: 0,
+                  fontFamily: sam.font,
+                  fontSize: 26,
+                  lineHeight: 1.15,
+                  color: sam.text,
+                  fontWeight: 700,
+                  letterSpacing: -0.5,
+                }}
+              >
+                <span style={{ color: accent }}>›</span> {slide.title}
+              </h2>
+              <p
+                style={{
+                  margin: "10px 0 0",
+                  fontFamily: sam.font,
+                  fontSize: 13,
+                  lineHeight: 1.55,
+                  color: sam.textDim,
+                }}
+              >
+                <span style={{ color: sam.comment }}>// </span>
+                {slide.sub}
+              </p>
+            </div>
+          </section>
+        </div>
+      </main>
+
+      <footer className="onboarding-footer" data-onboarding-footer>
         <button
           type="button"
           onClick={next}
+          className="onboarding-continue-button"
           data-onboarding-button
           style={{
-            width: "100%",
-            padding: "14px 0",
             background: accent,
             color: sam.bg,
             fontFamily: sam.font,
@@ -235,13 +242,14 @@ export function LandingCarousel({ onDone }: { onDone: () => void }) {
         >
           {idx < SLIDES.length - 1 ? "[continue ▸]" : "[get started ▸]"}
         </button>
-        <div
+        <p
+          className="onboarding-hint"
           data-onboarding-hint
-          style={{ marginTop: 10, fontSize: 10, color: sam.comment, textAlign: "center" }}
+          style={{ fontSize: 10, color: sam.comment, textAlign: "center" }}
         >
           {`// swipe or tap dots to navigate`}
-      </div>
-      </div>
+        </p>
+      </footer>
     </div>
   );
 }
