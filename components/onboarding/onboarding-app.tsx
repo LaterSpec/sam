@@ -29,9 +29,10 @@ export function OnboardingApp({
   return (
     <SamThemeProvider theme="dark">
       <div
-        className="sam-pwa-shell"
+        className="sam-pwa-shell onboarding-shell"
+        data-app-shell="onboarding"
         style={{
-          background: "radial-gradient(ellipse at top, #1a1f2e, #0a0e14 60%)",
+          background: "var(--sam-bg)",
           color: "#c9d1d9",
         }}
       >

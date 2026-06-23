@@ -125,7 +125,7 @@ export function LandingCarousel({ onDone }: { onDone: () => void }) {
 
   return (
     <div
-      className="flex h-full min-h-0 flex-1 flex-col overflow-hidden"
+      className="onboarding-content flex h-full min-h-0 flex-1 flex-col overflow-hidden"
       style={{ fontFamily: sam.font, color: sam.text, background: sam.bg }}
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
@@ -213,7 +213,7 @@ export function LandingCarousel({ onDone }: { onDone: () => void }) {
           </p>
         </div>
         <div style={{ flex: 1 }} />
-        <div style={{ padding: "0 0 0.75rem" }}>
+        <div className="onboarding-footer" style={{ paddingTop: 8 }}>
           <button
             type="button"
             onClick={next}

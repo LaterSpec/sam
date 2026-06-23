@@ -3,8 +3,6 @@
 import { Component, useEffect, useRef, useState, type ReactNode } from "react";
 import {
   SamThemeProvider,
-  SHELL_THEME_VARS,
-  SAM_PALETTES,
   resolveSamTheme,
   type SamTheme,
 } from "@/lib/theme/sam-theme";
@@ -170,10 +168,15 @@ function AppShellInner({
 
   useEffect(() => {
     const t = resolveSamTheme(state.prefs?.theme);
-    const vars = SHELL_THEME_VARS[t];
-    document.documentElement.style.setProperty("--sam-page-bg", vars.pageBg);
-    document.documentElement.style.setProperty("--sam-bg", SAM_PALETTES[t].bg);
-    document.documentElement.style.setProperty("--sam-border-nav", vars.navBorder);
+    const navBorder =
+      t === "solarized-cream"
+        ? "rgba(101,86,40,0.24)"
+        : t === "ayu-mirage"
+          ? "rgba(203,213,224,0.12)"
+          : t === "catppuccin-latte"
+            ? "rgba(76,79,105,0.18)"
+            : "rgba(31,35,40,0.15)";
+    document.documentElement.style.setProperty("--sam-border-nav", navBorder);
   }, [state.prefs?.theme]);
 
   useEffect(() => {
@@ -267,18 +270,18 @@ function AppShellInner({
 
   return (
     <div
-      className="flex min-h-[100dvh] flex-col"
+      className="app-shell authenticated-shell flex min-h-[100dvh] flex-col"
+      data-app-shell="authenticated"
       style={{
-        ["--bottom-nav-height" as string]: "72px",
-        background: "var(--sam-page-bg)",
+        ["--bottom-nav-height" as string]: "76px",
+        background: "var(--sam-bg)",
         fontFamily: '"JetBrains Mono", ui-monospace, monospace',
       }}
     >
       <main
-        className="relative flex-1 overflow-hidden"
+        className="app-main relative flex-1 overflow-hidden"
         style={{
-          background: "var(--sam-bg, #0a0e14)",
-          paddingBottom: "calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px))",
+          background: "var(--sam-bg)",
         }}
       >
         {transitioning && (

@@ -24,11 +24,9 @@ export function BottomNav({
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-40 box-border pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]"
+      className="bottom-nav fixed bottom-0 left-0 right-0 z-50 box-border pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]"
+      data-bottom-nav
       style={{
-        height: "calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px))",
-        paddingBottom: "env(safe-area-inset-bottom, 0px)",
-        background: "var(--sam-bg, #0a0e14)",
         borderTop: `1px solid var(--sam-border-nav, rgba(240,246,252,0.08))`,
         fontFamily: sam.font,
         isolation: "isolate",
@@ -53,8 +51,10 @@ export function BottomNav({
         />
       </div>
       <div
-        className="flex items-center"
-        style={{ height: "var(--bottom-nav-height)" }}
+        className="bottom-nav-inner grid items-center"
+        style={{
+          height: "var(--bottom-nav-height)",
+        }}
       >
         {ITEMS.map((it) => {
           const isActive = it.k === active;
@@ -107,7 +107,7 @@ export function BootScreen({ error, onRetry }: { error?: string; onRetry?: () =>
     <div
       className="flex min-h-[100dvh] items-center justify-center"
       style={{
-        background: "var(--sam-page-bg)",
+        background: "var(--sam-bg)",
         fontFamily: sam.font,
         color: sam.text,
       }}

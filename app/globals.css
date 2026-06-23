@@ -1,10 +1,11 @@
 @import "tailwindcss";
 
 :root {
-  --sam-page-bg: radial-gradient(ellipse at top, #1a1f2e, #0a0e14 60%);
-  --sam-bg: #0a0e14;
+  --sam-page-bg: #202430;
+  --sam-bg: #202430;
+  --sam-nav-bg: #202430;
   --sam-border-nav: rgba(240, 246, 252, 0.08);
-  --bottom-nav-height: 72px;
+  --bottom-nav-height: 76px;
 }
 
 @theme inline {
@@ -12,7 +13,7 @@
 }
 
 html {
-  background-color: #0a0e14;
+  background: var(--sam-bg) !important;
   color-scheme: dark;
   min-height: 100%;
 }
@@ -30,9 +31,9 @@ body {
 }
 
 body {
+  min-height: 100dvh;
   font-family: var(--font-mono);
-  background-color: #0a0e14;
-  background: var(--sam-page-bg);
+  background: var(--sam-bg) !important;
   color: #c9d1d9;
 }
 
@@ -51,13 +52,64 @@ body {
 }
 
 /* Full viewport shell: dynamic viewport first, with safe-area paint. */
+.app-root,
+.app-shell,
+.onboarding-shell,
+.authenticated-shell,
+.app-main,
+.sam-pwa-shell {
+  width: 100%;
+  min-height: 100dvh;
+  background: var(--sam-bg);
+}
+
+.app-main {
+  min-height: 100dvh;
+  background: var(--sam-bg);
+  padding-bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px));
+}
+
+.bottom-nav {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 50;
+  height: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px));
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  background: var(--sam-nav-bg);
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.bottom-nav-inner {
+  height: var(--bottom-nav-height);
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  align-items: center;
+  transform: translateY(4px);
+}
+
+.onboarding-shell {
+  display: flex;
+  flex-direction: column;
+}
+
+.onboarding-content {
+  flex: 1;
+}
+
+.onboarding-footer {
+  margin-top: auto;
+  padding-left: 24px;
+  padding-right: 24px;
+  padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  background: var(--sam-bg);
+}
+
 .sam-pwa-shell {
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
-  width: 100%;
-  min-height: 100dvh;
-  background-color: #0a0e14;
   padding-top: env(safe-area-inset-top, 0px);
   padding-right: env(safe-area-inset-right, 0px);
   padding-bottom: env(safe-area-inset-bottom, 0px);
@@ -74,7 +126,7 @@ body {
 @media (display-mode: standalone) {
   html,
   body {
-    background-color: #0a0e14;
+    background: var(--sam-bg) !important;
   }
 
   body {

@@ -48,7 +48,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="es" className={`${jetbrains.variable} h-full`}>
       <body className="min-h-full antialiased">
-        {children}
+        <div className="app-root">{children}</div>
         <PwaLayoutDebug />
         <ServiceWorkerRegistration />
         <PwaProvider />

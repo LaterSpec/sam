@@ -4,11 +4,17 @@ import { useEffect, useState } from "react";
 
 type DebugState = {
   viewportMeta: string | null;
+  documentClientHeight: number;
+  bodyHeight: number;
   innerHeight: number;
   visualViewportHeight: number | null;
   standaloneMode: boolean;
   iosStandalone: boolean | null;
   safeAreaBottom: string;
+  appShellTop: number | null;
+  appShellBottom: number | null;
+  viewportGapToShell: number | null;
+  bottomNavBottom: number | null;
 };
 
 function readDebugState(): DebugState {
@@ -20,10 +26,16 @@ function readDebugState(): DebugState {
   document.body.appendChild(probe);
   const safeAreaBottom = getComputedStyle(probe).paddingBottom;
   probe.remove();
+  const appShell = document.querySelector<HTMLElement>("[data-app-shell]");
+  const bottomNav = document.querySelector<HTMLElement>("[data-bottom-nav]");
+  const appShellRect = appShell?.getBoundingClientRect();
+  const bottomNavRect = bottomNav?.getBoundingClientRect();
 
   return {
     viewportMeta:
       document.querySelector('meta[name="viewport"]')?.getAttribute("content") ?? null,
+    documentClientHeight: document.documentElement.clientHeight,
+    bodyHeight: document.body.getBoundingClientRect().height,
     innerHeight: window.innerHeight,
     visualViewportHeight: window.visualViewport?.height ?? null,
     standaloneMode: window.matchMedia("(display-mode: standalone)").matches,
@@ -32,6 +44,10 @@ function readDebugState(): DebugState {
         ? (navigator as Navigator & { standalone?: boolean }).standalone === true
         : null,
     safeAreaBottom,
+    appShellTop: appShellRect?.top ?? null,
+    appShellBottom: appShellRect?.bottom ?? null,
+    viewportGapToShell: appShellRect ? window.innerHeight - appShellRect.bottom : null,
+    bottomNavBottom: bottomNavRect?.bottom ?? null,
   };
 }
 
@@ -46,9 +62,15 @@ export function PwaLayoutDebug() {
       setDebug(next);
       console.log("viewport:", next.viewportMeta);
       console.log("innerHeight:", next.innerHeight);
+      console.log("documentElement.clientHeight:", next.documentClientHeight);
+      console.log("body.height:", next.bodyHeight);
       console.log("visualViewport:", next.visualViewportHeight);
       console.log("standalone:", next.standaloneMode, next.iosStandalone);
       console.log("safe-area-bottom:", next.safeAreaBottom);
+      console.log("appShell.top:", next.appShellTop);
+      console.log("appShell.bottom:", next.appShellBottom);
+      console.log("innerHeight - appShellBottom:", next.viewportGapToShell);
+      console.log("bottomNav.bottom:", next.bottomNavBottom);
     };
     update();
 
@@ -75,11 +97,17 @@ export function PwaLayoutDebug() {
       }}
     >
       <div>viewport: {debug.viewportMeta ?? "missing"}</div>
+      <div>doc.clientHeight: {debug.documentClientHeight}</div>
+      <div>body.height: {debug.bodyHeight}</div>
       <div>innerHeight: {debug.innerHeight}</div>
       <div>visualViewport: {debug.visualViewportHeight ?? "n/a"}</div>
       <div>standalone: {String(debug.standaloneMode)}</div>
       <div>navigator.standalone: {debug.iosStandalone === null ? "n/a" : String(debug.iosStandalone)}</div>
       <div>safe-area-bottom: {debug.safeAreaBottom}</div>
+      <div>appShell.top: {debug.appShellTop ?? "n/a"}</div>
+      <div>appShell.bottom: {debug.appShellBottom ?? "n/a"}</div>
+      <div>innerHeight-appShellBottom: {debug.viewportGapToShell ?? "n/a"}</div>
+      <div>bottomNav.bottom: {debug.bottomNavBottom ?? "n/a"}</div>
     </div>
   );
 }
