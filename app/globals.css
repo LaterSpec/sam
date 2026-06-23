@@ -65,7 +65,7 @@ body {
 .app-main,
 .sam-pwa-shell {
   width: 100%;
-  min-height: 100svh;
+  min-height: 100dvh;
   background: var(--sam-bg);
 }
 
@@ -200,7 +200,7 @@ body {
   padding-left: 24px;
   padding-right: 24px;
   padding-top: 6px;
-  padding-bottom: max(14px, calc(env(safe-area-inset-bottom, 0px) + 8px));
+  padding-bottom: max(42px, calc(env(safe-area-inset-bottom, 0px) + 28px));
 }
 
 .onboarding-continue-button {
@@ -229,7 +229,10 @@ body {
   min-height: 100svh;
   height: 100svh;
   background: var(--sam-bg);
+  padding-top: 0;
+  padding-right: 0;
   padding-bottom: 0;
+  padding-left: 0;
   overflow: hidden;
 }
 
@@ -260,7 +263,7 @@ body {
   }
 
   .onboarding-hint {
-    margin-top: 7px;
+    margin-top: 6px;
   }
 }
 

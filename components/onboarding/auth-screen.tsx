@@ -78,7 +78,7 @@ function AuthPicker({
         color: sam.text,
         fontFamily: sam.font,
         paddingTop: "max(18px, calc(env(safe-area-inset-top, 0px) + 10px))",
-        paddingBottom: "max(14px, calc(env(safe-area-inset-bottom, 0px) + 8px))",
+        paddingBottom: "max(36px, calc(env(safe-area-inset-bottom, 0px) + 24px))",
       }}
     >
       <div style={{ display: "flex", alignItems: "center", fontSize: 11, color: sam.comment }}>
@@ -132,7 +132,7 @@ function AuthPicker({
           marginTop: 22,
           padding: "14px 16px",
           border: `1px dashed ${sam.border}`,
-          background: "rgba(255,255,255,0.015)",
+          background: sam.overlay,
         }}
       >
         <div style={{ fontSize: 11, color: sam.comment, marginBottom: 6 }}>{`// pick one to continue`}</div>
@@ -150,7 +150,7 @@ function AuthPicker({
   └─ ▸ google oauth      → vault access`}</pre>
       </div>
 
-      <div style={{ flex: "0.78 1 28px", minHeight: 18 }} />
+      <div style={{ height: "clamp(34px, 7svh, 72px)", flex: "0 0 auto" }} />
 
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         <button

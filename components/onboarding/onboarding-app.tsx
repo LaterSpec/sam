@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { SamThemeProvider } from "@/lib/theme/sam-theme";
+import { SAM_PALETTES, SamThemeProvider } from "@/lib/theme/sam-theme";
 import { LandingCarousel } from "./slides/landing-carousel";
 import { AuthScreen } from "./auth-screen";
 import { AuthSuccess } from "./auth-success";
 
 type Stage = "landing" | "auth" | "success";
 export type AuthLogLine = { text: string; c: "cyan" | "comment" | "green" | "yellow" | "red" };
+const ONBOARDING_THEME = SAM_PALETTES["ayu-mirage"];
 
 export function OnboardingApp({
   authSuccess = false,
@@ -44,8 +45,13 @@ export function OnboardingApp({
         className="sam-pwa-shell onboarding-shell"
         data-app-shell="onboarding"
         style={{
-          background: "var(--sam-bg)",
-          color: "#c9d1d9",
+          ["--sam-bg" as string]: ONBOARDING_THEME.bg,
+          ["--sam-nav-bg" as string]: ONBOARDING_THEME.bg,
+          ["--sam-text" as string]: ONBOARDING_THEME.text,
+          ["--sam-comment" as string]: ONBOARDING_THEME.comment,
+          ["--sam-accent" as string]: ONBOARDING_THEME.accent,
+          background: ONBOARDING_THEME.bg,
+          color: ONBOARDING_THEME.text,
         }}
       >
         {stage === "landing" && <LandingCarousel onDone={() => setStage("auth")} />}
