@@ -63,11 +63,11 @@ export function ScreenHeader({ children }: { children: ReactNode }) {
   const { sam } = useSam();
   return (
     <div
+      className="sam-screen-header"
       style={{
         position: "sticky",
         top: 0,
         zIndex: 20,
-        paddingTop: 0,
         background: sam.bg,
         borderBottom: `1px solid ${sam.border}`,
       }}
@@ -157,6 +157,7 @@ export function TabBar({
   const pct = 100 / tabs.length;
   return (
     <div
+      className="sam-tab-bar"
       style={{
         display: "flex",
         fontSize: 15,

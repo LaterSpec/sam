@@ -7,6 +7,8 @@
   --sam-border-nav: rgba(240, 246, 252, 0.08);
   --bottom-nav-height: 64px;
   --app-bottom-reserve: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px) + 0.75rem);
+  --screen-pad-x: 16px;
+  --app-header-top-pad: max(18px, calc(env(safe-area-inset-top, 0px) + 8px));
 }
 
 @theme inline {
@@ -86,7 +88,7 @@ body {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   align-items: stretch;
-  transform: none;
+  transform: translateY(2px);
 }
 
 .bottom-nav-item {
@@ -108,10 +110,34 @@ body {
 }
 
 .app-scroll-pane {
-  padding-top: env(safe-area-inset-top, 0px);
+  padding-top: 0;
   padding-right: env(safe-area-inset-right, 0px);
   padding-bottom: var(--app-bottom-reserve);
   padding-left: env(safe-area-inset-left, 0px);
+}
+
+.app-scroll-pane,
+.onboarding-main,
+.onboarding-shell [class*="overflow-y-auto"] {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.app-scroll-pane::-webkit-scrollbar,
+.onboarding-main::-webkit-scrollbar,
+.onboarding-shell [class*="overflow-y-auto"]::-webkit-scrollbar {
+  display: none;
+}
+
+.sam-screen-header {
+  margin: calc(-1 * var(--app-header-top-pad)) calc(-1 * var(--screen-pad-x)) 0;
+  padding: var(--app-header-top-pad) var(--screen-pad-x) 0;
+  background: var(--sam-bg);
+  box-sizing: border-box;
+}
+
+.sam-tab-bar {
+  padding-top: 0;
 }
 
 .onboarding-shell {
@@ -138,18 +164,24 @@ body {
   overflow-y: auto;
   background: var(--sam-bg);
   -webkit-overflow-scrolling: touch;
+  display: flex;
+  align-items: flex-start;
 }
 
 .onboarding-slide {
+  width: 100%;
   min-height: 0;
   display: grid;
-  grid-template-rows: minmax(0, auto) minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  align-content: start;
 }
 
 .onboarding-visual {
   min-height: 0;
-  max-height: clamp(260px, 46dvh, 520px);
+  height: clamp(220px, 38dvh, 430px);
+  max-height: clamp(220px, 38dvh, 430px);
   overflow: hidden;
+  box-sizing: border-box;
 }
 
 .onboarding-content {
@@ -161,7 +193,7 @@ body {
   padding-left: 24px;
   padding-right: 24px;
   padding-top: 8px;
-  padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
+  padding-bottom: max(16px, env(safe-area-inset-bottom, 0px));
 }
 
 .onboarding-continue-button {
@@ -194,7 +226,8 @@ body {
 
 @media (max-height: 760px) {
   .onboarding-visual {
-    max-height: 38dvh;
+    height: clamp(180px, 34dvh, 300px);
+    max-height: clamp(180px, 34dvh, 300px);
   }
 
   .onboarding-title {
