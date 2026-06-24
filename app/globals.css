@@ -10,6 +10,7 @@
   --sam-border-nav: rgba(240, 246, 252, 0.08);
   --bottom-nav-height: 64px;
   --app-bottom-reserve: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px) + 0.75rem);
+  --bottom-nav-content-nudge: 12px;
   --screen-pad-x: 16px;
   --app-header-top-pad: max(18px, calc(env(safe-area-inset-top, 0px) + 8px));
 }
@@ -91,7 +92,7 @@ body {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   align-items: stretch;
-  transform: translateY(4px);
+  transform: translateY(var(--bottom-nav-content-nudge));
 }
 
 .bottom-nav-item {
@@ -199,6 +200,37 @@ body {
   padding-right: 24px;
   padding-top: 6px;
   padding-bottom: max(18px, calc(env(safe-area-inset-bottom, 0px) + 10px));
+}
+
+.auth-picker-shell {
+  min-height: 100dvh;
+  width: 100%;
+  background: var(--sam-bg);
+  box-sizing: border-box;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  padding-top: max(18px, calc(env(safe-area-inset-top, 0px) + 10px));
+  padding-right: 18px;
+  padding-bottom: max(18px, calc(env(safe-area-inset-bottom, 0px) + 10px));
+  padding-left: 18px;
+  overflow: hidden;
+}
+
+.auth-picker-main {
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.auth-picker-main::-webkit-scrollbar {
+  display: none;
+}
+
+.auth-picker-footer {
+  background: var(--sam-bg);
+  padding-top: clamp(18px, 4dvh, 42px);
 }
 
 .onboarding-continue-button {
