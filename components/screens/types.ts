@@ -35,6 +35,7 @@ export type SheetPayload =
   | { kind: "edit-account"; accountId: string }
   | { kind: "transfer"; fromId?: string }
   | { kind: "change-credentials" }
+  | { kind: "mcp-connect" }
   | { kind: "bucket"; bucket: AppState["buckets"][number] }
   | { kind: "trade"; holding: AppState["holdings"][number] }
   | {

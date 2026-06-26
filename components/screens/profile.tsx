@@ -259,6 +259,24 @@ export function ProfileScreen({ state, setState, openSheet }: ScreenProps) {
         ))}
         <div style={{ marginTop: 18 }}>
           <div style={{ fontSize: 13, fontWeight: 600 }}>
+            <Mono c={sam.magenta}>⬡</Mono>
+            <Mono c={sam.magenta} b>
+              {" "}
+              integrations
+            </Mono>
+          </div>
+          <div
+            onClick={() => openSheet({ kind: "mcp-connect" })}
+            style={{ display: "flex", fontSize: 13, marginTop: 6, alignItems: "baseline", cursor: "pointer" }}
+          >
+            <Mono c={sam.comment}>└─ </Mono>
+            <Mono c={sam.cyan}>connect mcp</Mono>
+            <span style={{ flex: 1 }} />
+            <Mono c={sam.cyan}>→</Mono>
+          </div>
+        </div>
+        <div style={{ marginTop: 18 }}>
+          <div style={{ fontSize: 13, fontWeight: 600 }}>
             <Mono c={sam.red}>⚠</Mono>
             <Mono c={sam.red} b>
               {" "}

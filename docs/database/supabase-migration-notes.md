@@ -1,18 +1,74 @@
-# Supabase → Neon Migration Notes
+# Supabase To Neon Migration Notes
 
-## What changed
-- `auth.users` → Better Auth `user` table
-- `auth.uid()` RLS → Server Actions filter by session user id
-- `handle_new_user()` trigger → `lib/auth/onboarding-bootstrap.ts`
-- `delete_user()` RPC → `deleteAccountAction` cascade delete
+Supabase was used during the legacy and migration phases. It is now archived only; the active runtime stack is Cloudflare Workers + Neon Postgres + Better Auth + Drizzle ORM.
 
-## Not ported to Neon
-- Supabase PostgREST roles (`anon`, `authenticated`, `service_role`)
-- Supabase Auth JWT / GoTrue
-- Realtime, Storage, Edge Functions (unused in app)
+## What Changed
 
-## Seed
-Demo user `alex@sam.app` — run `npm run db:seed` after migrations.
+| Supabase-era concept | Current SAM implementation |
+| --- | --- |
+| `auth.users` | Better Auth `user` table |
+| Supabase Auth sessions/JWTs | Better Auth sessions |
+| `auth.uid()` RLS policies | Explicit `userId` filters in Server Actions and query helpers |
+| `handle_new_user()` trigger | `lib/auth/onboarding-bootstrap.ts` |
+| `delete_user()` RPC | `deleteAccountAction` plus FK cascades |
+| Supabase migrations | Drizzle schema in `lib/db/schema.ts` |
+| Supabase seed SQL | TypeScript seed scripts in `drizzle/` |
+| Supabase REST/PostgREST | Next.js Server Actions and Route Handlers |
 
-## Market data
-Written via `npm run market:sync` or Vercel Cron `/api/cron/market-sync`.
+## Not Ported
+
+These Supabase features are intentionally not active runtime dependencies:
+
+- Supabase Auth / GoTrue
+- Supabase JWT helpers
+- Supabase PostgREST roles: `anon`, `authenticated`, `service_role`
+- Supabase Realtime
+- Supabase Storage
+- Supabase Edge Functions
+- Supabase client in browser runtime
+
+## Archived SQL
+
+Original SQL remains under:
+
+```text
+docs/database/supabase-archive/
+```
+
+Keep this archive until migration notes are complete. Do not delete the archive casually; it remains useful for understanding old schema intent and seed data.
+
+## Current Seeds
+
+Run:
+
+```bash
+npm run db:seed
+npm run db:seed:demo
+```
+
+`npm run db:seed` inserts market symbols.
+
+`npm run db:seed:demo` creates/enriches the demo user:
+
+```text
+alex@sam.app / sam12345
+```
+
+## Market Data
+
+Current market sync path:
+
+- CLI: `npm run market:sync`
+- protected route: `/api/cron/market-sync`
+- implementation: `lib/market/yahoo-sync.ts`
+- database: Neon tables `market_symbols`, `market_quotes`, `market_daily_bars`
+
+The protected route is compatible with Cloudflare deployment and requires:
+
+```http
+Authorization: Bearer $CRON_SECRET
+```
+
+## Security Reminder
+
+The old RLS safety net no longer exists. Any new API, MCP tool, route handler, or background task that touches user data must receive or derive an authenticated `userId` and apply it to every user-scoped query.

@@ -1,34 +1,40 @@
-# SAM · Backend de datos de mercado
+# Backend Archive
 
-Dos jobs Python escriben en Postgres local; el frontend **solo lee** vía Supabase REST.
+The active SAM runtime does not use this `backend/` folder.
 
-| Módulo | Comando | Salida |
-|--------|---------|--------|
-| Yahoo | `python -m market.yahoo_sync` | `market_quotes` (`yahoo`) + `market_daily_bars` |
-| Live | `python -m live_data.connect` | `market_quotes` (`live`) vía SSE IBKR Gateway |
+Production currently runs on:
 
-## Setup
+- Cloudflare Workers via OpenNext
+- Next.js App Router
+- Neon Postgres
+- Better Auth
+- Drizzle ORM
+- TypeScript market sync in `lib/market/yahoo-sync.ts`
+
+## Historical Context
+
+This folder previously held Python experiments for market data:
+
+| Legacy module | Historical purpose |
+| --- | --- |
+| `market.yahoo_sync` | Write Yahoo quotes and daily bars |
+| `live_data.connect` | Connect to an IBKR Gateway live stream |
+
+Those flows were part of the old local/Supabase architecture and are not the active production path.
+
+## Current Market Sync
+
+Use the TypeScript sync instead:
 
 ```bash
-cd backend
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env
+npm run market:sync
 ```
 
-## Uso
+Or call the protected route in the deployed Cloudflare app:
 
 ```bash
-# Histórico + cotizaciones retrasadas (ejecutar primero):
-python -m market.yahoo_sync
-
-# Tiempo real (pide 2FA en terminal):
-python -m live_data.connect
+curl -H "Authorization: Bearer $CRON_SECRET" \
+  https://<your-worker-or-domain>/api/cron/market-sync
 ```
 
-Documentación completa:
-
-- [Live data (2FA, SSE, fallback)](../docs/LIVE-DATA.md)
-- [Esquema `market_*`](../docs/DATABASE.md)
-- [README principal](../README.md)
+See `docs/LIVE-DATA.md` for current market-data documentation.

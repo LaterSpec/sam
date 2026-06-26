@@ -330,6 +330,50 @@ export const portfolioSnapshots = pgTable(
   (t) => [index("portfolio_snapshots_user_idx").on(t.userId, t.capturedAt)]
 );
 
+// ── MCP integration tables ──────────────────────────────────
+
+export const mcpTokens = pgTable(
+  "mcp_tokens",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    publicPrefix: text("public_prefix").notNull(),
+    tokenHash: text("token_hash").notNull(),
+    scopes: text("scopes").array().notNull().default([]),
+    expiresAt: timestamp("expires_at"),
+    revokedAt: timestamp("revoked_at"),
+    lastUsedAt: timestamp("last_used_at"),
+    lastUsedIp: text("last_used_ip"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [
+    index("mcp_tokens_user_id_idx").on(t.userId),
+    uniqueIndex("mcp_tokens_public_prefix_idx").on(t.publicPrefix),
+    uniqueIndex("mcp_tokens_token_hash_idx").on(t.tokenHash),
+  ]
+);
+
+export const mcpAuditLogs = pgTable(
+  "mcp_audit_logs",
+  {
+    id: bigint("id", { mode: "number" }).primaryKey().generatedAlwaysAsIdentity(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    tokenId: uuid("token_id").references(() => mcpTokens.id, { onDelete: "set null" }),
+    toolName: text("tool_name").notNull(),
+    input: jsonb("input"),
+    resultStatus: text("result_status").notNull(),
+    errorMessage: text("error_message"),
+    requestId: text("request_id"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [index("mcp_audit_logs_user_idx").on(t.userId, t.createdAt)]
+);
+
 export type UserPrefs = {
   notifications: boolean;
   biometric: boolean;

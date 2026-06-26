@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useSam } from "@/lib/theme/sam-theme";
 import { Mono, Comment, BlockBar } from "@/components/ui/sam-primitives";
 import { makeSeries, seriesToPrices, symbolSeed } from "@/lib/market/build-market";
@@ -23,6 +23,13 @@ import {
   transferAction,
   setCredentialsAction,
 } from "@/lib/actions/data-actions";
+import {
+  createMcpTokenAction,
+  listMcpTokensAction,
+  revokeMcpTokenAction,
+  type McpTokenSummary,
+} from "@/lib/actions/mcp-actions";
+import { SCOPE_DESCRIPTIONS, DEFAULT_SCOPES, ALL_SCOPES, type Scope } from "@/lib/mcp/scopes";
 import {
   ACCOUNT_TYPES,
   ACCOUNT_EMOJIS,
@@ -77,6 +84,8 @@ export function SheetContent({ sheet, state, setState, onClose, openSheet }: She
       );
     case "change-credentials":
       return <ChangeCredentialsSheet onClose={onClose} />;
+    case "mcp-connect":
+      return <McpConnectSheet onClose={onClose} />;
     case "bucket":
       return <BucketSheet sheet={sheet} setState={setState} onClose={onClose} />;
     case "trade":
@@ -1846,6 +1855,300 @@ function ChangeCredentialsSheet({ onClose }: { onClose: () => void }) {
   );
 }
 
+function McpConnectSheet({ onClose }: { onClose: () => void }) {
+  const { sam } = useSam();
+  const [tokens, setTokens] = useState<McpTokenSummary[] | null>(null);
+  const [name, setName] = useState("My assistant");
+  const [scopes, setScopes] = useState<Scope[]>([...DEFAULT_SCOPES]);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [newToken, setNewToken] = useState<string | null>(null);
+  const [copied, setCopied] = useState<"token" | "url" | null>(null);
+
+  const endpoint =
+    typeof window !== "undefined" ? `${window.location.origin}/api/mcp` : "/api/mcp";
+
+  const refresh = async () => {
+    try {
+      setTokens(await listMcpTokensAction());
+    } catch {
+      setTokens([]);
+    }
+  };
+
+  useEffect(() => {
+    void refresh();
+  }, []);
+
+  const toggleScope = (scope: Scope) => {
+    setScopes((prev) =>
+      prev.includes(scope) ? prev.filter((s) => s !== scope) : [...prev, scope]
+    );
+  };
+
+  const copy = (value: string, which: "token" | "url") => {
+    const done = () => {
+      setCopied(which);
+      setTimeout(() => setCopied(null), 1600);
+    };
+    if (navigator.clipboard?.writeText) navigator.clipboard.writeText(value).then(done).catch(done);
+    else done();
+  };
+
+  const generate = async () => {
+    if (!name.trim() || busy) return;
+    setBusy(true);
+    setError("");
+    try {
+      const res = await createMcpTokenAction({ name: name.trim(), scopes });
+      setNewToken(res.token);
+      await refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "could not create token");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const revoke = async (id: string) => {
+    setBusy(true);
+    try {
+      await revokeMcpTokenAction(id);
+      await refresh();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const inputStyle: React.CSSProperties = {
+    flex: 1,
+    background: "transparent",
+    border: "none",
+    outline: "none",
+    color: sam.text,
+    fontFamily: sam.font,
+    fontSize: 14,
+  };
+
+  const activeTokens = (tokens || []).filter((t) => !t.revokedAt);
+
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 14 }}>
+        <span onClick={onClose} style={{ cursor: "pointer", color: sam.comment }}>
+          [close]
+        </span>
+        <Mono c={sam.cyan} b>
+          $ mcp --connect
+        </Mono>
+        <span style={{ width: 44 }} />
+      </div>
+      <div style={{ fontSize: 11, color: sam.comment, marginBottom: 12 }}>
+        {`// connect an AI assistant to SAM over MCP`}
+      </div>
+
+      <div style={{ marginBottom: 14 }}>
+        <div style={{ fontSize: 13, fontWeight: 600 }}>
+          <Mono c={sam.green}>⬡</Mono>{" "}
+          <Mono c={sam.green} b>
+            endpoint
+          </Mono>
+        </div>
+        <div
+          onClick={() => copy(endpoint, "url")}
+          style={{
+            marginTop: 6,
+            padding: "10px 12px",
+            border: `1px solid ${sam.border}`,
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            cursor: "pointer",
+          }}
+        >
+          <Mono c={sam.text} style={{ flex: 1, fontSize: 12, wordBreak: "break-all" }}>
+            {endpoint}
+          </Mono>
+          <Mono c={copied === "url" ? sam.green : sam.cyan}>{copied === "url" ? "[copied]" : "[copy]"}</Mono>
+        </div>
+      </div>
+
+      {newToken ? (
+        <div
+          style={{
+            marginBottom: 16,
+            padding: 12,
+            border: `1px solid ${sam.green}55`,
+            background: `${sam.green}10`,
+          }}
+        >
+          <div style={{ fontSize: 11, color: sam.green, marginBottom: 6 }}>
+            {`// copy now — this token is shown only once`}
+          </div>
+          <div
+            onClick={() => copy(newToken, "token")}
+            style={{
+              padding: "10px 12px",
+              border: `1px solid ${sam.border}`,
+              background: sam.bg,
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              cursor: "pointer",
+            }}
+          >
+            <Mono c={sam.text} style={{ flex: 1, fontSize: 11, wordBreak: "break-all" }}>
+              {newToken}
+            </Mono>
+            <Mono c={copied === "token" ? sam.green : sam.cyan}>
+              {copied === "token" ? "[copied]" : "[copy]"}
+            </Mono>
+          </div>
+          <div
+            onClick={() => setNewToken(null)}
+            style={{
+              marginTop: 12,
+              padding: "9px 0",
+              textAlign: "center",
+              background: sam.green,
+              color: sam.bg,
+              fontWeight: 700,
+              cursor: "pointer",
+              fontSize: 13,
+            }}
+          >
+            [done]
+          </div>
+        </div>
+      ) : (
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ fontSize: 13, fontWeight: 600 }}>
+            <Mono c={sam.yellow}>◎</Mono>{" "}
+            <Mono c={sam.yellow} b>
+              new token
+            </Mono>
+          </div>
+          <div
+            style={{
+              marginTop: 6,
+              padding: "10px 12px",
+              border: `1px solid ${sam.border}`,
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+            }}
+          >
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="token name"
+              maxLength={60}
+              style={inputStyle}
+            />
+          </div>
+          <div style={{ marginTop: 10, fontSize: 11, color: sam.comment }}>{`// scopes`}</div>
+          <div style={{ marginTop: 6, border: `1px solid ${sam.border}` }}>
+            {ALL_SCOPES.map((scope, i) => {
+              const on = scopes.includes(scope);
+              return (
+                <div
+                  key={scope}
+                  onClick={() => toggleScope(scope)}
+                  style={{
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: 8,
+                    padding: "8px 10px",
+                    borderBottom: i === ALL_SCOPES.length - 1 ? 0 : `1px solid ${sam.border}`,
+                    cursor: "pointer",
+                  }}
+                >
+                  <Mono c={on ? sam.green : sam.comment} b={on}>
+                    {on ? "[x]" : "[ ]"}
+                  </Mono>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <Mono c={sam.text} style={{ fontSize: 12 }}>
+                      {scope}
+                    </Mono>
+                    <div style={{ fontSize: 10, color: sam.comment, marginTop: 2 }}>
+                      {SCOPE_DESCRIPTIONS[scope]}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          {error && <div style={{ marginTop: 10, fontSize: 11, color: sam.red }}>{error}</div>}
+          <div
+            onClick={generate}
+            style={{
+              marginTop: 12,
+              padding: "10px 0",
+              textAlign: "center",
+              background: name.trim() && scopes.length > 0 && !busy ? sam.cyan : sam.surface,
+              color: name.trim() && scopes.length > 0 && !busy ? sam.bg : sam.comment,
+              fontWeight: 700,
+              cursor: name.trim() && scopes.length > 0 && !busy ? "pointer" : "default",
+              fontSize: 14,
+            }}
+          >
+            {busy ? "..." : "[connect mcp]"}
+          </div>
+        </div>
+      )}
+
+      <div>
+        <div style={{ fontSize: 13, fontWeight: 600 }}>
+          <Mono c={sam.cyan}>▸</Mono>{" "}
+          <Mono c={sam.cyan} b>
+            active tokens
+          </Mono>
+          <span style={{ float: "right", color: sam.comment, fontWeight: 400, fontSize: 12 }}>
+            [{activeTokens.length}]
+          </span>
+        </div>
+        {tokens === null ? (
+          <div style={{ marginTop: 10, fontSize: 11, color: sam.comment }}>{`// loading...`}</div>
+        ) : activeTokens.length === 0 ? (
+          <div style={{ marginTop: 10, fontSize: 11, color: sam.comment }}>{`// no active tokens`}</div>
+        ) : (
+          <div style={{ marginTop: 8 }}>
+            {activeTokens.map((t) => (
+              <div
+                key={t.id}
+                style={{
+                  padding: "8px 10px",
+                  border: `1px solid ${sam.border}`,
+                  marginTop: 6,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                }}
+              >
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <Mono c={sam.text} style={{ fontSize: 13 }}>
+                    {t.name}
+                  </Mono>
+                  <div style={{ fontSize: 10, color: sam.comment, marginTop: 2 }}>
+                    {`sam_mcp_${t.publicPrefix}… · ${t.scopes.length} scope${t.scopes.length === 1 ? "" : "s"} · `}
+                    {t.lastUsedAt ? `used ${new Date(t.lastUsedAt).toLocaleDateString()}` : "never used"}
+                  </div>
+                </div>
+                <span
+                  onClick={busy ? undefined : () => revoke(t.id)}
+                  style={{ cursor: busy ? "default" : "pointer", color: sam.red, fontSize: 12 }}
+                >
+                  [revoke]
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function BucketSheet({
   sheet,
   setState,
@@ -2006,7 +2309,7 @@ function TradeSheet({
       }
     } else {
       const res = await sellHoldingAction({ symbol: h.sym, qty, price });
-      if (res && !("error" in res && res.error)) {
+      if (res && !("error" in res)) {
         setState((s) =>
           res.removed
             ? { ...s, holdings: s.holdings.filter((x) => x.sym !== h.sym) }
@@ -2215,7 +2518,7 @@ function TickerDetailSheet({
       }
     } else {
       const res = await sellHoldingAction({ symbol: sym, amount: amt, price });
-      if (res && !("error" in res && res.error)) {
+      if (res && !("error" in res)) {
         setState((s) =>
           res.removed
             ? { ...s, holdings: s.holdings.filter((h) => h.sym !== sym) }

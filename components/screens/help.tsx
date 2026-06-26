@@ -29,7 +29,7 @@ export function HelpScreen({ state, setState }: ScreenProps) {
     {
       q: "Where is my data stored?",
       c: sam.yellow,
-      a: "Your data lives in Neon Postgres on Vercel — accounts, transactions, goals and budgets are tied to your user account.",
+      a: "Your data lives in Neon Postgres behind the Cloudflare app — accounts, transactions, goals and budgets are tied to your user account.",
     },
     {
       q: "Is my data private?",

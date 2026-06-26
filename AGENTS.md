@@ -1,7 +1,7 @@
 # SAM Project Rules
 
 - This project is being migrated from legacy HTML/JSX to Next.js App Router.
-- Final deployment target is Vercel.
+- Final deployment target is Cloudflare Workers via OpenNext.
 - Final database target is Neon Postgres.
 - Supabase was only used for testing and must not remain as an active dependency.
 - Before removing Supabase files, extract and document DB schema, migrations and seed data.

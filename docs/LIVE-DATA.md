@@ -1,125 +1,120 @@
-# Datos de mercado en vivo (Live data)
+# Market Data
 
-SAM puede mostrar precios en tiempo casi real cuando el conector **live** está activo. Si no, la app sigue funcionando con datos **Yahoo** (retrasados) almacenados en Supabase.
+SAM stores market data in Neon Postgres. The active sync path is TypeScript and is designed to run either from the CLI or from a protected Cloudflare/Next route handler.
 
-## Dos fuentes, una tabla
+## Data Model
 
-Todo termina en `public.market_quotes` con columna `source`:
-
+```text
+Yahoo Finance
+    │
+    ▼
+lib/market/yahoo-sync.ts
+    │
+    ├── market_quotes      source = yahoo
+    └── market_daily_bars  daily closes
+        │
+        ▼
+App market builder
+live > yahoo > latest daily close > holding cost fallback
 ```
-                    ┌─────────────────────┐
-  Yahoo Finance ──► │  market_quotes      │ ◄── IBKR Gateway (live)
-  (yahoo_sync.py)   │  source: yahoo|live │
-                    └──────────┬──────────┘
-                               │ poll ~8s
-                               ▼
-                    Frontend buildMarket()
-                    live > yahoo > último close
-```
 
-| Job | Comando | Escribe | Cuándo usarlo |
-|-----|---------|---------|----------------|
-| Yahoo sync | `python -m market.yahoo_sync` | `yahoo` + `market_daily_bars` | Siempre al inicio; re-ejecutar 1–2×/día |
-| Live connect | `python -m live_data.connect` | `live` | Mientras el mercado está abierto y quieres badge LIVE |
+Market tables:
 
-## Requisitos live
+| Table | Purpose |
+| --- | --- |
+| `market_symbols` | Active ticker universe |
+| `market_quotes` | Latest quotes by `symbol`, `source`, and `session_date` |
+| `market_daily_bars` | Daily close history for charts and fallback pricing |
 
-1. **IBKR Gateway** instalado y corriendo localmente (disponible en [Interactive Brokers](https://www.interactivebrokers.com/en/trading/ibgateway.php)).
-2. Cuenta IBKR activa (Paper Trading o real).
-3. Archivo `backend/.env` con credenciales (ver `.env.example`).
-4. **2FA** en cada arranque: el script pide el código en terminal.
-5. Supabase local en marcha (`supabase start`).
+User invest tables:
 
-## Configuración
+| Table | Purpose |
+| --- | --- |
+| `holdings` | Simulated open positions |
+| `watchlist` | User-specific watched tickers |
+| `trades` | Simulated buy/sell log |
+| `portfolio_snapshots` | Portfolio value time series |
+
+## Sync Commands
+
+Run the market sync locally:
 
 ```bash
-cd backend
-python3 -m venv venv
-source venv/bin/activate   # Windows: venv\Scripts\activate
-pip install -r requirements.txt
-cp .env.example .env
-# Editar .env:
-#   IBG_USERNAME=tu_usuario_ibkr
-#   IBG_PASSWORD=tu_contraseña_ibkr
+npm run market:sync
 ```
 
-Variables opcionales:
-
-| Variable | Default | Descripción |
-|----------|---------|-------------|
-| `IBG_API_BASE` | `https://localhost:5000/v1/api` | URL base del IBKR Gateway |
-| `SUPABASE_DB_URL` | `postgresql://postgres:postgres@127.0.0.1:54322/postgres` | Postgres local |
-
-## Arrancar el feed en vivo
+Limit the number of symbols during testing:
 
 ```bash
-cd backend
-source venv/bin/activate
-python -m live_data.connect
+MARKET_SYNC_LIMIT=5 npm run market:sync
 ```
 
-Flujo en terminal:
+The CLI wrapper is `scripts/market/yahoo-sync.ts`; the reusable sync implementation is `lib/market/yahoo-sync.ts`.
 
-1. Banner `SAM · IBKR live-data connection`
-2. Email enmascarado donde llegó el 2FA
-3. Prompt: `2FA code sent to …:`
-4. Tras éxito: `[live] 2FA OK – live data active. Press Ctrl+C to stop.`
-5. `[live] subscribed to 85 symbols` y ticks periódicos `updated N symbols`
+## Protected Sync Route
 
-**Detener:** `Ctrl+C`. El front vuelve a mostrar Yahoo / último snapshot live guardado.
+The route handler is:
 
-## Qué hace el conector por dentro
+```text
+app/api/cron/market-sync/route.ts
+```
 
-1. `POST /auth/login/request-code` → `challenge_token`
-2. `POST /auth/login/verify-code` con código 2FA → JWT
-3. `POST /analytics/live-prices/subscribe` con los `asset_id` del universo de símbolos
-4. `GET /analytics/live-prices/stream` (SSE)
-5. Por cada tick: `upsert_live_quote()` en Postgres (`source='live'`, `session_date=today`)
+It requires:
 
-Throttling: máximo un upsert por símbolo cada **3 s** (`PERSIST_EVERY`) para no saturar la BD.
+```http
+Authorization: Bearer $CRON_SECRET
+```
 
-## Cómo lo consume el frontend
-
-- Poller global en `App` (~8 s): `SamDB.getMarketQuotes()`.
-- `buildMarket()` marca `__liveActive = true` si hay quotes `live` recientes (ventana ~2 min).
-- Market muestra `● LIVE` y `// source: IBKR live feed · real-time`.
-- Portfolio recalcula valor y puede añadir `portfolio_snapshots` cada ~10 min.
-
-**Importante:** el live solo entrega precio actual (bid/ask/last). **No** sustituye el histórico diario: eso sigue siendo Yahoo → `market_daily_bars`.
-
-## Yahoo sync (histórico + fallback)
+Example:
 
 ```bash
-cd backend
-source venv/bin/activate
-python -m market.yahoo_sync
+curl -H "Authorization: Bearer $CRON_SECRET" \
+  https://<your-worker-or-domain>/api/cron/market-sync
 ```
 
-Opciones útiles (ver `--help` en el script):
+This route can be called by a Cloudflare scheduler, an external cron service, or a manually triggered deployment task.
 
-- Sincroniza cotización retrasada + ~90 cierres diarios por símbolo activo.
-- Si un símbolo falla (ej. delisted), el job continúa con el resto.
+## Runtime Requirements
 
-Ejecuta esto **antes** de usar Invest sin live, o como respaldo nocturno.
+| Variable | Purpose |
+| --- | --- |
+| `DATABASE_URL` | Neon Postgres connection string |
+| `CRON_SECRET` | Shared secret for the protected route |
 
-## Preguntas frecuentes
+For Cloudflare production, store both values with Wrangler secrets.
 
-### ¿Por qué veo precios sin tener `connect.py` corriendo?
+## How The App Consumes Market Data
 
-Porque `yahoo_sync` ya guardó filas en `market_quotes` (`source='yahoo'`). El front siempre intenta mostrar el mejor dato disponible.
+The app loads market data through `lib/db/queries/load-user-data.ts` and market-building helpers in `lib/market/build-market.ts`.
 
-### ¿NVO tiene precio pero antes decía "no data" en el sparkline?
+The loader intentionally fetches daily bars only for relevant symbols:
 
-El precio venía de Yahoo; el sparkline usa `market_daily_bars`. Un bug de límite 1000 filas en la API truncaba barras — corregido cargando solo símbolos del usuario.
+- user holdings
+- user watchlist
+- `SPY` benchmark
 
-### ¿Los charts 1M / 3M / 1Y son de Yahoo?
+This keeps payloads small and avoids loading the entire market universe into every app request.
 
-**Sí**, desde `market_daily_bars`. Los rangos 1D / 1W en el detalle del ticker son **sintéticos** (no hay intradía en BD — ver roadmap).
+## Pricing Priority
 
-### ¿Las compras son reales?
+The market builder resolves prices in this order:
 
-**No.** `buyHolding` / `sellHolding` actualizan `holdings` y `trades` en Supabase; no hay órdenes reales enviadas al broker.
+1. Recent `live` quote when present.
+2. `yahoo` quote.
+3. Latest close from `market_daily_bars`.
+4. Holding average cost fallback for simulated portfolio views.
 
-### ¿El gráfico de performance muestra 30 días de Apple si acabo de comprar?
+The current active sync writes Yahoo data. The schema still supports `source = live`, but there is no active production live-feed worker in the current Cloudflare stack.
 
-**Ya no.** Usa `portfolio_snapshots`: empieza en tu primera compra (día 0) y crece hacia adelante. Con pocos datos usa puntos ~10 min; con más de ~2 días pasa a un punto por día.
+## Simulated Trading
+
+Invest actions are simulated inside SAM:
+
+- buys update `holdings`, insert a `trades` row, and remove the symbol from `watchlist`
+- sells update or remove `holdings` and insert a `trades` row
+- no broker order is sent
+- no custody or real-money transaction occurs
+
+## Historical Notes
+
+The legacy `backend/` folder documented Python/IBKR experiments and older Supabase-local flows. It is not the active production market-data path. Keep it as historical context unless a future live-market integration deliberately replaces it with a maintained Cloudflare-compatible service.
