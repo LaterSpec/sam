@@ -89,13 +89,13 @@ Scope: `sam:accounts.transfer` · **High risk** · `destructiveHint`
 | `from` | ISO date string | optional start |
 | `to` | ISO date string | optional end |
 | `kind` | `expense` \| `income` | optional filter |
-| `categoryKey` | string | optional |
+| `category` | string | optional display-name filter, case-insensitive |
 | `accountId` | uuid | optional |
 | `search` | string (≤120) | optional free text |
 | `limit` | int 1–500 | optional, default paginated |
 | `offset` | int ≥0 | optional |
 
-Returns: `count`, `total`, `limit`, `offset`, `transactions[]` with `id`, `name`, `amount`, `category`, `catKey`, `catColor`, `icon`, `time`, `occurred_at`, `kind`, `accountId`.
+Returns: `count`, `total`, `limit`, `offset`, `transactions[]` with `id`, `name`, `amount`, `category`, `catColor`, `icon`, `time`, `occurred_at`, `kind`, `accountId`. `category` is the user-facing text; internal keys are not returned.
 
 ### `sam_add_expense`
 
@@ -105,7 +105,7 @@ Scope: `sam:expenses.write`
 | --- | --- | --- |
 | `amount` | positive number | required |
 | `name` | string (1–120) | required |
-| `categoryKey` | string | `misc` |
+| `category` | string | optional; defaults to the user's miscellaneous category and otherwise must match `sam_list_categories` |
 | `accountId` | uuid | optional (uses default account) |
 
 ### `sam_update_expense`
@@ -117,7 +117,7 @@ Scope: `sam:expenses.write`
 | `id` | uuid | yes |
 | `amount` | positive number | optional |
 | `name` | string | optional |
-| `categoryKey` | string | optional |
+| `category` | string | optional; must match a name from `sam_list_categories` |
 | `accountId` | uuid | optional |
 | `notes` | string (≤2000) | optional |
 
@@ -137,7 +137,7 @@ Restores affected account balance.
 
 ### `sam_list_categories`
 
-Returns categories with monthly cap, current-month spend, remaining, percent used.
+Returns categories with `id`, user-facing `name`, icon/color, monthly cap, current-month spend, remaining, and percent used. Internal category keys are not returned.
 
 ### `sam_get_budget_status`
 
@@ -189,10 +189,10 @@ Scope: `sam:categories.write`
 | --- | --- | --- |
 | `from` | ISO date | optional |
 | `to` | ISO date | optional |
-| `categoryKey` | string | optional filter |
+| `category` | string | optional display-name filter, case-insensitive |
 | `groupBy` | `category` \| `day` \| `month` | optional |
 
-Returns: `from`, `to`, `groupBy`, `total`, `transactionCount`, `groups[]` with `bucket`, `total`, `count`.
+Returns: `from`, `to`, `groupBy`, `category`, `total`, `transactionCount`, `groups[]` with `bucket`, `total`, `count`. When grouped by category, `bucket` is the user-facing category name.
 
 ### `sam_get_cashflow`
 
@@ -262,6 +262,9 @@ Scope: `sam:income.write`
 | `freq` | string (≤32) | optional |
 | `next` | string (≤32) | optional |
 | `accountId` | uuid | optional — credits account if set |
+
+When an account is credited, the returned `incomeTx` includes user-facing
+`category` text and never exposes an internal category key.
 
 ---
 

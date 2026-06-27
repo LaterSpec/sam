@@ -93,12 +93,13 @@ Check `capabilities` from `sam_get_profile` before writes.
 | --- | --- |
 | `scope_denied` | Inform user; suggest regenerating token with scope |
 | `confirmation_required` | Ask user, then retry with `confirm: true` |
-| `account_not_found` / `category_not_found` | Call list tools to resolve valid ids/keys |
+| `account_not_found` / `category_not_found` | Call list tools to resolve valid account ids or category names |
 | `insufficient_balance` | Report balance issue; do not retry blindly |
 
 ## Reporting results to the user
 
 - Use the profile `currency` for money formatting.
+- Use category display names exactly as returned by `sam_list_categories`; never send or expose internal category keys.
 - Summarize lists; show tables for ≤20 rows.
 - For spending questions, prefer `sam_get_spending_summary` for totals and `sam_list_transactions` for line items.
 - Mention date range used when filtering.

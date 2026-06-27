@@ -305,7 +305,7 @@ Returns the user's accounts with balances and display metadata.
 
 Scope: `sam:read`
 
-Returns categories, keys, names, caps, and current month spend.
+Returns category ids, user-facing names, caps, and current month spend. Internal keys remain a storage concern and are not exposed through MCP.
 
 ### `sam_add_expense`
 
@@ -317,7 +317,7 @@ Input:
 {
   amount: number;
   name: string;
-  categoryKey?: string;
+  category?: string;
   accountId?: string;
   occurredAt?: string;
   notes?: string;
@@ -328,10 +328,12 @@ Behavior:
 
 - validates amount as positive money
 - resolves account by id or default account priority
-- resolves category by key or falls back to `misc`
+- resolves the user-facing category name to its internal key
 - inserts `transactions` row with `kind = expense`
 - updates account balance
-- returns transaction and affected account balance
+- returns the transaction with category text and the affected account balance
+
+If `category` is omitted, SAM applies the user's miscellaneous category internally.
 
 ### `sam_create_category`
 
@@ -378,12 +380,12 @@ Input:
 {
   from?: string;
   to?: string;
-  categoryKey?: string;
+  category?: string;
   groupBy?: "category" | "day" | "month";
 }
 ```
 
-Returns totals, grouped breakdowns, and recent matching transactions.
+Returns totals and grouped breakdowns. Category filters and grouped category buckets use user-facing names.
 
 ### `sam_add_income`
 
@@ -404,6 +406,7 @@ This tool should be opt-in because it changes two balances.
 - Every tool must validate input with Zod.
 - Every user-scoped query must filter by `ctx.userId`.
 - Tools should return structured JSON, not prose.
+- MCP category inputs and outputs use display text only; internal keys never cross the MCP boundary.
 - Tools should avoid leaking internal ids unless the user needs them for follow-up actions.
 - Mutating tools should return the created/updated row and an audit-friendly summary.
 - Errors should be safe and clear: `category_not_found`, `account_not_found`, `scope_denied`, `invalid_amount`.

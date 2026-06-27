@@ -12,7 +12,7 @@ import { registerProfileTools } from "./tools/profile";
 
 export const MCP_SERVER_INFO = {
   name: "sam",
-  version: "1.0.0",
+  version: "1.1.0",
 } as const;
 
 /**
@@ -22,7 +22,7 @@ export const MCP_SERVER_INFO = {
 export function buildMcpServer(ctx: ActorContext): McpServer {
   const server = new McpServer(MCP_SERVER_INFO, {
     instructions:
-      "SAM personal finance assistant. Use these tools to read and act on the authenticated user's financial data: accounts, transactions, budgets, goals, income, savings and simulated investing. All data is scoped to the current user. Money is in the user's account currency.",
+      "SAM personal finance assistant. Use these tools to read and act on the authenticated user's financial data: accounts, transactions, budgets, goals, income, savings and simulated investing. All data is scoped to the current user. Money is in the user's account currency. Categories are always exchanged as user-facing names in the category field; never invent or send internal category keys. Call sam_list_categories to discover valid category names.",
   });
 
   registerProfileTools(server, ctx);

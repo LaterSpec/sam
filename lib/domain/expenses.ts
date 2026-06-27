@@ -353,7 +353,7 @@ export type ListTransactionsInput = {
   from?: string;
   to?: string;
   kind?: "expense" | "income";
-  categoryKey?: string;
+  category?: string;
   accountId?: string;
   search?: string;
   limit?: number;
@@ -372,7 +372,7 @@ export async function listTransactions(ctx: ActorContext, input: ListTransaction
   if (from && Number.isNaN(from.getTime())) throw new Error("invalid 'from' date");
   if (to && Number.isNaN(to.getTime())) throw new Error("invalid 'to' date");
   const kind = input.kind === "expense" || input.kind === "income" ? input.kind : null;
-  const categoryKey = input.categoryKey ? shortTextSchema.parse(input.categoryKey) : null;
+  const category = input.category ? shortTextSchema.parse(input.category) : null;
   const accountId = input.accountId ? uuidSchema.parse(input.accountId) : null;
   const search = input.search ? input.search.trim().slice(0, 120) : null;
   const limit = Math.min(Math.max(Math.trunc(input.limit ?? 50), 1), 500);
@@ -399,7 +399,7 @@ export async function listTransactions(ctx: ActorContext, input: ListTransaction
       and ($2::timestamptz is null or t.occurred_at >= $2::timestamptz)
       and ($3::timestamptz is null or t.occurred_at <= $3::timestamptz)
       and ($4::text is null or t.kind = $4::text)
-      and ($5::text is null or c.key = $5::text)
+      and ($5::text is null or lower(c.name) = lower($5::text))
       and ($6::uuid is null or t.account_id = $6::uuid)
       and ($7::text is null or t.name ilike '%' || $7::text || '%' or coalesce(t.notes, '') ilike '%' || $7::text || '%')
     order by t.occurred_at desc, t.created_at desc
@@ -410,7 +410,7 @@ export async function listTransactions(ctx: ActorContext, input: ListTransaction
       from ? from.toISOString() : null,
       to ? to.toISOString() : null,
       kind,
-      categoryKey,
+      category,
       accountId,
       search,
       limit,

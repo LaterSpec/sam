@@ -3,6 +3,7 @@ import { z } from "zod";
 import type { ActorContext } from "@/lib/domain/types";
 import * as categories from "@/lib/domain/categories";
 import { SCOPES } from "../scopes";
+import { presentCategory } from "../presenters";
 import { defineTool } from "./helpers";
 
 export function registerCategoryTools(server: McpServer, ctx: ActorContext) {
@@ -12,7 +13,7 @@ export function registerCategoryTools(server: McpServer, ctx: ActorContext) {
       "List budget categories with monthly cap, current-month spend, remaining and percent used.",
     scope: SCOPES.read,
     annotations: { readOnlyHint: true },
-    handler: (ctx) => categories.listCategories(ctx),
+    handler: async (ctx) => (await categories.listCategories(ctx)).map(presentCategory),
   });
 
   defineTool(server, ctx, {
@@ -24,7 +25,15 @@ export function registerCategoryTools(server: McpServer, ctx: ActorContext) {
     inputSchema: {
       nearThresholdPct: z.number().min(1).max(100).optional(),
     },
-    handler: (ctx, args) => categories.getBudgetStatus(ctx, args.nearThresholdPct ?? 80),
+    handler: async (ctx, args) => {
+      const status = await categories.getBudgetStatus(ctx, args.nearThresholdPct ?? 80);
+      return {
+        ...status,
+        overBudget: status.overBudget.map(presentCategory),
+        nearLimit: status.nearLimit.map(presentCategory),
+        categories: status.categories.map(presentCategory),
+      };
+    },
   });
 
   defineTool(server, ctx, {
@@ -40,7 +49,7 @@ export function registerCategoryTools(server: McpServer, ctx: ActorContext) {
         .regex(/^#[0-9a-fA-F]{6}$/)
         .optional(),
     },
-    handler: (ctx, args) => categories.createCategory(ctx, args),
+    handler: async (ctx, args) => presentCategory(await categories.createCategory(ctx, args)),
   });
 
   defineTool(server, ctx, {
@@ -57,7 +66,7 @@ export function registerCategoryTools(server: McpServer, ctx: ActorContext) {
         .regex(/^#[0-9a-fA-F]{6}$/)
         .optional(),
     },
-    handler: (ctx, args) => categories.updateCategory(ctx, args),
+    handler: async (ctx, args) => presentCategory(await categories.updateCategory(ctx, args)),
   });
 
   defineTool(server, ctx, {
@@ -68,6 +77,7 @@ export function registerCategoryTools(server: McpServer, ctx: ActorContext) {
       categoryId: z.string().uuid(),
       monthlyCap: z.number().nonnegative(),
     },
-    handler: (ctx, args) => categories.setCategoryCap(ctx, args.categoryId, args.monthlyCap),
+    handler: async (ctx, args) =>
+      presentCategory(await categories.setCategoryCap(ctx, args.categoryId, args.monthlyCap)),
   });
 }

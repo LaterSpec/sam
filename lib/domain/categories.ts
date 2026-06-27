@@ -36,6 +36,10 @@ type CategorySpendRow = {
   spent: string | number;
 };
 
+function normalizeCategoryName(value: string): string {
+  return value.normalize("NFKC").trim().toLocaleLowerCase();
+}
+
 /** Categories with the current calendar-month expense spend per category. */
 export async function listCategories(ctx: ActorContext): Promise<CategoryWithSpendDto[]> {
   const sql = getSql();
@@ -76,6 +80,25 @@ export async function listCategories(ctx: ActorContext): Promise<CategoryWithSpe
       pctUsed: cap > 0 ? Math.round((spent / cap) * 1000) / 10 : null,
     };
   });
+}
+
+/** Resolve the user-facing category name to its internal storage key. */
+export async function resolveCategoryKeyByName(
+  ctx: ActorContext,
+  categoryName: string
+): Promise<string> {
+  const requested = shortTextSchema.parse(categoryName);
+  const normalized = normalizeCategoryName(requested);
+  const category = (await listCategories(ctx)).find(
+    (item) => normalizeCategoryName(item.name) === normalized
+  );
+  if (!category) {
+    throw new DomainError(
+      DomainErrorCodes.categoryNotFound,
+      `category not found: ${requested}`
+    );
+  }
+  return category.key;
 }
 
 /** Categories at or near their monthly cap (default >= 80% used). */

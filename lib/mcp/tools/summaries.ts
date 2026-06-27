@@ -15,7 +15,7 @@ export function registerSummaryTools(server: McpServer, ctx: ActorContext) {
     inputSchema: {
       from: z.string().optional(),
       to: z.string().optional(),
-      categoryKey: z.string().max(120).optional(),
+      category: z.string().max(120).optional(),
       groupBy: z.enum(["category", "day", "month"]).optional(),
     },
     handler: (ctx, args) => summaries.spendingSummary(ctx, args),

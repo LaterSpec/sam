@@ -5,7 +5,7 @@ import type { ActorContext } from "./types";
 export type SpendingSummaryInput = {
   from?: string;
   to?: string;
-  categoryKey?: string;
+  category?: string;
   groupBy?: "category" | "day" | "month";
 };
 
@@ -29,7 +29,7 @@ type TotalRow = { total: string | number; count: string | number };
  */
 export async function spendingSummary(ctx: ActorContext, input: SpendingSummaryInput = {}) {
   const { from, to } = parseRange(input.from, input.to);
-  const categoryKey = input.categoryKey ? shortTextSchema.parse(input.categoryKey) : null;
+  const category = input.category ? shortTextSchema.parse(input.category) : null;
   const groupBy = input.groupBy ?? "category";
   const sql = getSql();
 
@@ -38,7 +38,7 @@ export async function spendingSummary(ctx: ActorContext, input: SpendingSummaryI
       ? "to_char(date_trunc('day', t.occurred_at), 'YYYY-MM-DD')"
       : groupBy === "month"
         ? "to_char(date_trunc('month', t.occurred_at), 'YYYY-MM')"
-        : "coalesce(c.key, 'misc')";
+        : "coalesce(c.name, 'Miscellaneous')";
 
   const groups = (await sql.query(
     `
@@ -51,11 +51,11 @@ export async function spendingSummary(ctx: ActorContext, input: SpendingSummaryI
       and t.kind = 'expense'
       and ($2::timestamptz is null or t.occurred_at >= $2::timestamptz)
       and ($3::timestamptz is null or t.occurred_at <= $3::timestamptz)
-      and ($4::text is null or c.key = $4::text)
+      and ($4::text is null or lower(c.name) = lower($4::text))
     group by bucket
     order by total desc
     `,
-    [ctx.userId, from, to, categoryKey]
+    [ctx.userId, from, to, category]
   )) as GroupRow[];
 
   const totals = (await sql.query(
@@ -67,9 +67,9 @@ export async function spendingSummary(ctx: ActorContext, input: SpendingSummaryI
       and t.kind = 'expense'
       and ($2::timestamptz is null or t.occurred_at >= $2::timestamptz)
       and ($3::timestamptz is null or t.occurred_at <= $3::timestamptz)
-      and ($4::text is null or c.key = $4::text)
+      and ($4::text is null or lower(c.name) = lower($4::text))
     `,
-    [ctx.userId, from, to, categoryKey]
+    [ctx.userId, from, to, category]
   )) as TotalRow[];
 
   const totalRow = totals[0] ?? { total: 0, count: 0 };
@@ -77,7 +77,7 @@ export async function spendingSummary(ctx: ActorContext, input: SpendingSummaryI
     from: input.from ?? null,
     to: input.to ?? null,
     groupBy,
-    categoryKey,
+    category,
     total: Math.round(Number(totalRow.total) * 100) / 100,
     transactionCount: Number(totalRow.count),
     groups: groups.map((g) => ({

@@ -135,6 +135,14 @@ Parse `result.content[0].text` as JSON. On domain errors:
 
 More examples: [examples.md](../.agents/skills/sam-mcp/examples.md).
 
+### Category text contract
+
+- MCP tools exchange categories only through the `category` field using the user-facing name, such as `"Food & Dining"`, `"Alcohol"`, or `"Transport"`.
+- Call `sam_list_categories` to discover valid names before filtering, adding, or updating expenses.
+- Category matching is case-insensitive.
+- Internal database keys are not accepted by MCP inputs and are not returned in transaction, category, budget, or summary responses.
+- This replaces the previous `categoryKey` contract: clients must now send `category`; `categoryKey` and `catKey` are no longer part of MCP requests or responses.
+
 ---
 
 ## Authentication & scopes
@@ -182,7 +190,7 @@ More examples: [examples.md](../.agents/skills/sam-mcp/examples.md).
 | `scope_denied` | Token lacks required scope |
 | `confirmation_required` | High-risk tool needs explicit confirmation (e.g. transfer without `confirm: true`) |
 | `account_not_found` | Invalid `accountId` |
-| `category_not_found` | Invalid category key/id |
+| `category_not_found` | Category display name was not found |
 | `transaction_not_found` | Invalid expense id |
 | `insufficient_balance` | Transfer or debit would overdraw |
 | `invalid_amount` | Non-positive or invalid money value |

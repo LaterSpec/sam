@@ -3,6 +3,7 @@ import { z } from "zod";
 import type { ActorContext } from "@/lib/domain/types";
 import * as income from "@/lib/domain/income";
 import { SCOPES } from "../scopes";
+import { presentTransaction } from "../presenters";
 import { defineTool } from "./helpers";
 
 export function registerIncomeTools(server: McpServer, ctx: ActorContext) {
@@ -26,13 +27,18 @@ export function registerIncomeTools(server: McpServer, ctx: ActorContext) {
       next: z.string().max(32).optional(),
       accountId: z.string().uuid().optional(),
     },
-    handler: (ctx, args) =>
-      income.addIncome(ctx, {
+    handler: async (ctx, args) => {
+      const result = await income.addIncome(ctx, {
         name: args.name,
         amt: args.amount,
         freq: args.freq,
         next: args.next,
         accountId: args.accountId,
-      }),
+      });
+      return {
+        ...result,
+        incomeTx: result.incomeTx ? presentTransaction(result.incomeTx) : null,
+      };
+    },
   });
 }

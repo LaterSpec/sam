@@ -68,7 +68,7 @@ curl -s -X POST "$APP_URL/api/mcp" \
   -H "Content-Type: application/json" \
   -H "Accept: application/json, text/event-stream" \
   -H "Authorization: Bearer $SAM_MCP_TOKEN" \
-  -d '{"jsonrpc":"2.0","id":6,"method":"tools/call","params":{"name":"sam_add_expense","arguments":{"amount":24,"name":"Uber","categoryKey":"transport"}}}'
+  -d '{"jsonrpc":"2.0","id":6,"method":"tools/call","params":{"name":"sam_add_expense","arguments":{"amount":24,"name":"Uber","category":"Transport"}}}'
 ```
 
 ### Pretty-print JSON result (jq)
@@ -195,7 +195,7 @@ print(call_tool("sam_get_spending_summary", {"groupBy": "category"}))
 {
   "result": {
     "protocolVersion": "2024-11-05",
-    "serverInfo": { "name": "sam", "version": "1.0.0" },
+    "serverInfo": { "name": "sam", "version": "1.1.0" },
     "instructions": "SAM personal finance assistant..."
   }
 }
@@ -207,7 +207,7 @@ print(call_tool("sam_get_spending_summary", {"groupBy": "category"}))
 {
   "count": 12,
   "total": 573.5,
-  "transactions": [ { "name": "Spark", "amount": 6.8, "catKey": "food" } ]
+  "transactions": [ { "name": "Spark", "amount": 6.8, "category": "Food & Dining" } ]
 }
 ```
 
