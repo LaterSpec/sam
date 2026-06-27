@@ -319,12 +319,6 @@ body {
 
 @media (display-mode: standalone) {
   html,
-  body,
-  .app-root {
-    height: 100vh;
-  }
-
-  html,
   body {
     background: var(--sam-bg) !important;
   }
@@ -337,6 +331,19 @@ body {
   textarea,
   [contenteditable="true"] {
     user-select: text;
+  }
+}
+
+/*
+ * WebKit shortens the standalone containing block by the top safe area when
+ * viewport-fit=cover and black-translucent are combined. Restore only that
+ * missing strip so the app reaches the physical bottom without using 100vh.
+ */
+@supports (-webkit-touch-callout: none) {
+  @media (display-mode: standalone) {
+    .app-root {
+      height: calc(100% + env(safe-area-inset-top, 0px));
+    }
   }
 }
 

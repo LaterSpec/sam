@@ -54,8 +54,9 @@ npm run icons:generate
 - The authenticated shell and onboarding inherit `height: 100%` from `html` and `body`; do not replace this with `100dvh`.
 - Keep the bottom navigation in the shell flow. Avoid a viewport-fixed bottom nav because affected iOS versions can leave a stale gap until WebKit recalculates the visual viewport.
 - Keep safe-area padding on the component that owns each edge. Do not offset sticky headers with a negative safe-area margin.
-- Use the opaque `black` Apple status bar style. WebKit mispositions the bottom edge by the top and bottom safe-area insets when `black-translucent` is combined with `viewport-fit=cover`.
-- In standalone mode, the root uses `100vh`; WebKit reports `100svh`, `100dvh`, `-webkit-fill-available`, and `visualViewport.height` inconsistently for some installed apps.
+- Use `black-translucent` so each theme paints behind the iOS status bar.
+- On iOS standalone, extend only `.app-root` by `safe-area-inset-top`. This compensates WebKit shortening the containing block by that same inset while preserving the physical bottom edge.
+- Do not use `100vh`; with an opaque status bar it includes the status-bar height and pushes bottom controls below the visible viewport.
 - Safari 26.1 fixed an iOS rendering bug that produced bottom gaps in viewport-sized fixed layouts: https://webkit.org/blog/17541/webkit-features-for-safari-26-1/
 - The installed-app safe-area issue is tracked at https://bugs.webkit.org/show_bug.cgi?id=236445 and the standalone height issue at https://bugs.webkit.org/show_bug.cgi?id=254868.
 

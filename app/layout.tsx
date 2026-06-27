@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   applicationName: "SAM",
   appleWebApp: {
     capable: true,
-    statusBarStyle: "black",
+    statusBarStyle: "black-translucent",
     title: "SAM",
   },
   formatDetection: { telephone: false },
