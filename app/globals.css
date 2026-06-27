@@ -11,7 +11,7 @@
   --bottom-nav-height: 52px;
   --bottom-nav-safe-area: env(safe-area-inset-bottom, 0px);
   --bottom-nav-total-height: calc(var(--bottom-nav-height) + var(--bottom-nav-safe-area));
-  --app-bottom-reserve: calc(var(--bottom-nav-total-height) + 0.75rem);
+  --app-bottom-reserve: 0.75rem;
   --screen-pad-x: 16px;
   --app-header-top-pad: max(18px, calc(env(safe-area-inset-top, 0px) + 8px));
 }
@@ -23,67 +23,67 @@
 html {
   background: var(--sam-bg) !important;
   color-scheme: dark;
-  min-height: 100%;
+  height: 100%;
+  min-height: 0;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 html,
 body {
   width: 100%;
-  min-height: 100%;
+  height: 100%;
+  min-height: 0;
   margin: 0;
   padding: 0;
-  overflow-x: hidden;
+  overflow: hidden;
   overscroll-behavior: none;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
 }
 
 body {
-  min-height: 100dvh;
   font-family: var(--font-mono);
   background: var(--sam-bg) !important;
   color: #c9d1d9;
 }
 
-@supports (height: 100dvh) {
-  html,
-  body {
-    min-height: 100dvh;
-  }
+/* Installed PWAs use the window's containing block, not dynamic viewport units. */
+.app-root {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  background: var(--sam-bg);
+  overflow: hidden;
+  touch-action: manipulation;
 }
 
-@supports (-webkit-touch-callout: none) and (not (height: 100dvh)) {
-  html,
-  body {
-    min-height: -webkit-fill-available;
-  }
-}
-
-/* Full viewport shell: dynamic viewport first, with safe-area paint. */
-.app-root,
 .app-shell,
 .onboarding-shell,
 .authenticated-shell,
-.app-main,
 .sam-pwa-shell {
   width: 100%;
-  min-height: 100dvh;
+  height: 100%;
+  min-height: 0;
   background: var(--sam-bg);
+  overflow: hidden;
+  touch-action: manipulation;
 }
 
 .app-main {
-  min-height: 100dvh;
+  width: 100%;
+  min-height: 0;
+  flex: 1 1 auto;
   background: var(--sam-bg);
+  touch-action: manipulation;
 }
 
 .bottom-nav {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  position: relative;
   z-index: 50;
   box-sizing: border-box;
-  /* Content height plus one safe-area padding defines the complete anchored block. */
+  width: 100%;
+  flex: 0 0 auto;
   height: auto;
   margin: 0;
   padding-right: env(safe-area-inset-right, 0px);
@@ -126,6 +126,7 @@ body {
   padding-right: env(safe-area-inset-right, 0px);
   padding-bottom: var(--app-bottom-reserve);
   padding-left: env(safe-area-inset-left, 0px);
+  touch-action: manipulation;
 }
 
 .app-scroll-pane,
@@ -142,7 +143,7 @@ body {
 }
 
 .sam-screen-header {
-  margin: calc(-1 * var(--app-header-top-pad)) calc(-1 * var(--screen-pad-x)) 0;
+  margin: 0 calc(-1 * var(--screen-pad-x));
   padding: var(--app-header-top-pad) var(--screen-pad-x) 0;
   background: var(--sam-bg);
   box-sizing: border-box;
@@ -157,11 +158,13 @@ body {
 }
 
 .onboarding-shell > * {
-  min-height: 100dvh;
+  height: 100%;
+  min-height: 0;
 }
 
 .landing-carousel {
-  min-height: 100dvh;
+  height: 100%;
+  min-height: 0;
   background: var(--sam-bg);
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
@@ -211,7 +214,8 @@ body {
 }
 
 .auth-picker-shell {
-  min-height: 100dvh;
+  height: 100%;
+  min-height: 0;
   width: 100%;
   background: var(--sam-bg);
   box-sizing: border-box;
@@ -255,6 +259,8 @@ body {
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
+  height: 100%;
+  min-height: 0;
   padding-top: env(safe-area-inset-top, 0px);
   padding-right: env(safe-area-inset-right, 0px);
   padding-bottom: env(safe-area-inset-bottom, 0px);
@@ -264,7 +270,8 @@ body {
 
 .sam-pwa-shell.onboarding-shell {
   display: block;
-  min-height: 100dvh;
+  height: 100%;
+  min-height: 0;
   background: var(--sam-bg);
   padding-top: 0;
   padding-right: 0;
@@ -307,12 +314,6 @@ body {
 @media (max-width: 768px) {
   .sam-fade-up {
     animation-duration: 160ms;
-  }
-}
-
-@supports (-webkit-touch-callout: none) and (not (height: 100dvh)) {
-  .sam-pwa-shell {
-    min-height: -webkit-fill-available;
   }
 }
 

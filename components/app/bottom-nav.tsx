@@ -102,7 +102,7 @@ export function BootScreen({ error, onRetry }: { error?: string; onRetry?: () =>
   const { sam } = useSam();
   return (
     <div
-      className="flex min-h-[100dvh] items-center justify-center"
+      className="flex h-full min-h-0 items-center justify-center"
       style={{
         background: "var(--sam-bg)",
         fontFamily: sam.font,

@@ -56,4 +56,4 @@ export type ScreenProps = {
   openSheet: (sheet: SheetPayload | null) => void;
 };
 
-export const SCREEN_PAD = "var(--app-header-top-pad) var(--screen-pad-x) 0" as const;
+export const SCREEN_PAD = "0 var(--screen-pad-x)" as const;

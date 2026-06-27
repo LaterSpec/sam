@@ -271,7 +271,7 @@ function AppShellInner({
 
   return (
     <div
-      className="app-shell authenticated-shell flex min-h-[100dvh] flex-col"
+      className="app-shell authenticated-shell flex flex-col"
       data-app-shell="authenticated"
       style={{
         ["--sam-page-bg" as string]: sam.pageBg,

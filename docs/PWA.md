@@ -51,6 +51,10 @@ npm run icons:generate
 - Push notification support is more limited than native apps.
 - Service worker cache behavior is more restrictive than Android.
 - Standalone mode hides Safari browser chrome.
+- The authenticated shell and onboarding inherit `height: 100%` from `html` and `body`; do not replace this with `100dvh`.
+- Keep the bottom navigation in the shell flow. Avoid a viewport-fixed bottom nav because affected iOS versions can leave a stale gap until WebKit recalculates the visual viewport.
+- Keep safe-area padding on the component that owns each edge. Do not offset sticky headers with a negative safe-area margin.
+- Safari 26.1 fixed an iOS rendering bug that produced bottom gaps in viewport-sized fixed layouts: https://webkit.org/blog/17541/webkit-features-for-safari-26-1/
 
 ## Deploy
 
