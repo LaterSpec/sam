@@ -12,4 +12,5 @@
 - The app must be PWA-ready and installable on iOS/Android.
 - No iOS device frames — full viewport native-like layout.
 - Make small, reviewable changes.
-- Do not delete legacy files until migration notes are created. 
+- Do not delete legacy files until migration notes are created.
+- For SAM finance data via MCP (expenses, budgets, accounts, etc.), use the project skill at `.agents/skills/sam-mcp/SKILL.md` and [docs/MCP.md](docs/MCP.md). Do not query the database directly when the user asked for MCP-only access.

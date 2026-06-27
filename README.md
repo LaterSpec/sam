@@ -29,6 +29,15 @@ npm run dev
 
 Local app: `http://localhost:3000`
 
+**Production (Cloudflare Workers):** `https://sam-app.its-manuel-caceres.workers.dev`
+
+| Environment | App | MCP endpoint |
+| --- | --- | --- |
+| Local | `http://localhost:3000` | `http://localhost:3000/api/mcp` |
+| Production | `https://sam-app.its-manuel-caceres.workers.dev` | `https://sam-app.its-manuel-caceres.workers.dev/api/mcp` |
+
+Agents and MCP clients should use the **production MCP URL** when not running SAM locally.
+
 ## Routes
 
 | Route | Purpose |
@@ -38,6 +47,7 @@ Local app: `http://localhost:3000`
 | `/canvas` | Design reference / legacy visual sandbox |
 | `/~offline` | PWA offline fallback |
 | `/api/auth/[...all]` | Better Auth route handler |
+| `/api/mcp` | MCP Streamable HTTP endpoint (personal finance tools for AI agents) |
 | `/api/cron/market-sync` | Protected market-data sync endpoint |
 
 ## Scripts
@@ -70,6 +80,7 @@ See [`.env.example`](.env.example).
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Optional Google OAuth credentials |
 | `BETTER_AUTH_EMAIL_ENABLED` | Enable email/password auth, normally `true` in local/demo |
 | `CRON_SECRET` | Bearer secret for `/api/cron/market-sync` |
+| `MCP_TOKEN_PEPPER` | Salts MCP personal token hashes (required in production) |
 
 For Cloudflare production secrets, use Wrangler secrets for sensitive values:
 
@@ -94,12 +105,12 @@ Local values:
 | Authorized JavaScript origins | `http://localhost:3000` |
 | Authorized redirect URIs | `http://localhost:3000/api/auth/callback/google` |
 
-Cloudflare production values:
+Cloudflare production values (`sam-app.its-manuel-caceres.workers.dev`):
 
 | GCP field | Value |
 | --- | --- |
-| Authorized JavaScript origins | `https://<your-worker-or-domain>` |
-| Authorized redirect URIs | `https://<your-worker-or-domain>/api/auth/callback/google` |
+| Authorized JavaScript origins | `https://sam-app.its-manuel-caceres.workers.dev` |
+| Authorized redirect URIs | `https://sam-app.its-manuel-caceres.workers.dev/api/auth/callback/google` |
 
 `BETTER_AUTH_URL` and `NEXT_PUBLIC_APP_URL` must match the active origin without a trailing slash.
 
@@ -134,12 +145,39 @@ The protected route handler can be called by a scheduler:
 
 ```bash
 curl -H "Authorization: Bearer $CRON_SECRET" \
-  https://<your-worker-or-domain>/api/cron/market-sync
+  https://sam-app.its-manuel-caceres.workers.dev/api/cron/market-sync
 ```
 
 ## PWA
 
 SAM is PWA-ready for Android and iOS install flows. See [docs/PWA.md](docs/PWA.md).
+
+## MCP (AI agents)
+
+Connect Cursor, Claude, Hermes Agent, OpenClaw, or any MCP client to your SAM data.
+
+**Production MCP URL:** `https://sam-app.its-manuel-caceres.workers.dev/api/mcp`
+
+1. Log in at [https://sam-app.its-manuel-caceres.workers.dev/app](https://sam-app.its-manuel-caceres.workers.dev/app) → Profile → **Connect MCP** → create a token.
+2. Copy [`.cursor/mcp.json.example`](.cursor/mcp.json.example) to `.cursor/mcp.json`, set `url` to the production MCP URL above, and set `SAM_MCP_TOKEN`.
+3. See [docs/MCP.md](docs/MCP.md) for protocol details, all 34 tools, and client-specific setup.
+
+Example Cursor config (production):
+
+```json
+{
+  "mcpServers": {
+    "sam": {
+      "url": "https://sam-app.its-manuel-caceres.workers.dev/api/mcp",
+      "headers": {
+        "Authorization": "Bearer ${env:SAM_MCP_TOKEN}"
+      }
+    }
+  }
+}
+```
+
+Agent skill for this repo: [`.agents/skills/sam-mcp/SKILL.md`](.agents/skills/sam-mcp/SKILL.md)
 
 ## Documentation
 
@@ -149,6 +187,7 @@ SAM is PWA-ready for Android and iOS install flows. See [docs/PWA.md](docs/PWA.m
 - [Supabase migration notes](docs/database/supabase-migration-notes.md)
 - [Market data](docs/LIVE-DATA.md)
 - [PWA](docs/PWA.md)
+- [MCP client guide](docs/MCP.md)
 - [MCP architecture](docs/MCP-ARCHITECTURE.md)
 
 ## Legacy And Migration Notes

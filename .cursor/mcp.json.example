@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "sam": {
+      "url": "https://sam-app.its-manuel-caceres.workers.dev/api/mcp",
+      "headers": {
+        "Authorization": "Bearer ${env:SAM_MCP_TOKEN}"
+      }
+    }
+  }
+}

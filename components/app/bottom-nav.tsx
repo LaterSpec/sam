@@ -71,9 +71,9 @@ export function BottomNav({
               <div
                 className="bottom-nav-icon"
                 style={{
-                  fontSize: 16,
+                  fontSize: 14,
                   fontWeight: isActive ? 600 : 400,
-                  transform: isActive ? "scale(1.08)" : "scale(1)",
+                  transform: isActive ? "scale(1.06)" : "scale(1)",
                   transition: "transform 280ms cubic-bezier(.2,.9,.2,1)",
                   textShadow: isActive ? `0 0 12px ${sam.yellow}66` : "none",
                 }}
@@ -83,7 +83,7 @@ export function BottomNav({
               <div
                 className="bottom-nav-label"
                 style={{
-                  fontSize: 9,
+                  fontSize: 8,
                   fontWeight: isActive ? 600 : 400,
                   letterSpacing: 0.2,
                   opacity: isActive ? 1 : 0.85,

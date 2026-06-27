@@ -1,5 +1,8 @@
 # SAM MCP Architecture
 
+> **Client / agent setup:** see [MCP.md](./MCP.md) for connection, tokens, tool catalog, and Cursor / Hermes / OpenClaw configuration.  
+> **Agent skill:** [`.agents/skills/sam-mcp/SKILL.md`](../.agents/skills/sam-mcp/SKILL.md)
+
 This document describes the Model Context Protocol (MCP) architecture for SAM. The goal is to let LLM assistants connect to SAM on behalf of a logged-in user, safely query that user's financial data, and execute controlled actions such as adding expenses, creating categories, or summarizing budgets.
 
 ## Implementation Status
