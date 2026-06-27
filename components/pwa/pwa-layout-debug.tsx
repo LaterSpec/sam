@@ -31,11 +31,20 @@ type DebugState = {
   documentClientHeight: number;
   bodyHeight: number;
   innerHeight: number;
+  outerHeight: number;
+  screenHeight: number;
+  devicePixelRatio: number;
   visualViewportHeight: number | null;
+  visualViewportOffsetTop: number | null;
+  visualViewportScale: number | null;
   standaloneMode: boolean;
   iosStandalone: boolean | null;
+  safeAreaTop: string;
   safeAreaBottom: string;
+  bottomGap: number | null;
+  appRoot: ElementDebug;
   appShell: ElementDebug;
+  screenHeader: ElementDebug;
   onboardingMain: ElementDebug;
   onboardingFooter: ElementDebug;
   onboardingButton: ElementDebug;
@@ -86,19 +95,24 @@ function readNextStaticId(): string {
   return src.match(/\/_next\/static\/([^/]+)\//)?.[1] ?? "n/a";
 }
 
-function readSafeAreaBottom(): string {
+function readSafeAreaInset(edge: "top" | "bottom"): string {
   const probe = document.createElement("div");
   probe.style.position = "fixed";
   probe.style.visibility = "hidden";
   probe.style.pointerEvents = "none";
-  probe.style.paddingBottom = "env(safe-area-inset-bottom, 0px)";
+  probe.style.paddingTop = edge === "top" ? "env(safe-area-inset-top, 0px)" : "0px";
+  probe.style.paddingBottom = edge === "bottom" ? "env(safe-area-inset-bottom, 0px)" : "0px";
   document.body.appendChild(probe);
-  const safeAreaBottom = getComputedStyle(probe).paddingBottom;
+  const styles = getComputedStyle(probe);
+  const inset = edge === "top" ? styles.paddingTop : styles.paddingBottom;
   probe.remove();
-  return safeAreaBottom;
+  return inset;
 }
 
 function readDebugState(): DebugState {
+  const bottomNav = document.querySelector("[data-bottom-nav]");
+  const bottomNavRect = bottomNav?.getBoundingClientRect();
+
   return {
     appVersion: APP_BUILD_VERSION,
     nextStaticId: readNextStaticId(),
@@ -107,14 +121,25 @@ function readDebugState(): DebugState {
     documentClientHeight: document.documentElement.clientHeight,
     bodyHeight: document.body.getBoundingClientRect().height,
     innerHeight: window.innerHeight,
+    outerHeight: window.outerHeight,
+    screenHeight: window.screen.height,
+    devicePixelRatio: window.devicePixelRatio,
     visualViewportHeight: window.visualViewport?.height ?? null,
+    visualViewportOffsetTop: window.visualViewport?.offsetTop ?? null,
+    visualViewportScale: window.visualViewport?.scale ?? null,
     standaloneMode: window.matchMedia("(display-mode: standalone)").matches,
     iosStandalone:
       "standalone" in navigator
         ? (navigator as Navigator & { standalone?: boolean }).standalone === true
         : null,
-    safeAreaBottom: readSafeAreaBottom(),
+    safeAreaTop: readSafeAreaInset("top"),
+    safeAreaBottom: readSafeAreaInset("bottom"),
+    bottomGap: bottomNavRect
+      ? Math.round((window.innerHeight - bottomNavRect.bottom) * 100) / 100
+      : null,
+    appRoot: readElement(document.querySelector(".app-root")),
     appShell: readElement(document.querySelector("[data-app-shell]")),
+    screenHeader: readElement(document.querySelector(".sam-screen-header")),
     onboardingMain: readElement(document.querySelector(".onboarding-main")),
     onboardingFooter: readElement(document.querySelector("[data-onboarding-footer]")),
     onboardingButton: readElement(document.querySelector("[data-onboarding-button]")),
@@ -145,7 +170,12 @@ export function PwaLayoutDebug() {
   const [debug, setDebug] = useState<DebugState | null>(null);
 
   useEffect(() => {
-    const hasDebugFlag = new URLSearchParams(window.location.search).get("layoutDebug") === "1";
+    const debugParam = new URLSearchParams(window.location.search).get("layoutDebug");
+    if (debugParam === "1") localStorage.setItem("sam-layout-debug", "1");
+    if (debugParam === "0") localStorage.removeItem("sam-layout-debug");
+    const hasDebugFlag =
+      debugParam === "1" ||
+      (debugParam !== "0" && localStorage.getItem("sam-layout-debug") === "1");
     setEnabled(hasDebugFlag);
     if (!hasDebugFlag) return;
 
@@ -181,10 +211,15 @@ export function PwaLayoutDebug() {
       <div>build: {debug.appVersion}</div>
       <div>nextStatic: {debug.nextStaticId}</div>
       <div>viewport: {debug.viewportMeta ?? "missing"}</div>
-      <div>inner/visual/doc/body: {debug.innerHeight}/{debug.visualViewportHeight ?? "n/a"}/{debug.documentClientHeight}/{debug.bodyHeight}</div>
+      <div>inner/outer/screen: {debug.innerHeight}/{debug.outerHeight}/{debug.screenHeight}</div>
+      <div>visual/doc/body: {debug.visualViewportHeight ?? "n/a"}/{debug.documentClientHeight}/{debug.bodyHeight}</div>
+      <div>visual top/scale/dpr: {debug.visualViewportOffsetTop ?? "n/a"}/{debug.visualViewportScale ?? "n/a"}/{debug.devicePixelRatio}</div>
       <div>standalone: {String(debug.standaloneMode)}/{debug.iosStandalone === null ? "n/a" : String(debug.iosStandalone)}</div>
-      <div>safe-area-bottom: {debug.safeAreaBottom}</div>
+      <div>safe-area top/bottom: {debug.safeAreaTop}/{debug.safeAreaBottom}</div>
+      <div>bottom gap: {debug.bottomGap ?? "n/a"}</div>
+      {formatElement("appRoot", debug.appRoot)}
       {formatElement("appShell", debug.appShell)}
+      {formatElement("screenHeader", debug.screenHeader)}
       {formatElement("onboardingMain", debug.onboardingMain)}
       {formatElement("footer", debug.onboardingFooter)}
       {formatElement("button", debug.onboardingButton)}

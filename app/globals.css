@@ -319,6 +319,12 @@ body {
 
 @media (display-mode: standalone) {
   html,
+  body,
+  .app-root {
+    height: 100vh;
+  }
+
+  html,
   body {
     background: var(--sam-bg) !important;
   }
