@@ -24,10 +24,9 @@ export function BottomNav({
 
   return (
     <nav
-      className="bottom-nav fixed bottom-0 left-0 right-0 z-50 box-border pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]"
+      className="bottom-nav"
       data-bottom-nav
       style={{
-        borderTop: `1px solid var(--sam-border-nav, rgba(240,246,252,0.08))`,
         fontFamily: sam.font,
         isolation: "isolate",
       }}

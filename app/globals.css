@@ -9,7 +9,9 @@
   --sam-accent: #ffd580;
   --sam-border-nav: rgba(240, 246, 252, 0.08);
   --bottom-nav-height: 52px;
-  --app-bottom-reserve: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px) + 0.75rem);
+  --bottom-nav-safe-area: env(safe-area-inset-bottom, 0px);
+  --bottom-nav-total-height: calc(var(--bottom-nav-height) + var(--bottom-nav-safe-area));
+  --app-bottom-reserve: calc(var(--bottom-nav-total-height) + 0.75rem);
   --screen-pad-x: 16px;
   --app-header-top-pad: max(18px, calc(env(safe-area-inset-top, 0px) + 8px));
 }
@@ -80,14 +82,22 @@ body {
   right: 0;
   bottom: 0;
   z-index: 50;
-  height: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px));
-  padding-bottom: env(safe-area-inset-bottom, 0px);
+  box-sizing: border-box;
+  /* Content height plus one safe-area padding defines the complete anchored block. */
+  height: auto;
+  margin: 0;
+  padding-right: env(safe-area-inset-right, 0px);
+  padding-bottom: var(--bottom-nav-safe-area);
+  padding-left: env(safe-area-inset-left, 0px);
+  transform: none;
   background: var(--sam-nav-bg);
-  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  border-top: 1px solid var(--sam-border-nav, rgba(240, 246, 252, 0.08));
 }
 
 .bottom-nav-inner {
+  width: 100%;
   height: var(--bottom-nav-height);
+  flex: none;
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   align-items: stretch;
