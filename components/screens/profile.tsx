@@ -56,7 +56,7 @@ export function ProfileScreen({ state, setState, openSheet }: ScreenProps) {
   const exportCsv = () => {
     const rows: (string | number)[][] = [["date", "name", "type", "category", "amount"]];
     (state.expenses || []).forEach((e) =>
-      rows.push([e.occurred_at || "", e.name, "expense", e.catKey, e.amount])
+      rows.push([e.occurred_at || "", e.name, "expense", e.category, e.amount])
     );
     (state.incomeTx || []).forEach((e) => rows.push([e.occurred_at || "", e.name, "income", "", e.amount]));
     const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");

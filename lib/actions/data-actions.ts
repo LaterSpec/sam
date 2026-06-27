@@ -126,7 +126,7 @@ function mapRawTxRow(row: RawTxRow) {
     id: row.id,
     name: row.name,
     amount: Number(row.amount),
-    category: row.cat_key ?? "misc",
+    category: row.category ?? "Miscellaneous",
     catKey: row.cat_key ?? "misc",
     catColor: row.cat_color ?? "#8b949e",
     icon: row.icon ?? "●",
@@ -259,6 +259,7 @@ export async function addExpenseAction(input: {
       inserted_tx.account_id,
       inserted_tx.notes,
       inserted_tx.occurred_at,
+      coalesce(selected_category.name, 'Miscellaneous') as category,
       coalesce(selected_category.key, 'misc') as cat_key,
       coalesce(selected_category.color, '#8b949e') as cat_color,
       coalesce(inserted_tx.icon, selected_category.icon, '●') as icon,
@@ -444,6 +445,7 @@ export async function updateExpenseAction(input: {
       updated_tx.account_id,
       updated_tx.notes,
       updated_tx.occurred_at,
+      coalesce(selected_category.name, 'Miscellaneous') as category,
       coalesce(selected_category.key, 'misc') as cat_key,
       coalesce(selected_category.color, '#8b949e') as cat_color,
       coalesce(updated_tx.icon, selected_category.icon, '●') as icon,
@@ -465,7 +467,7 @@ export async function updateExpenseAction(input: {
     from updated_tx
     left join selected_category on true
     left join changed_accounts on true
-    group by updated_tx.id, updated_tx.name, updated_tx.amount, updated_tx.kind, updated_tx.account_id, updated_tx.notes, updated_tx.occurred_at, selected_category.key, selected_category.color, updated_tx.icon, selected_category.icon
+    group by updated_tx.id, updated_tx.name, updated_tx.amount, updated_tx.kind, updated_tx.account_id, updated_tx.notes, updated_tx.occurred_at, selected_category.name, selected_category.key, selected_category.color, updated_tx.icon, selected_category.icon
     `,
     [uid, txId, nextAmount, nextName, nextCatKey, nextAccountId, accountWasProvided, notes]
   )) as UpdateExpenseSqlRow[];

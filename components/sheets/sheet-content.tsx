@@ -169,8 +169,12 @@ function CategorySheet({
         <span onClick={onClose} style={{ cursor: "pointer", color: sam.comment }}>
           [close]
         </span>
-        <Mono c={sam.cyan} b>
-          $ cat --view {cat.key}
+        <Mono
+          c={sam.cyan}
+          b
+          style={{ margin: "0 8px", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+        >
+          $ budget --view {cat.name}
         </Mono>
         <span
           onClick={() => {
@@ -876,7 +880,7 @@ function EditBudgetSheet({
       budgets: s.budgets.map((x) => (x.key === b.key ? row : x)),
       expenses: s.expenses.map((e) =>
         e.catKey === b.key
-          ? { ...e, category: row.key, catKey: row.key, catColor: row.c, icon: row.icon }
+          ? { ...e, category: row.name, catKey: row.key, catColor: row.c, icon: row.icon }
           : e
       ),
     }));
@@ -889,8 +893,12 @@ function EditBudgetSheet({
         <span onClick={onClose} style={{ cursor: "pointer", color: sam.comment }}>
           [cancel]
         </span>
-        <Mono c={sam.cyan} b>
-          $ budget --edit {b.key}
+        <Mono
+          c={sam.cyan}
+          b
+          style={{ margin: "0 8px", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+        >
+          $ budget --edit {name || b.name}
         </Mono>
         <span
           onClick={canSave ? save : undefined}

@@ -101,7 +101,7 @@ function mapExpense(
     id: t.id,
     name: t.name,
     amount: num(t.amount),
-    category: cat ? cat.key : "misc",
+    category: cat ? cat.name : "Miscellaneous",
     catKey: cat ? cat.key : "misc",
     catColor: cat ? cat.color : "#8b949e",
     icon: t.icon || (cat ? cat.icon : "●"),
