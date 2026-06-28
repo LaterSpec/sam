@@ -6,7 +6,6 @@ import {
   transactions,
   goals,
   categories,
-  incomeSources,
   savingsBuckets,
   holdings,
   watchlist,
@@ -26,7 +25,21 @@ import { revalidatePath } from "next/cache";
 import { formatTime } from "@/lib/utils";
 import { accountColor, accountDefaultIcon } from "@/lib/accounts/account-types";
 import { auth } from "@/lib/auth/auth";
+import { addIncomeTransaction } from "@/lib/domain/income";
+import {
+  addExpense as addExpenseDomain,
+  deleteExpense as deleteExpenseDomain,
+  updateExpense as updateExpenseDomain,
+} from "@/lib/domain/expenses";
+import {
+  createAccount as createAccountDomain,
+  transferBetweenAccounts,
+  updateAccount as updateAccountDomain,
+} from "@/lib/domain/accounts";
+import { normalizeCurrency } from "@/lib/finance/currency";
 import { z } from "zod";
+
+const shouldUseSharedFinanceDomain = () => true;
 
 function mapAccountRow(a: typeof accounts.$inferSelect) {
   return {
@@ -34,6 +47,7 @@ function mapAccountRow(a: typeof accounts.$inferSelect) {
     name: a.name,
     type: a.type,
     balance: Number(a.balance),
+    currency: normalizeCurrency(a.currency),
     creditLimit: a.creditLimit != null ? Number(a.creditLimit) : null,
     last4: a.last4,
     icon: a.icon,
@@ -46,6 +60,7 @@ type RawAccountRow = {
   name: string;
   type: string;
   balance: string | number;
+  currency?: string | null;
   credit_limit: string | number | null;
   last4: string | null;
   icon: string;
@@ -71,6 +86,7 @@ type AddExpenseSqlRow = RawTxRow & {
   account_name: string;
   account_type: string;
   account_balance: string | number;
+  account_currency: string | null;
   account_credit_limit: string | number | null;
   account_last4: string | null;
   account_icon: string;
@@ -79,25 +95,6 @@ type AddExpenseSqlRow = RawTxRow & {
 
 type UpdateExpenseSqlRow = RawTxRow & {
   accounts: RawAccountRow[];
-};
-
-type IncomeSqlRow = {
-  source_id: string;
-  source_name: string;
-  source_amount: string | number;
-  source_icon: string;
-  source_color: string;
-  source_freq: string;
-  source_next_date: string | null;
-  id: string;
-  name: string;
-  amount: string | number;
-  kind: string;
-  account_id: string;
-  notes: string | null;
-  occurred_at: Date | string;
-  icon: string | null;
-  account_balance: string | number;
 };
 
 type TransferSqlRow = {
@@ -112,6 +109,7 @@ function mapRawAccountRow(a: RawAccountRow) {
     name: a.name,
     type: a.type,
     balance: Number(a.balance),
+    currency: normalizeCurrency(a.currency),
     creditLimit: a.credit_limit != null ? Number(a.credit_limit) : null,
     last4: a.last4,
     icon: a.icon,
@@ -163,11 +161,11 @@ const themeSchema = z.enum([
 ]);
 const prefsSchema = z
   .object({
-    notifications: z.boolean().default(true),
-    biometric: z.boolean().default(true),
     theme: themeSchema.default("ayu-mirage"),
-    rollover: z.boolean().default(false),
     accentHue: z.number().finite().min(0).max(360).optional(),
+    language: z.enum(["en", "es"]).optional(),
+    defaultCurrency: z.enum(["USD", "PEN"]).optional(),
+    timezone: z.string().min(1).max(80).default("America/Lima"),
   })
   .strip();
 
@@ -211,6 +209,19 @@ export async function addExpenseAction(input: {
   accounts: Array<{ id: string; type: string }>;
 }) {
   const session = await requireSession();
+  if (shouldUseSharedFinanceDomain()) {
+    const result = await addExpenseDomain(
+      {
+        userId: session.user.id,
+        email: session.user.email ?? "",
+        authMethod: "session",
+        scopes: [],
+      },
+      input
+    );
+    revalidatePath("/app");
+    return result;
+  }
   const uid = session.user.id;
   const amount = positiveMoneySchema.parse(input.amount);
   const name = shortTextSchema.parse(input.name);
@@ -267,6 +278,7 @@ export async function addExpenseAction(input: {
       updated_account.name as account_name,
       updated_account.type as account_type,
       updated_account.balance as account_balance,
+      updated_account.currency as account_currency,
       updated_account.credit_limit as account_credit_limit,
       updated_account.last4 as account_last4,
       updated_account.icon as account_icon,
@@ -290,6 +302,7 @@ export async function addExpenseAction(input: {
         name: row.account_name,
         type: row.account_type,
         balance: row.account_balance,
+        currency: row.account_currency,
         credit_limit: row.account_credit_limit,
         last4: row.account_last4,
         icon: row.account_icon,
@@ -301,6 +314,19 @@ export async function addExpenseAction(input: {
 
 export async function deleteExpenseAction(id: string) {
   const session = await requireSession();
+  if (shouldUseSharedFinanceDomain()) {
+    const result = await deleteExpenseDomain(
+      {
+        userId: session.user.id,
+        email: session.user.email ?? "",
+        authMethod: "session",
+        scopes: [],
+      },
+      id
+    );
+    revalidatePath("/app");
+    return result;
+  }
   const uid = session.user.id;
   const txId = uuidSchema.parse(id);
   const sql = getSql();
@@ -333,6 +359,7 @@ export async function deleteExpenseAction(id: string) {
       updated_account.name,
       updated_account.type,
       updated_account.balance,
+      updated_account.currency,
       updated_account.credit_limit,
       updated_account.last4,
       updated_account.icon,
@@ -355,6 +382,19 @@ export async function updateExpenseAction(input: {
   budgets: Array<{ id: string; key: string; icon: string; c: string }>;
 }) {
   const session = await requireSession();
+  if (shouldUseSharedFinanceDomain()) {
+    const result = await updateExpenseDomain(
+      {
+        userId: session.user.id,
+        email: session.user.email ?? "",
+        authMethod: "session",
+        scopes: [],
+      },
+      input
+    );
+    revalidatePath("/app");
+    return result;
+  }
   const uid = session.user.id;
   const txId = uuidSchema.parse(input.id);
   const nextAmount = input.amount != null ? positiveMoneySchema.parse(input.amount) : null;
@@ -456,6 +496,7 @@ export async function updateExpenseAction(input: {
             'name', changed_accounts.name,
             'type', changed_accounts.type,
             'balance', changed_accounts.balance,
+            'currency', changed_accounts.currency,
             'credit_limit', changed_accounts.credit_limit,
             'last4', changed_accounts.last4,
             'icon', changed_accounts.icon,
@@ -587,7 +628,7 @@ export async function setBudgetCapAction(categoryId: string, cap: number) {
   revalidatePath("/app");
 }
 
-export async function addBudgetAction(input: { name: string; amount: number; icon: string; color: string }) {
+export async function addBudgetAction(input: { name: string; amount: number; icon: string; color: string; currency?: string }) {
   const session = await requireSession();
   const uid = session.user.id;
   const name = shortTextSchema.parse(input.name);
@@ -609,6 +650,7 @@ export async function addBudgetAction(input: { name: string; amount: number; ico
       name,
       icon: input.icon || "●",
       color,
+      currency: input.currency === "PEN" ? "PEN" : "USD",
       monthlyCap: String(amount),
       sort: (existing[0]?.sort ?? -1) + 1,
     })
@@ -621,6 +663,7 @@ export async function addBudgetAction(input: { name: string; amount: number; ico
     icon: row.icon,
     c: row.color,
     cap: Number(row.monthlyCap),
+    currency: normalizeCurrency(row.currency),
   };
 }
 
@@ -660,6 +703,7 @@ export async function updateBudgetAction(input: {
     icon: row.icon,
     c: row.color,
     cap: Number(row.monthlyCap),
+    currency: normalizeCurrency(row.currency),
   };
 }
 
@@ -679,19 +723,40 @@ export async function updateUsernameAction(username: string) {
 export async function addIncomeAction(input: {
   name: string;
   amt: number;
-  freq?: string;
-  next?: string;
-  accountId?: string;
+  accountId: string;
+  occurredAt?: string;
 }) {
   const session = await requireSession();
-  const uid = session.user.id;
-  const name = shortTextSchema.parse(input.name);
-  const amount = positiveMoneySchema.parse(input.amt);
-  const accountId = input.accountId ? uuidSchema.parse(input.accountId) : null;
+  const result = await addIncomeTransaction(
+    {
+      userId: session.user.id,
+      email: session.user.email ?? "",
+      authMethod: "session",
+      scopes: [],
+    },
+    {
+      name: input.name,
+      amount: input.amt,
+      accountId: input.accountId,
+      occurredAt: input.occurredAt,
+    }
+  );
+  revalidatePath("/app");
+  return result;
+}
 
-  let row: typeof incomeSources.$inferSelect;
-
-  let incomeTxRow: {
+/** @deprecated Legacy income sources are migrated to recurring rules and are read-only. */
+export async function updateIncomeAction(_input: {
+  id: string;
+  name: string;
+  amt: number;
+  accountId?: string | null;
+  prevAccountId?: string | null;
+  prevAmount?: number;
+  txId?: string | null;
+}): Promise<{
+  accounts: Array<{ id: string; balance: number }>;
+  incomeTx: {
     id: string;
     name: string;
     amount: number;
@@ -703,117 +768,20 @@ export async function addIncomeAction(input: {
     occurred_at: string;
     kind: string;
     accountId?: string;
-  } | null = null;
-  let accountUpdate: { id: string; balance: number } | null = null;
-
-  if (accountId) {
-    const sql = getSql();
-    const rows = (await sql.query(
-      `
-      with owned_account as (
-        select *
-        from accounts
-        where id = $4::uuid and user_id = $1
-        limit 1
-      ),
-      inserted_source as (
-        insert into income_sources (user_id, name, amount, freq, next_date)
-        select $1, $3, $2::numeric, $5, $6
-        from owned_account
-        returning *
-      ),
-      inserted_tx as (
-        insert into transactions (user_id, name, amount, kind, account_id, icon)
-        select $1, $3, $2::numeric, 'income', owned_account.id, '◆'
-        from owned_account
-        returning *
-      ),
-      updated_account as (
-        update accounts a
-        set balance = a.balance + $2::numeric
-        from owned_account
-        where a.id = owned_account.id and a.user_id = $1
-        returning a.*
-      )
-      select
-        inserted_source.id as source_id,
-        inserted_source.name as source_name,
-        inserted_source.amount as source_amount,
-        inserted_source.icon as source_icon,
-        inserted_source.color as source_color,
-        inserted_source.freq as source_freq,
-        inserted_source.next_date as source_next_date,
-        inserted_tx.id,
-        inserted_tx.name,
-        inserted_tx.amount,
-        inserted_tx.kind,
-        inserted_tx.account_id,
-        inserted_tx.notes,
-        inserted_tx.occurred_at,
-        coalesce(inserted_tx.icon, '◆') as icon,
-        updated_account.balance as account_balance
-      from inserted_tx
-      join updated_account on updated_account.id = inserted_tx.account_id
-      join inserted_source on true
-      `,
-      [uid, amount, name, accountId, input.freq || "one-time", input.next || "—"]
-    )) as IncomeSqlRow[];
-    const txRow = rows[0];
-    if (!txRow) throw new Error("account not found");
-    row = {
-      id: txRow.source_id,
-      userId: uid,
-      name: txRow.source_name,
-      amount: String(txRow.source_amount),
-      icon: txRow.source_icon,
-      color: txRow.source_color,
-      freq: txRow.source_freq,
-      nextDate: txRow.source_next_date,
-      sort: 0,
-      createdAt: new Date(),
-    };
-    const occurredAt = txRow.occurred_at instanceof Date ? txRow.occurred_at : new Date(txRow.occurred_at);
-
-    incomeTxRow = {
-      id: txRow.id,
-      name: txRow.name,
-      amount: Number(txRow.amount),
-      category: "income",
-      catKey: "income",
-      catColor: "#56d364",
-      icon: txRow.icon ?? "◆",
-      time: formatTime(occurredAt.toISOString()),
-      occurred_at: occurredAt.toISOString(),
-      kind: "income",
-      accountId: txRow.account_id ?? undefined,
-    };
-
-    accountUpdate = { id: txRow.account_id, balance: Number(txRow.account_balance) };
-  } else {
-    [row] = await db
-      .insert(incomeSources)
-      .values({
-        userId: uid,
-        name,
-        amount: String(amount),
-        freq: input.freq || "one-time",
-        nextDate: input.next || "—",
-      })
-      .returning();
-  }
-
-  revalidatePath("/app");
-  return {
-    id: row.id,
-    name: row.name,
-    amt: Number(row.amount),
-    icon: row.icon,
-    c: row.color,
-    freq: row.freq,
-    next: row.nextDate,
-    incomeTx: incomeTxRow,
-    account: accountUpdate,
+    status?: string;
+    source?: string;
+  } | null;
+  source: {
+    id: string;
+    name: string;
+    amt: number;
+    icon: string;
+    c: string;
+    freq: string;
+    next: string | null;
   };
+}> {
+  throw new Error("legacy income sources are read-only; use recurring rules");
 }
 
 export async function setBucketBalanceAction(bucketId: string, balance: number) {
@@ -968,8 +936,21 @@ export async function removeWatchAction(symbol: string) {
   revalidatePath("/app");
 }
 
-export async function addAccountAction(input: { name: string; type: string; icon?: string }) {
+export async function addAccountAction(input: { name: string; type: string; icon?: string; currency?: string }) {
   const session = await requireSession();
+  if (shouldUseSharedFinanceDomain()) {
+    const result = await createAccountDomain(
+      {
+        userId: session.user.id,
+        email: session.user.email ?? "",
+        authMethod: "session",
+        scopes: [],
+      },
+      input
+    );
+    revalidatePath("/app");
+    return result;
+  }
   const uid = session.user.id;
   const trimmed = shortTextSchema.parse(input.name);
 
@@ -983,6 +964,7 @@ export async function addAccountAction(input: { name: string; type: string; icon
   const allowedTypes = new Set(["cash", "checking", "savings", "card"]);
   const type = allowedTypes.has(input.type) ? input.type : "cash";
   const icon = input.icon?.trim() || accountDefaultIcon(type);
+  const currency = input.currency === "PEN" ? "PEN" : "USD";
 
   const [row] = await db
     .insert(accounts)
@@ -991,6 +973,7 @@ export async function addAccountAction(input: { name: string; type: string; icon
       name: trimmed,
       type,
       balance: "0",
+      currency,
       icon,
       color: accountColor(type),
       sort: nextSort,
@@ -1006,13 +989,27 @@ export async function updateAccountAction(input: {
   name?: string;
   type?: string;
   icon?: string;
+  currency?: string;
 }) {
   const session = await requireSession();
+  if (shouldUseSharedFinanceDomain()) {
+    const result = await updateAccountDomain(
+      {
+        userId: session.user.id,
+        email: session.user.email ?? "",
+        authMethod: "session",
+        scopes: [],
+      },
+      input
+    );
+    revalidatePath("/app");
+    return result;
+  }
   const uid = session.user.id;
   const id = uuidSchema.parse(input.id);
   const allowedTypes = new Set(["cash", "checking", "savings", "card"]);
 
-  const patch: { name?: string; type?: string; icon?: string; color?: string } = {};
+  const patch: { name?: string; type?: string; icon?: string; color?: string; currency?: string } = {};
   if (input.name != null) {
     patch.name = shortTextSchema.parse(input.name);
   }
@@ -1021,6 +1018,7 @@ export async function updateAccountAction(input: {
     patch.type = input.type;
     patch.color = accountColor(input.type);
   }
+  if (input.currency != null) patch.currency = input.currency === "PEN" ? "PEN" : "USD";
   if (input.icon != null) patch.icon = input.icon.trim() || accountDefaultIcon(input.type ?? "cash");
 
   const [row] = await db
@@ -1036,6 +1034,19 @@ export async function updateAccountAction(input: {
 
 export async function transferAction(input: { fromId: string; toId: string; amount: number }) {
   const session = await requireSession();
+  if (shouldUseSharedFinanceDomain()) {
+    const result = await transferBetweenAccounts(
+      {
+        userId: session.user.id,
+        email: session.user.email ?? "",
+        authMethod: "session",
+        scopes: [],
+      },
+      input
+    );
+    revalidatePath("/app");
+    return result;
+  }
   const uid = session.user.id;
   const amount = positiveMoneySchema.parse(input.amount);
   const fromId = uuidSchema.parse(input.fromId);

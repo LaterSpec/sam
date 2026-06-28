@@ -4,11 +4,13 @@ import { useSam } from "@/lib/theme/sam-theme";
 import { Mono, Comment, Prompt, TabBar, ScreenHeader, userHandleFromState } from "@/components/ui/sam-primitives";
 import { PerfChart } from "@/components/charts/perf-chart";
 import { buildPerfSeries } from "@/lib/charts/build-perf-series";
+import { useT } from "@/lib/i18n/i18n-context";
 import type { ScreenProps } from "./types";
 import { SCREEN_PAD } from "./types";
 
 export function InvestScreen({ state, setState, openSheet }: ScreenProps) {
   const { sam } = useSam();
+  const t = useT();
   const holdings = state.holdings || [];
   const market = state.market || {};
 
@@ -43,7 +45,10 @@ export function InvestScreen({ state, setState, openSheet }: ScreenProps) {
       <div style={{ marginTop: 20 }}>
         <Prompt user={userHandleFromState(state)} host="init.Invest" cmd="portfolio" />
         <Comment>
-          {holdings.length} holdings · {liveActive ? "live feed" : "delayed"} · tap to buy/sell
+          {t("{n} holdings · {feed} · tap to buy/sell", {
+            n: holdings.length,
+            feed: liveActive ? t("live feed") : t("delayed"),
+          })}
         </Comment>
         <div
           style={{
@@ -65,7 +70,7 @@ export function InvestScreen({ state, setState, openSheet }: ScreenProps) {
           {holdings.length > 0 ? (
             <div style={{ display: "flex", gap: 14, marginTop: 6, flexWrap: "wrap" }}>
               <span style={{ fontSize: 11, color: dayUp ? sam.green : sam.red }}>
-                {dayUp ? "+" : "-"}${Math.abs(dayGain).toFixed(2)} today{" "}
+                {dayUp ? "+" : "-"}${Math.abs(dayGain).toFixed(2)} {t("today")}{" "}
                 <Mono c={dayUp ? sam.green : sam.red}>
                   {dayUp ? "▲" : "▼"} {Math.abs(dayPct).toFixed(2)}%
                 </Mono>
@@ -80,15 +85,15 @@ export function InvestScreen({ state, setState, openSheet }: ScreenProps) {
             </div>
           ) : (
             <div style={{ fontSize: 11, color: sam.comment, marginTop: 6 }}>
-              {`// $0 invested · buy from the market tab to start`}
+              {`// ${t("$0 invested · buy from the market tab to start")}`}
             </div>
           )}
         </div>
         <div style={{ marginTop: 16 }}>
           <div style={{ fontSize: 12, color: sam.cyan, fontWeight: 600, marginBottom: 8 }}>
-            ▸ performance
+            ▸ {t("performance")}
             <Mono c={sam.comment} style={{ fontWeight: 400, marginLeft: 8, fontSize: 10 }}>
-              {perf.intraday ? "today · ~10m points" : "since day 0 · daily"}
+              {perf.intraday ? t("today · ~10m points") : t("since day 0 · daily")}
             </Mono>
           </div>
           {perfSeries.length >= 2 ? (
@@ -105,13 +110,13 @@ export function InvestScreen({ state, setState, openSheet }: ScreenProps) {
                 fontSize: 12,
               }}
             >
-              {"// "}your value chart starts when you buy · it grows from there
+              {"// "}{t("your value chart starts when you buy · it grows from there")}
             </div>
           )}
         </div>
         <div style={{ marginTop: 16 }}>
           <div style={{ fontSize: 13, color: sam.cyan, fontWeight: 600 }}>
-            ▸ Holdings
+            ▸ {t("Holdings")}
             <span style={{ float: "right", color: sam.textDim, fontWeight: 400 }}>[{holdings.length}] ▾</span>
           </div>
           {holdings.length === 0 && (
@@ -125,7 +130,7 @@ export function InvestScreen({ state, setState, openSheet }: ScreenProps) {
                 fontSize: 12,
               }}
             >
-              // no positions · open the market tab and tap a ticker to buy
+              {`// ${t("no positions · open the market tab and tap a ticker to buy")}`}
             </div>
           )}
           {holdings.map((h, i) => {
@@ -164,8 +169,8 @@ export function InvestScreen({ state, setState, openSheet }: ScreenProps) {
         </div>
         <div style={{ marginTop: 14, fontSize: 10, color: sam.comment }}>
           {liveActive
-            ? `// live feed active · simulated positions · not financial advice`
-            : `// data delayed / last close · simulated positions · not financial advice`}
+            ? `// ${t("live feed active · simulated positions · not financial advice")}`
+            : `// ${t("data delayed / last close · simulated positions · not financial advice")}`}
         </div>
       </div>
     </div>

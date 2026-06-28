@@ -6,6 +6,10 @@ type MiniLineChartProps = {
   width?: number;
   height?: number;
   fill?: boolean;
+  /** Render at 100% of the container width (using a viewBox) so it never forces
+   *  horizontal overflow. The numeric width is used as the internal coordinate
+   *  space only. */
+  responsive?: boolean;
 };
 
 export function MiniLineChart({
@@ -14,6 +18,7 @@ export function MiniLineChart({
   width = 110,
   height = 32,
   fill = true,
+  responsive = false,
 }: MiniLineChartProps) {
   if (!prices || prices.length < 2) return null;
   const min = Math.min(...prices);
@@ -33,7 +38,13 @@ export function MiniLineChart({
   const gradId = `grad-${color.replace("#", "")}-${width}`;
 
   return (
-    <svg width={width} height={height} style={{ display: "block" }}>
+    <svg
+      width={responsive ? "100%" : width}
+      height={height}
+      viewBox={`0 0 ${width} ${height}`}
+      preserveAspectRatio="none"
+      style={{ display: "block", maxWidth: "100%" }}
+    >
       {fill && (
         <defs>
           <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">

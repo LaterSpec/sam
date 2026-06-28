@@ -128,6 +128,8 @@ body {
   padding-left: env(safe-area-inset-left, 0px);
   scroll-padding-bottom: var(--app-bottom-reserve);
   touch-action: manipulation;
+  /* Screens scroll vertically only; never let a wide child cause horizontal scroll. */
+  overflow-x: hidden;
 }
 
 .app-scroll-pane::after {
@@ -204,10 +206,9 @@ body {
 }
 
 .onboarding-visual {
-  min-height: 0;
-  height: clamp(180px, 32dvh, 360px);
-  max-height: clamp(180px, 32dvh, 360px);
-  overflow: hidden;
+  /* Content-driven height so feature illustrations render fully instead of
+     being clipped. The slide scrolls inside .onboarding-main if needed. */
+  min-height: clamp(260px, 38dvh, 380px);
   box-sizing: border-box;
 }
 
@@ -292,8 +293,7 @@ body {
 
 @media (max-height: 760px) {
   .onboarding-visual {
-    height: clamp(150px, 28dvh, 260px);
-    max-height: clamp(150px, 28dvh, 260px);
+    min-height: 250px;
   }
 
   .onboarding-title {
@@ -303,8 +303,7 @@ body {
 
 @media (max-height: 680px) {
   .onboarding-visual {
-    height: clamp(120px, 24dvh, 190px);
-    max-height: clamp(120px, 24dvh, 190px);
+    min-height: 240px;
   }
 
   .onboarding-content {
@@ -353,6 +352,30 @@ body {
   @media (display-mode: standalone) {
     .app-root {
       height: calc(100% + env(safe-area-inset-top, 0px));
+    }
+
+    /*
+     * .app-root is extended by the top inset to compensate WebKit shortening the
+     * standalone containing block. On Safari builds where that bug is fixed the
+     * extension instead pushes bottom-anchored controls past the visible
+     * viewport, so the lower half of a button renders but cannot be tapped.
+     * Re-claim that same inset as bottom spacing (no height changes) so the last
+     * interactive element always stays fully on-screen and clickable.
+     */
+    .app-scroll-pane::after {
+      height: calc(var(--app-bottom-reserve) + env(safe-area-inset-top, 0px));
+    }
+
+    .onboarding-footer {
+      padding-bottom: calc(
+        max(18px, env(safe-area-inset-bottom, 0px) + 10px) + env(safe-area-inset-top, 0px)
+      );
+    }
+
+    .auth-picker-shell {
+      padding-bottom: calc(
+        max(18px, env(safe-area-inset-bottom, 0px) + 10px) + env(safe-area-inset-top, 0px)
+      );
     }
   }
 }
@@ -418,6 +441,15 @@ input::placeholder {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes sam-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
   }
 }
 

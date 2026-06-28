@@ -17,7 +17,8 @@ export function registerAccountTools(server: McpServer, ctx: ActorContext) {
 
   defineTool(server, ctx, {
     name: "sam_get_net_worth",
-    description: "Get total net worth across accounts (assets minus card liabilities).",
+    description:
+      "Get net worth grouped by currency. SAM never adds different currencies without an FX source.",
     scope: SCOPES.read,
     annotations: { readOnlyHint: true },
     handler: (ctx) => accounts.getNetWorth(ctx),
@@ -31,6 +32,7 @@ export function registerAccountTools(server: McpServer, ctx: ActorContext) {
       name: z.string().min(1).max(120),
       type: z.enum(["cash", "checking", "savings", "card"]).default("cash"),
       icon: z.string().max(8).optional(),
+      currency: z.enum(["USD", "PEN"]).default("USD"),
     },
     handler: (ctx, args) => accounts.createAccount(ctx, args),
   });
@@ -44,6 +46,7 @@ export function registerAccountTools(server: McpServer, ctx: ActorContext) {
       name: z.string().min(1).max(120).optional(),
       type: z.enum(["cash", "checking", "savings", "card"]).optional(),
       icon: z.string().max(8).optional(),
+      currency: z.enum(["USD", "PEN"]).optional(),
     },
     handler: (ctx, args) => accounts.updateAccount(ctx, args),
   });

@@ -81,7 +81,24 @@ Generic verification table used by Better Auth.
 
 ## User-Scoped Domain Tables
 
-These tables include `user_id` and must always be filtered by the authenticated user in application code. The previous Supabase RLS policies were replaced by explicit `userId` checks in Server Actions and query helpers.
+These tables include `user_id` and must always be filtered by the authenticated user in application code. Row access is enforced by explicit `userId` checks in Server Actions and query helpers.
+
+### `recurring_rules`
+
+Stores active, paused, or archived income/expense schedules. Every rule belongs
+to an account; expense rules also require a category. `next_occurrence_date`
+drives the hourly processor and `timezone` is an IANA zone.
+
+### `recurring_occurrences`
+
+Stores each scheduled date and its outcome (`processing`, `posted`, `failed`,
+`skipped`). `(rule_id, scheduled_date)` is unique, making cron replay
+idempotent. Failed debits do not create transactions or change balances.
+
+### `account_transfers`
+
+Stores immutable same-currency transfers. A posted transfer creates paired
+`transfer_out` and `transfer_in` transaction movements.
 
 ### `profiles`
 
@@ -343,7 +360,7 @@ New users are created through Better Auth. After creation, `lib/auth/onboarding-
 3. Default categories.
 4. Curated watchlist symbols from `market_symbols`.
 
-This replaces the old Supabase `handle_new_user()` trigger.
+New-user bootstrap is handled in application code at sign-up time.
 
 ## Demo Seed
 
@@ -398,8 +415,27 @@ order by captured_at;
 
 ## Security Notes
 
+- Access control is enforced in application code, not at the database row level.
 - Neon does not use Supabase Auth or Supabase RLS in this app.
 - Do not query user-scoped tables without a `user_id` filter.
 - Prefer shared domain helpers over ad hoc database writes.
 - Keep `DATABASE_URL` in local `.env.local` or Cloudflare secrets.
 - Do not add Supabase anon keys, service-role keys, PostgREST, or Supabase client runtime code back into the app.
+
+## Applying additive migrations
+
+Validate against the configured Neon database without persisting:
+
+```bash
+npx tsx scripts/db/apply-migration.ts --dry-run drizzle/migrations/recurring_transactions.sql
+```
+
+Apply and verify:
+
+```bash
+npm run db:apply -- drizzle/migrations/recurring_transactions.sql
+npm run db:verify
+```
+
+The executor wraps the complete SQL file in a transaction. Do not use
+`db:push` for this migration because it includes legacy income-source backfill.

@@ -3,11 +3,13 @@
 import { useSam } from "@/lib/theme/sam-theme";
 import { Mono, Prompt, TabBar, ScreenHeader, userHandleFromState } from "@/components/ui/sam-primitives";
 import { accountColor, accountLabel } from "@/lib/accounts/account-types";
+import { useT } from "@/lib/i18n/i18n-context";
 import type { ScreenProps } from "./types";
 import { SCREEN_PAD } from "./types";
 
 export function AccountsScreen({ state, setState, openSheet }: ScreenProps) {
   const { sam } = useSam();
+  const t = useT();
   const accounts = state.accounts || [];
   const total = accounts.reduce((a, x) => a + x.balance, 0);
 
@@ -48,7 +50,7 @@ export function AccountsScreen({ state, setState, openSheet }: ScreenProps) {
         </div>
         <div style={{ marginTop: 18 }}>
           <div style={{ fontSize: 13, color: sam.cyan, fontWeight: 600 }}>
-            ▸ Accounts
+            ▸ {t("Accounts")}
             <span style={{ float: "right", color: sam.textDim, fontWeight: 400 }}>[{accounts.length}] ▾</span>
           </div>
           {accounts.map((a) => {
@@ -96,11 +98,11 @@ export function AccountsScreen({ state, setState, openSheet }: ScreenProps) {
         </div>
         <div style={{ marginTop: 16, fontSize: 14 }}>
           <span onClick={() => openSheet({ kind: "new-account" })} style={{ cursor: "pointer" }}>
-            <Mono c={sam.green} b>[+ create account]</Mono>
+            <Mono c={sam.green} b>{t("[+ create account]")}</Mono>
           </span>
           <Mono c={sam.comment}> · </Mono>
           <span onClick={() => openSheet({ kind: "transfer" })} style={{ cursor: "pointer" }}>
-            <Mono c={sam.cyan}>[transfer]</Mono>
+            <Mono c={sam.cyan}>{t("[transfer]")}</Mono>
           </span>
         </div>
       </div>

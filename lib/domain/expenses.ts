@@ -8,6 +8,7 @@ import {
 } from "./validation";
 import { DomainError, DomainErrorCodes, type ActorContext } from "./types";
 import { mapRawAccountRow, type RawAccountRow, type AccountDto } from "./accounts";
+import { normalizeCurrency, type Currency } from "@/lib/finance/currency";
 
 export type RawTxRow = {
   id: string;
@@ -19,6 +20,7 @@ export type RawTxRow = {
   icon: string | null;
   occurred_at: Date | string;
   kind: string;
+  currency: string;
   account_id: string | null;
   notes: string | null;
 };
@@ -34,6 +36,7 @@ export type TxDto = {
   time: string;
   occurred_at: string;
   kind: string;
+  currency: Currency;
   accountId?: string;
   notes?: string;
 };
@@ -43,6 +46,7 @@ type AddExpenseSqlRow = RawTxRow & {
   account_name: string;
   account_type: string;
   account_balance: string | number;
+  account_currency: string;
   account_credit_limit: string | number | null;
   account_last4: string | null;
   account_icon: string;
@@ -67,6 +71,7 @@ export function mapRawTxRow(row: RawTxRow): TxDto {
     time: formatTime(iso),
     occurred_at: iso,
     kind: row.kind,
+    currency: normalizeCurrency(row.currency),
     accountId: row.account_id ?? undefined,
     notes: row.notes ?? undefined,
   };
@@ -102,25 +107,35 @@ export async function addExpense(
       where user_id = $1 and key = $5
       limit 1
     ),
-    inserted_tx as (
-      insert into transactions (user_id, name, amount, kind, category_id, account_id, icon)
-      select $1, $3, $2::numeric, 'expense', selected_category.id, selected_account.id, coalesce(selected_category.icon, '●')
-      from selected_account
-      left join selected_category on true
-      returning *
-    ),
     updated_account as (
       update accounts a
       set balance = a.balance - $2::numeric
       from selected_account
-      where a.id = selected_account.id and a.user_id = $1
+      where a.id = selected_account.id
+        and a.user_id = $1
+        and (
+          (a.type = 'card' and (a.credit_limit is null or a.balance - $2::numeric >= -a.credit_limit))
+          or (a.type <> 'card' and a.balance >= $2::numeric)
+        )
       returning a.*
+    ),
+    inserted_tx as (
+      insert into transactions (
+        user_id, name, amount, kind, category_id, account_id, icon, currency, status, source
+      )
+      select
+        $1, $3, $2::numeric, 'expense', selected_category.id, updated_account.id,
+        coalesce(selected_category.icon, '●'), updated_account.currency, 'confirmed', 'manual'
+      from updated_account
+      join selected_category on true
+      returning *
     )
     select
       inserted_tx.id,
       inserted_tx.name,
       inserted_tx.amount,
       inserted_tx.kind,
+      inserted_tx.currency,
       inserted_tx.account_id,
       inserted_tx.notes,
       inserted_tx.occurred_at,
@@ -132,6 +147,7 @@ export async function addExpense(
       updated_account.name as account_name,
       updated_account.type as account_type,
       updated_account.balance as account_balance,
+      updated_account.currency as account_currency,
       updated_account.credit_limit as account_credit_limit,
       updated_account.last4 as account_last4,
       updated_account.icon as account_icon,
@@ -159,6 +175,7 @@ export async function addExpense(
         name: row.account_name,
         type: row.account_type,
         balance: row.account_balance,
+        currency: row.account_currency,
         credit_limit: row.account_credit_limit,
         last4: row.account_last4,
         icon: row.account_icon,
@@ -177,7 +194,7 @@ export async function deleteExpense(ctx: ActorContext, id: string): Promise<{ ac
     with existing as (
       select *
       from transactions
-      where id = $2::uuid and user_id = $1
+      where id = $2::uuid and user_id = $1 and kind = 'expense'
       limit 1
     ),
     updated_account as (
@@ -201,6 +218,7 @@ export async function deleteExpense(ctx: ActorContext, id: string): Promise<{ ac
       updated_account.name,
       updated_account.type,
       updated_account.balance,
+      updated_account.currency,
       updated_account.credit_limit,
       updated_account.last4,
       updated_account.icon,
@@ -238,7 +256,7 @@ export async function updateExpense(
     with existing as (
       select *
       from transactions
-      where id = $2::uuid and user_id = $1
+      where id = $2::uuid and user_id = $1 and kind = 'expense'
       limit 1
     ),
     next_values as (
@@ -261,6 +279,7 @@ export async function updateExpense(
       from accounts
       join next_values on next_values.next_account_id = accounts.id
       where accounts.user_id = $1
+        and accounts.currency = next_values.currency
       limit 1
     ),
     guard as (
@@ -283,12 +302,30 @@ export async function updateExpense(
       group by account_id
       having sum(delta) <> 0
     ),
+    projected_accounts as (
+      select
+        a.*,
+        a.balance + d.delta as projected_balance
+      from net_account_deltas d
+      join accounts a on a.id = d.account_id and a.user_id = $1
+    ),
+    validation as (
+      select coalesce(
+        bool_and(
+          (type = 'card' and (credit_limit is null or projected_balance >= -credit_limit))
+          or (type <> 'card' and projected_balance >= 0)
+        ),
+        true
+      ) as ok
+      from projected_accounts
+    ),
     changed_accounts as (
       update accounts a
       set balance = a.balance + net_account_deltas.delta
-      from net_account_deltas
+      from net_account_deltas, validation
       where a.id = net_account_deltas.account_id
         and a.user_id = $1
+        and validation.ok
       returning a.*
     ),
     updated_tx as (
@@ -300,9 +337,9 @@ export async function updateExpense(
         category_id = case when $5::text is null then t.category_id else selected_category.id end,
         icon = case when $5::text is null then t.icon else coalesce(selected_category.icon, '●') end,
         notes = case when $8::text is null then t.notes else nullif($8::text, '') end
-      from guard
+      from guard, validation
       left join selected_category on true
-      where t.id = guard.id and t.user_id = $1
+      where t.id = guard.id and t.user_id = $1 and validation.ok
       returning t.*
     )
     select
@@ -310,6 +347,7 @@ export async function updateExpense(
       updated_tx.name,
       updated_tx.amount,
       updated_tx.kind,
+      updated_tx.currency,
       updated_tx.account_id,
       updated_tx.notes,
       updated_tx.occurred_at,
@@ -324,6 +362,7 @@ export async function updateExpense(
             'name', changed_accounts.name,
             'type', changed_accounts.type,
             'balance', changed_accounts.balance,
+            'currency', changed_accounts.currency,
             'credit_limit', changed_accounts.credit_limit,
             'last4', changed_accounts.last4,
             'icon', changed_accounts.icon,
@@ -335,7 +374,7 @@ export async function updateExpense(
     from updated_tx
     left join selected_category on true
     left join changed_accounts on true
-    group by updated_tx.id, updated_tx.name, updated_tx.amount, updated_tx.kind, updated_tx.account_id, updated_tx.notes, updated_tx.occurred_at, selected_category.name, selected_category.key, selected_category.color, updated_tx.icon, selected_category.icon
+    group by updated_tx.id, updated_tx.name, updated_tx.amount, updated_tx.kind, updated_tx.currency, updated_tx.account_id, updated_tx.notes, updated_tx.occurred_at, selected_category.name, selected_category.key, selected_category.color, updated_tx.icon, selected_category.icon
     `,
     [uid, txId, nextAmount, nextName, nextCatKey, nextAccountId, accountWasProvided, notes]
   )) as UpdateExpenseSqlRow[];
@@ -386,6 +425,7 @@ export async function listTransactions(ctx: ActorContext, input: ListTransaction
       t.name,
       t.amount,
       t.kind,
+      t.currency,
       t.account_id,
       t.notes,
       t.occurred_at,
@@ -396,6 +436,7 @@ export async function listTransactions(ctx: ActorContext, input: ListTransaction
     from transactions t
     left join categories c on c.id = t.category_id
     where t.user_id = $1
+      and t.status = 'confirmed'
       and ($2::timestamptz is null or t.occurred_at >= $2::timestamptz)
       and ($3::timestamptz is null or t.occurred_at <= $3::timestamptz)
       and ($4::text is null or t.kind = $4::text)
@@ -419,10 +460,19 @@ export async function listTransactions(ctx: ActorContext, input: ListTransaction
   )) as RawTxRow[];
 
   const items = rows.map(mapRawTxRow);
-  const total = items.reduce((acc, t) => acc + t.amount, 0);
+  const totalsByCurrency = Array.from(
+    items.reduce((totals, item) => {
+      totals.set(item.currency, (totals.get(item.currency) ?? 0) + item.amount);
+      return totals;
+    }, new Map<string, number>()),
+    ([currency, total]) => ({ currency, total: Math.round(total * 100) / 100 })
+  );
   return {
     count: items.length,
-    total: Math.round(total * 100) / 100,
+    total: totalsByCurrency.length === 1 ? totalsByCurrency[0].total : null,
+    currency: totalsByCurrency.length === 1 ? totalsByCurrency[0].currency : null,
+    mixedCurrency: totalsByCurrency.length > 1,
+    totalsByCurrency,
     limit,
     offset,
     transactions: items,

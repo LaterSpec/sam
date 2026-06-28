@@ -2,6 +2,7 @@
 
 import type { CSSProperties, ReactNode } from "react";
 import { useSam } from "@/lib/theme/sam-theme";
+import { useT } from "@/lib/i18n/i18n-context";
 
 export function Mono({
   children,
@@ -153,6 +154,7 @@ export function TabBar({
   onChange?: (t: string) => void;
 }) {
   const { sam } = useSam();
+  const translate = useT();
   const idx = Math.max(0, tabs.indexOf(active));
   const pct = 100 / tabs.length;
   return (
@@ -183,7 +185,7 @@ export function TabBar({
               transition: "color 200ms ease-out",
             }}
           >
-            {t}
+            {translate(t)}
           </div>
         );
       })}

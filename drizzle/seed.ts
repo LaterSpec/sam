@@ -1,8 +1,5 @@
 /**
- * Seed global market catalog (85 symbols from Supabase migration 0004).
- *
- * Original SQL: docs/database/supabase-archive/seed.sql (demo user)
- *               docs/database/supabase-archive/20260529100004_market_schema.sql (symbols)
+ * Seed global market catalog (85 symbols).
  *
  * Demo user alex@sam.app: npm run db:seed:demo
  */

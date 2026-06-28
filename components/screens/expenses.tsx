@@ -3,42 +3,62 @@
 import { useMemo, useState } from "react";
 import { useSam } from "@/lib/theme/sam-theme";
 import { Mono, Comment, Prompt, BlockBar, TabBar, ScreenHeader, userHandleFromState } from "@/components/ui/sam-primitives";
+import { useI18n, useT } from "@/lib/i18n/i18n-context";
+import { currencySymbol, normalizeCurrency } from "@/lib/finance/currency";
+import { filterCurrentMonth } from "@/lib/finance/metrics";
 import { formatMonthYear } from "@/lib/utils";
 import type { ScreenProps } from "./types";
 import { SCREEN_PAD } from "./types";
 
 export function ExpensesScreen({ state, setState, openSheet }: ScreenProps) {
   const { sam } = useSam();
+  const t = useT();
+  const { lang } = useI18n();
   const now = new Date();
+  const displayCurrency = normalizeCurrency(state.prefs.defaultCurrency);
+  const monthExpenses = useMemo(
+    () =>
+      filterCurrentMonth(state.expenses, new Date(), state.prefs.timezone).filter(
+        (expense) =>
+          normalizeCurrency(
+            expense.currency ??
+              state.accounts.find((account) => account.id === expense.accountId)?.currency
+          ) === displayCurrency
+      ),
+    [displayCurrency, state.accounts, state.expenses, state.prefs.timezone]
+  );
   const [categoriesExpanded, setCategoriesExpanded] = useState(false);
   const [txExpanded, setTxExpanded] = useState(false);
 
-  const cats = (state.budgets || []).map((b) => ({
+  const cats = (state.budgets || []).filter((b) => b.currency === displayCurrency).map((b) => ({
     key: b.key,
     icon: b.icon,
     name: b.name,
     budget: b.cap,
     c: b.c,
+    currency: b.currency,
   }));
 
   const byCat = useMemo(() => {
     const spent: Record<string, number> = {};
-    state.expenses.forEach((e) => {
+    monthExpenses.forEach((e) => {
       spent[e.catKey] = (spent[e.catKey] || 0) + e.amount;
     });
     return spent;
-  }, [state.expenses]);
+  }, [monthExpenses]);
 
   const txByCat = useMemo(() => {
     const counts: Record<string, number> = {};
-    state.expenses.forEach((e) => {
+    monthExpenses.forEach((e) => {
       counts[e.catKey] = (counts[e.catKey] || 0) + 1;
     });
     return counts;
-  }, [state.expenses]);
+  }, [monthExpenses]);
 
-  const totalSpent = state.expenses.reduce((a, e) => a + e.amount, 0);
+  const totalSpent = monthExpenses.reduce((a, e) => a + e.amount, 0);
   const monthTarget = (state.budgets || []).reduce((a, b) => a + b.cap, 0) || 1;
+  const acctCurrency = (id?: string) =>
+    normalizeCurrency((state.accounts || []).find((a) => a.id === id)?.currency ?? state.prefs?.defaultCurrency);
 
   const visibleCats = useMemo(() => {
     if (categoriesExpanded) return cats;
@@ -57,38 +77,38 @@ export function ExpensesScreen({ state, setState, openSheet }: ScreenProps) {
   return (
     <div style={{ padding: SCREEN_PAD }}>
       <ScreenHeader>
-        <TabBar tabs={["expenses", "income", "budget"]} active={state.expTab} onChange={(t) => setState((s) => ({ ...s, expTab: t }))} />
+        <TabBar tabs={["expenses", "income", "recurring", "budget"]} active={state.expTab} onChange={(t) => setState((s) => ({ ...s, expTab: t }))} />
       </ScreenHeader>
       <div style={{ marginTop: 20 }}>
         <Prompt user={userHandleFromState(state)} host="init.Expenses" cmd="list --month" />
         <Comment>
-          {totalSpent.toFixed(0)} logged across {state.expenses.length} tx. on pace.
+          {t("{a} logged across {b} tx. on pace.", { a: totalSpent.toFixed(0), b: monthExpenses.length })}
         </Comment>
-        <div style={{ marginTop: 12, color: sam.comment, fontSize: 12 }}>📊 {formatMonthYear(now)}</div>
+        <div style={{ marginTop: 12, color: sam.comment, fontSize: 12 }}>📊 {formatMonthYear(now, lang)}</div>
         <div style={{ fontSize: 13, marginTop: 2 }}>
-          <Mono c={sam.red} b>-${totalSpent.toFixed(0)}</Mono>
-          <Mono c={sam.comment}> of </Mono>
-          <Mono c={sam.yellow}>${monthTarget.toLocaleString()}</Mono>
+          <Mono c={sam.red} b>-{currencySymbol(displayCurrency)}{totalSpent.toFixed(0)}</Mono>
+          <Mono c={sam.comment}> {t("of")} </Mono>
+          <Mono c={sam.yellow}>{currencySymbol(displayCurrency)}{monthTarget.toLocaleString()}</Mono>
           <Mono c={sam.comment}> · </Mono>
-          <Mono c={sam.green}>${Math.max(0, monthTarget - totalSpent).toFixed(0)} left</Mono>
+          <Mono c={sam.green}>{currencySymbol(displayCurrency)}{Math.max(0, monthTarget - totalSpent).toFixed(0)} {t("left")}</Mono>
         </div>
         <div style={{ marginTop: 20 }}>
           <div
             onClick={() => setCategoriesExpanded((v) => !v)}
             style={{ fontSize: 13, color: sam.cyan, fontWeight: 600, cursor: "pointer" }}
           >
-            ▸ Categories
+            ▸ {t("Categories")}
             <span style={{ float: "right", color: sam.textDim, fontWeight: 400 }}>
               [{visibleCats.length}] {categoriesExpanded ? "▴" : "▾"}
             </span>
           </div>
-          <Comment>{categoriesExpanded ? "/tap for contraer" : "/tap for expand"}</Comment>
+          <Comment>{categoriesExpanded ? t("tap to collapse") : t("tap to expand")}</Comment>
           {visibleCats.length === 0 && !categoriesExpanded && (
-            <div style={{ marginTop: 12, fontSize: 12, color: sam.comment }}>{`// no categories with spend yet`}</div>
+            <div style={{ marginTop: 12, fontSize: 12, color: sam.comment }}>{`// ${t("no categories with spend yet")}`}</div>
           )}
           {visibleCats.map((cat, i) => {
             const spent = byCat[cat.key] || 0;
-            const pct = Math.round((spent / cat.budget) * 100);
+            const pct = cat.budget > 0 ? Math.round((spent / cat.budget) * 100) : spent > 0 ? 100 : 0;
             const over = pct > 90;
             const isLast = i === visibleCats.length - 1;
             return (
@@ -105,9 +125,9 @@ export function ExpensesScreen({ state, setState, openSheet }: ScreenProps) {
                   </Mono>
                   <span style={{ flex: 1 }} />
                   <Mono c={over ? sam.red : sam.text} b>
-                    ${spent.toFixed(0)}
+                    {currencySymbol(displayCurrency)}{spent.toFixed(0)}
                   </Mono>
-                  <Mono c={sam.comment}>/{cat.budget}</Mono>
+                  <Mono c={sam.comment}>/{currencySymbol(displayCurrency)}{cat.budget}</Mono>
                 </div>
                 <div style={{ paddingLeft: 22, marginTop: 3, fontSize: 11, display: "flex", alignItems: "center", gap: 8 }}>
                   <BlockBar pct={pct} width={16} c={over ? sam.red : cat.c} />
@@ -124,14 +144,14 @@ export function ExpensesScreen({ state, setState, openSheet }: ScreenProps) {
             onClick={() => setTxExpanded((v) => !v)}
             style={{ fontSize: 13, color: sam.cyan, fontWeight: 600, cursor: "pointer" }}
           >
-            ▸ Transactions
+            ▸ {t("Transactions")}
             <span style={{ float: "right", color: sam.textDim, fontWeight: 400 }}>
               [{listTx.length}] {txExpanded ? "▴" : "▾"}
             </span>
           </div>
-          <Comment>{txExpanded ? "all expenses · tap to view" : "latest 3 · tap title to expand"}</Comment>
+          <Comment>{txExpanded ? t("all expenses · tap to view") : t("latest 3 · tap title to expand")}</Comment>
           {listTx.length === 0 && (
-            <div style={{ marginTop: 12, fontSize: 12, color: sam.comment }}>{`// no transactions`}</div>
+            <div style={{ marginTop: 12, fontSize: 12, color: sam.comment }}>{`// ${t("no transactions")}`}</div>
           )}
           {visibleTx.map((e, i) => {
             const isLast = i === visibleTx.length - 1;
@@ -149,7 +169,7 @@ export function ExpensesScreen({ state, setState, openSheet }: ScreenProps) {
                   </Mono>
                   <span style={{ flex: 1 }} />
                   <Mono c={sam.red} b>
-                    -${e.amount.toFixed(2)}
+                    -{currencySymbol(acctCurrency(e.accountId))}{e.amount.toFixed(2)}
                   </Mono>
                 </div>
                 <div style={{ paddingLeft: 26, color: sam.comment, fontSize: 11 }}>{`// ${e.category} · ${e.time}`}</div>
@@ -159,7 +179,7 @@ export function ExpensesScreen({ state, setState, openSheet }: ScreenProps) {
         </div>
         <div style={{ marginTop: 20, fontSize: 14 }}>
           <span onClick={() => openSheet({ kind: "new-expense" })} style={{ cursor: "pointer" }}>
-            <Mono c={sam.green} b>[+ new expense]</Mono>
+            <Mono c={sam.green} b>{t("[+ new expense]")}</Mono>
           </span>
         </div>
       </div>

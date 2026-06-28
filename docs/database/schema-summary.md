@@ -19,6 +19,9 @@ Each table contains `user_id` or is keyed directly by the user id:
 - `accounts`
 - `categories`
 - `transactions`
+- `account_transfers`
+- `recurring_rules`
+- `recurring_occurrences`
 - `goals`
 - `income_sources`
 - `savings_buckets`
@@ -28,6 +31,10 @@ Each table contains `user_id` or is keyed directly by the user id:
 - `portfolio_snapshots`
 
 Application code must filter these tables by the authenticated Better Auth user id.
+
+Transactions capture `currency`, `status`, and `source`. Recurring occurrences
+are idempotent by `(rule_id, scheduled_date)`. Legacy `income_sources` remains
+temporarily for migration history and is no longer the scheduling model.
 
 ## Global Market Tables
 
@@ -39,11 +46,10 @@ Shared market reference and pricing tables:
 
 ## Security
 
-Supabase RLS has been replaced by application-layer `userId` filtering in Server Actions and query helpers. MCP/API work should reuse the same scoped domain services instead of issuing broad table queries.
+Access control is enforced by application-layer `userId` filtering in Server Actions and query helpers. MCP/API work should reuse the same scoped domain services instead of issuing broad table queries.
 
 ## Source Files
 
 - Schema: `lib/db/schema.ts`
 - Drizzle config: `drizzle.config.ts`
 - Full database docs: `docs/DATABASE.md`
-- Original Supabase SQL archive: `docs/database/supabase-archive/`

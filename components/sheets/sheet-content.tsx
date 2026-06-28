@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { useSam } from "@/lib/theme/sam-theme";
 import { Mono, Comment, BlockBar } from "@/components/ui/sam-primitives";
+import { useT } from "@/lib/i18n/i18n-context";
+import { currencySymbol, normalizeCurrency, SUPPORTED_CURRENCIES, type Currency } from "@/lib/finance/currency";
 import { makeSeries, seriesToPrices, symbolSeed } from "@/lib/market/build-market";
 import type { ClientAppState, SheetPayload } from "@/components/screens/types";
 import {
@@ -13,6 +15,7 @@ import {
   addBudgetAction,
   updateBudgetAction,
   addIncomeAction,
+  updateIncomeAction,
   setBucketBalanceAction,
   buyHoldingAction,
   sellHoldingAction,
@@ -39,6 +42,7 @@ import {
 } from "@/lib/accounts/account-types";
 import { BUDGET_ICON_PRESETS, GOAL_ICON_PRESETS, type FinanceIconPreset } from "@/lib/finance/icon-presets";
 import { TxSheet } from "@/components/sheets/tx-sheet";
+import { RecurringSheet } from "@/components/sheets/recurring-sheets";
 
 type SheetContentProps = {
   sheet: SheetPayload;
@@ -63,11 +67,12 @@ export function SheetContent({ sheet, state, setState, onClose, openSheet }: She
     case "edit-budget":
       return <EditBudgetSheet sheet={sheet} setState={setState} onClose={onClose} />;
     case "new-budget":
-      return <NewBudgetSheet setState={setState} onClose={onClose} />;
-    case "income-src":
-      return <IncomeSrcSheet sheet={sheet} state={state} onClose={onClose} />;
+      return <NewBudgetSheet state={state} setState={setState} onClose={onClose} />;
     case "new-income":
       return <NewIncomeSheet state={state} setState={setState} onClose={onClose} />;
+    case "new-recurring":
+    case "recurring-rule":
+      return <RecurringSheet sheet={sheet} state={state} setState={setState} onClose={onClose} />;
     case "account":
       return (
         <AccountSheet sheet={sheet} state={state} openSheet={openSheet} onClose={onClose} />
@@ -455,6 +460,7 @@ function NewExpenseSheet({
   onClose: () => void;
 }) {
   const { sam } = useSam();
+  const t = useT();
   const [amount, setAmount] = useState("");
   const [name, setName] = useState("");
   const [catKey, setCatKey] = useState("food");
@@ -494,7 +500,7 @@ function NewExpenseSheet({
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 14 }}>
         <span onClick={onClose} style={{ cursor: "pointer", color: sam.comment }}>
-          [cancel]
+          {t("[cancel]")}
         </span>
         <Mono c={sam.cyan} b>
           $ expense --new
@@ -507,7 +513,7 @@ function NewExpenseSheet({
             fontWeight: 600,
           }}
         >
-          [save]
+          {t("[save]")}
         </span>
       </div>
       <div style={{ marginTop: 10 }}>
@@ -515,7 +521,7 @@ function NewExpenseSheet({
           <Mono c={sam.green}>$</Mono>{" "}
           <Mono c={sam.green} b>
             {" "}
-            amount
+            {t("amount")}
           </Mono>
         </div>
         <div
@@ -529,7 +535,7 @@ function NewExpenseSheet({
           }}
         >
           <Mono c={sam.yellow} b style={{ fontSize: 20 }}>
-            $
+            {currencySymbol(selectedAccount?.currency)}
           </Mono>
           <input
             value={amount}
@@ -552,14 +558,14 @@ function NewExpenseSheet({
         <div style={{ fontSize: 13, fontWeight: 600 }}>
           <Mono c={sam.cyan}>✎</Mono>{" "}
           <Mono c={sam.cyan} b>
-            name
+            {t("name")}
           </Mono>
         </div>
         <div style={{ marginTop: 6, padding: "10px 12px", border: `1px solid ${sam.border}` }}>
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="e.g. Lunch, Coffee, Uber..."
+            placeholder={t("e.g. Lunch, Coffee, Uber...")}
             style={{
               width: "100%",
               background: "transparent",
@@ -576,15 +582,16 @@ function NewExpenseSheet({
         <div style={{ fontSize: 13, fontWeight: 600 }}>
           <Mono c={sam.magenta}>◎</Mono>{" "}
           <Mono c={sam.magenta} b>
-            category
+            {t("category")}
           </Mono>
         </div>
-        <div style={{ marginTop: 8, display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 6 }}>
+        <div style={{ marginTop: 8, display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 1fr))", gap: 6 }}>
           {cats.map((c) => (
             <div
               key={c.key}
               onClick={() => setCatKey(c.key)}
               style={{
+                minWidth: 0,
                 padding: "8px 4px",
                 textAlign: "center",
                 border: `1px solid ${catKey === c.key ? c.c : sam.border}`,
@@ -599,6 +606,9 @@ function NewExpenseSheet({
                   fontSize: 10,
                   marginTop: 2,
                   color: catKey === c.key ? c.c : sam.comment,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
                 }}
               >
                 {c.name.toLowerCase()}
@@ -611,7 +621,7 @@ function NewExpenseSheet({
         <div style={{ fontSize: 13, fontWeight: 600 }}>
           <Mono c={sam.cyan}>◉</Mono>{" "}
           <Mono c={sam.cyan} b>
-            account
+            {t("account")}
           </Mono>
         </div>
         <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 6 }}>
@@ -640,7 +650,7 @@ function NewExpenseSheet({
                   {a.name}
                 </Mono>
                 <Mono c={sam.comment} style={{ fontSize: 11 }}>
-                  {accountLabel(a.type)}
+                  {accountLabel(a.type)} · {currencySymbol(a.currency)}
                 </Mono>
                 <span style={{ flex: 1 }} />
                 {selected && <Mono c={c}>✓</Mono>}
@@ -650,7 +660,7 @@ function NewExpenseSheet({
         </div>
       </div>
       <div style={{ marginTop: 18, fontSize: 11, color: sam.comment }}>
-        {`// will log to ${new Date().toLocaleString("en", { month: "short", day: "numeric" })} · ${selectedAccount?.name ?? "account"}`}
+        {`// ${t("will log to {date} · {account}", { date: new Date().toLocaleString(undefined, { month: "short", day: "numeric" }), account: selectedAccount?.name ?? t("account") })}`}
       </div>
     </div>
   );
@@ -772,17 +782,16 @@ function NewGoalSheet({
           />
         </div>
       </div>
-      <div style={{ marginTop: 18, fontSize: 11, color: sam.comment }}>
-        {`// auto-calculate eta based on monthly savings rate`}
-      </div>
     </div>
   );
 }
 
 function NewBudgetSheet({
+  state,
   setState,
   onClose,
 }: {
+  state: ClientAppState;
   setState: SheetContentProps["setState"];
   onClose: () => void;
 }) {
@@ -800,6 +809,7 @@ function NewBudgetSheet({
       amount: parsedAmount,
       icon: iconPreset.icon,
       color: iconPreset.color,
+      currency: state.prefs.defaultCurrency,
     });
     setState((s) => ({ ...s, budgets: [...s.budgets, row] }));
     onClose();
@@ -976,37 +986,191 @@ function EditBudgetSheet({
   );
 }
 
+// Kept for one read-only compatibility window while legacy income sources migrate.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function IncomeSrcSheet({
   sheet,
   state,
+  setState,
   onClose,
 }: {
   sheet: Extract<SheetPayload, { kind: "income-src" }>;
   state: ClientAppState;
+  setState: SheetContentProps["setState"];
   onClose: () => void;
 }) {
   const { sam } = useSam();
-  const s = sheet.src as { icon?: string; c?: string; name?: string; amt?: number; amount?: number; freq?: string; next?: string };
+  const t = useT();
+  const s = sheet.src as {
+    id?: string;
+    icon?: string;
+    c?: string;
+    name?: string;
+    amt?: number;
+    amount?: number;
+    freq?: string;
+    next?: string;
+  };
   const amt = s.amt ?? (s.amount as number) ?? 0;
   const payments = (state.incomeTx || [])
-    .filter((t) => t.name.toLowerCase() === (s.name || "").toLowerCase())
+    .filter((tx) => tx.name.toLowerCase() === (s.name || "").toLowerCase())
     .sort((a, b) => new Date(b.occurred_at).getTime() - new Date(a.occurred_at).getTime())
     .slice(0, 6);
-  const depositAccountId = payments.find((p) => p.accountId)?.accountId;
+  const linkedTx = payments.find((p) => p.accountId);
+  const depositAccountId = linkedTx?.accountId;
   const depositAccount = depositAccountId
     ? state.accounts.find((a) => a.id === depositAccountId)
     : undefined;
+
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState(s.name ?? "");
+  const [amount, setAmount] = useState(String(amt || ""));
+  const defaultAccountId = depositAccountId ?? state.accounts[0]?.id ?? "";
+  const [accountId, setAccountId] = useState(defaultAccountId);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  const canSave = !!(name.trim() && amount && !isNaN(parseFloat(amount)) && accountId && !busy);
+
+  const save = async () => {
+    if (!canSave || !s.id) return;
+    setBusy(true);
+    setError("");
+    try {
+      const res = await updateIncomeAction({
+        id: s.id,
+        name: name.trim(),
+        amt: parseFloat(amount),
+        accountId,
+        prevAccountId: depositAccountId ?? null,
+        prevAmount: linkedTx?.amount ?? 0,
+        txId: linkedTx?.id ?? null,
+      });
+      setState((st) => {
+        const balById = new Map(res.accounts.map((a) => [a.id, a.balance]));
+        let incomeTx = st.incomeTx;
+        if (res.incomeTx) {
+          const exists = incomeTx.some((tx) => tx.id === res.incomeTx!.id);
+          incomeTx = exists
+            ? incomeTx.map((tx) => (tx.id === res.incomeTx!.id ? res.incomeTx! : tx))
+            : [...incomeTx, res.incomeTx!];
+        }
+        return {
+          ...st,
+          incomeSources: st.incomeSources.map((src) =>
+            src.id === res.source.id ? { ...src, ...res.source } : src
+          ),
+          incomeTx,
+          accounts: st.accounts.map((a) =>
+            balById.has(a.id) ? { ...a, balance: balById.get(a.id)! } : a
+          ),
+        };
+      });
+      onClose();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "could not save");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (editing) {
+    return (
+      <div>
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 14 }}>
+          <span onClick={() => setEditing(false)} style={{ cursor: "pointer", color: sam.comment }}>
+            {t("[cancel]")}
+          </span>
+          <Mono c={sam.cyan} b>
+            $ income --edit
+          </Mono>
+          <span
+            onClick={canSave ? save : undefined}
+            style={{ cursor: canSave ? "pointer" : "default", color: canSave ? sam.green : sam.comment, fontWeight: 600 }}
+          >
+            {busy ? t("[saving...]") : t("[save]")}
+          </span>
+        </div>
+        <div style={{ marginTop: 10, fontSize: 13, fontWeight: 600 }}>
+          <Mono c={sam.green}>✎</Mono>{" "}
+          <Mono c={sam.green} b>
+            {t("source name")}
+          </Mono>
+        </div>
+        <div style={{ marginTop: 6, padding: "10px 12px", border: `1px solid ${sam.border}` }}>
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            style={{ width: "100%", background: "transparent", border: "none", outline: "none", color: sam.text, fontFamily: sam.font, fontSize: 14 }}
+          />
+        </div>
+        <div style={{ marginTop: 16, fontSize: 13, fontWeight: 600 }}>
+          <Mono c={sam.yellow}>$</Mono>{" "}
+          <Mono c={sam.yellow} b>
+            {t("amount")}
+          </Mono>
+        </div>
+        <div style={{ marginTop: 6, padding: "10px 12px", border: `1px solid ${sam.border}`, display: "flex", alignItems: "center", gap: 6 }}>
+          <Mono c={sam.yellow} b style={{ fontSize: 20 }}>
+            {currencySymbol(state.accounts.find((a) => a.id === accountId)?.currency)}
+          </Mono>
+          <input
+            value={amount}
+            onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ""))}
+            placeholder="0.00"
+            style={{ flex: 1, background: "transparent", border: "none", outline: "none", color: sam.text, fontFamily: sam.font, fontSize: 22, fontWeight: 600 }}
+          />
+        </div>
+        <div style={{ marginTop: 16 }}>
+          <div style={{ fontSize: 13, fontWeight: 600 }}>
+            <Mono c={sam.cyan}>◉</Mono>{" "}
+            <Mono c={sam.cyan} b>
+              {t("deposit to")}
+            </Mono>
+          </div>
+          <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 6 }}>
+            {state.accounts.map((a) => {
+              const c = accountColor(a.type);
+              const selected = accountId === a.id;
+              return (
+                <div
+                  key={a.id}
+                  onClick={() => setAccountId(a.id)}
+                  style={{ padding: "8px 10px", border: `1px solid ${selected ? c : sam.border}`, background: selected ? `${c}15` : "transparent", cursor: "pointer", display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}
+                >
+                  <Mono c={c} b>{a.icon}</Mono>
+                  <Mono c={sam.text} b>{a.name}</Mono>
+                  <Mono c={sam.comment} style={{ fontSize: 11 }}>{accountLabel(a.type)} · {currencySymbol(a.currency)}</Mono>
+                  <span style={{ flex: 1 }} />
+                  {selected && <Mono c={c}>✓</Mono>}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+        {error && <div style={{ marginTop: 10, fontSize: 11, color: sam.red }}>{error}</div>}
+        <div style={{ marginTop: 14, fontSize: 11, color: sam.comment }}>
+          {`// ${t("changing the account moves the cash, no duplication")}`}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 14 }}>
         <span onClick={onClose} style={{ cursor: "pointer", color: sam.comment }}>
-          [close]
+          {t("[close]")}
         </span>
         <Mono c={sam.cyan} b>
           $ income --view
         </Mono>
-        <span style={{ color: sam.yellow, cursor: "pointer" }}>[edit]</span>
+        <span
+          onClick={s.id ? () => setEditing(true) : undefined}
+          style={{ color: s.id ? sam.yellow : sam.comment, cursor: s.id ? "pointer" : "default" }}
+        >
+          {t("[edit]")}
+        </span>
       </div>
       <div style={{ textAlign: "center", marginTop: 8, marginBottom: 18 }}>
         <div style={{ fontSize: 34, color: s.c }}>{s.icon}</div>
@@ -1020,14 +1184,14 @@ function IncomeSrcSheet({
             fontVariantNumeric: "tabular-nums",
           }}
         >
-          +${amt.toLocaleString()}
+          +{currencySymbol(depositAccount?.currency)}{amt.toLocaleString()}
         </div>
         <div style={{ fontSize: 12, color: sam.comment, marginTop: 2 }}>
-          {s.freq || "recurring"} · next {s.next || "tbd"}
+          {s.freq || t("recurring")} · {t("next")} {s.next || t("tbd")}
         </div>
         {depositAccount && (
           <div style={{ fontSize: 12, color: sam.comment, marginTop: 8 }}>
-            deposit to ·{" "}
+            {t("deposit to")} ·{" "}
             <Mono c={depositAccount.color || accountColor(depositAccount.type)}>
               {depositAccount.icon || accountDefaultIcon(depositAccount.type)}
             </Mono>{" "}
@@ -1037,10 +1201,10 @@ function IncomeSrcSheet({
       </div>
       <div style={{ fontSize: 13, borderTop: `1px solid ${sam.border}`, paddingTop: 12 }}>
         <Mono c={sam.cyan} b>
-          ▸ recent payments
+          ▸ {t("recent payments")}
         </Mono>
         {payments.length === 0 && (
-          <div style={{ marginTop: 8, fontSize: 12, color: sam.comment }}>{`// no payments logged yet`}</div>
+          <div style={{ marginTop: 8, fontSize: 12, color: sam.comment }}>{`// ${t("no payments logged yet")}`}</div>
         )}
         {payments.map((p, i) => (
           <div key={p.id} style={{ display: "flex", marginTop: 6, fontSize: 12 }}>
@@ -1048,7 +1212,7 @@ function IncomeSrcSheet({
             <Mono c={sam.text}>{p.time}</Mono>
             <span style={{ flex: 1 }} />
             <Mono c={sam.green} b>
-              +${p.amount.toLocaleString()}
+              +{currencySymbol(state.accounts.find((a) => a.id === p.accountId)?.currency ?? depositAccount?.currency)}{p.amount.toLocaleString()}
             </Mono>
           </div>
         ))}
@@ -1082,17 +1246,12 @@ function NewIncomeSheet({
     const row = await addIncomeAction({
       name,
       amt: parseFloat(amt),
-      freq: "one-time",
-      next: "—",
       accountId,
     });
     setState((st) => ({
       ...st,
-      incomeSources: [...st.incomeSources, row],
-      incomeTx: row.incomeTx ? [...st.incomeTx, row.incomeTx] : st.incomeTx,
-      accounts: row.account
-        ? st.accounts.map((a) => (a.id === row.account!.id ? { ...a, balance: row.account!.balance } : a))
-        : st.accounts,
+      incomeTx: [...st.incomeTx, row.tx],
+      accounts: st.accounts.map((a) => (a.id === row.account.id ? row.account : a)),
     }));
     onClose();
   };
@@ -1307,6 +1466,8 @@ function AccountFormFields({
   setName,
   icon,
   setIcon,
+  currency,
+  setCurrency,
 }: {
   type: string;
   setType: (t: string) => void;
@@ -1314,8 +1475,11 @@ function AccountFormFields({
   setName: (n: string) => void;
   icon: string;
   setIcon: (i: string) => void;
+  currency: Currency;
+  setCurrency: (c: Currency) => void;
 }) {
   const { sam } = useSam();
+  const t = useT();
   const inputStyle: React.CSSProperties = {
     width: "100%",
     background: "transparent",
@@ -1332,29 +1496,59 @@ function AccountFormFields({
         <div style={{ fontSize: 13, fontWeight: 600 }}>
           <Mono c={sam.magenta}>◎</Mono>{" "}
           <Mono c={sam.magenta} b>
-            type
+            {t("type")}
           </Mono>
         </div>
         <div style={{ marginTop: 8, display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 6 }}>
-          {ACCOUNT_TYPES.map((t) => {
-            const selected = type === t.key;
+          {ACCOUNT_TYPES.map((at) => {
+            const selected = type === at.key;
             return (
               <div
-                key={t.key}
+                key={at.key}
                 onClick={() => {
-                  setType(t.key);
-                  setIcon(t.defaultIcon);
+                  setType(at.key);
+                  setIcon(at.defaultIcon);
                 }}
                 style={{
                   padding: "8px 6px",
                   textAlign: "center",
-                  border: `1px solid ${selected ? t.color : sam.border}`,
-                  background: selected ? `${t.color}15` : "transparent",
+                  border: `1px solid ${selected ? at.color : sam.border}`,
+                  background: selected ? `${at.color}15` : "transparent",
                   cursor: "pointer",
                 }}
               >
-                <Mono c={t.color} b>
-                  {t.defaultIcon} {t.label}
+                <Mono c={at.color} b>
+                  {at.defaultIcon} {t(at.label)}
+                </Mono>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      <div style={{ marginTop: 16 }}>
+        <div style={{ fontSize: 13, fontWeight: 600 }}>
+          <Mono c={sam.cyan}>$</Mono>{" "}
+          <Mono c={sam.cyan} b>
+            {t("currency")}
+          </Mono>
+        </div>
+        <div style={{ marginTop: 8, display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 6 }}>
+          {SUPPORTED_CURRENCIES.map((cur) => {
+            const selected = currency === cur.code;
+            return (
+              <div
+                key={cur.code}
+                onClick={() => setCurrency(cur.code)}
+                style={{
+                  padding: "8px 6px",
+                  textAlign: "center",
+                  border: `1px solid ${selected ? sam.cyan : sam.border}`,
+                  background: selected ? `${sam.cyan}15` : "transparent",
+                  cursor: "pointer",
+                }}
+              >
+                <Mono c={selected ? sam.cyan : sam.comment} b={selected}>
+                  {cur.label}
                 </Mono>
               </div>
             );
@@ -1365,14 +1559,14 @@ function AccountFormFields({
         <div style={{ fontSize: 13, fontWeight: 600 }}>
           <Mono c={sam.green}>✎</Mono>{" "}
           <Mono c={sam.green} b>
-            name
+            {t("name")}
           </Mono>
         </div>
         <div style={{ marginTop: 6, padding: "10px 12px", border: `1px solid ${sam.border}` }}>
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="e.g. Cash, Main Card..."
+            placeholder={t("e.g. Cash, Main Card...")}
             style={inputStyle}
           />
         </div>
@@ -1381,7 +1575,7 @@ function AccountFormFields({
         <div style={{ fontSize: 13, fontWeight: 600 }}>
           <Mono c={sam.yellow}>◉</Mono>{" "}
           <Mono c={sam.yellow} b>
-            icon
+            {t("icon")}
           </Mono>
         </div>
         <div style={{ marginTop: 8, display: "grid", gridTemplateColumns: "repeat(8, 1fr)", gap: 4 }}>
@@ -1415,9 +1609,11 @@ function CreateAccountSheet({
   onClose: () => void;
 }) {
   const { sam } = useSam();
+  const t = useT();
   const [type, setType] = useState("cash");
   const [name, setName] = useState("");
   const [icon, setIcon] = useState(accountDefaultIcon("cash"));
+  const [currency, setCurrency] = useState<Currency>("USD");
   const [error, setError] = useState("");
   const canSave = name.trim().length >= 1;
 
@@ -1425,7 +1621,7 @@ function CreateAccountSheet({
     if (!canSave) return;
     setError("");
     try {
-      const row = await addAccountAction({ name: name.trim(), type, icon });
+      const row = await addAccountAction({ name: name.trim(), type, icon, currency });
       setState((s) => ({ ...s, accounts: [...s.accounts, row] }));
       onClose();
     } catch (e) {
@@ -1450,10 +1646,10 @@ function CreateAccountSheet({
             fontWeight: 600,
           }}
         >
-          [save]
+          {t("[save]")}
         </span>
       </div>
-      <AccountFormFields type={type} setType={setType} name={name} setName={setName} icon={icon} setIcon={setIcon} />
+      <AccountFormFields type={type} setType={setType} name={name} setName={setName} icon={icon} setIcon={setIcon} currency={currency} setCurrency={setCurrency} />
       {error && <div style={{ marginTop: 12, fontSize: 11, color: sam.red }}>{error}</div>}
     </div>
   );
@@ -1473,10 +1669,12 @@ function EditAccountSheet({
   onClose: () => void;
 }) {
   const { sam } = useSam();
+  const t = useT();
   const existing = state.accounts.find((a) => a.id === sheet.accountId);
   const [type, setType] = useState(existing?.type ?? "cash");
   const [name, setName] = useState(existing?.name ?? "");
   const [icon, setIcon] = useState(existing?.icon ?? accountDefaultIcon("cash"));
+  const [currency, setCurrency] = useState<Currency>(normalizeCurrency(existing?.currency));
   const [error, setError] = useState("");
   const canSave = name.trim().length >= 1 && !!existing;
 
@@ -1491,6 +1689,7 @@ function EditAccountSheet({
         name: name.trim(),
         type,
         icon,
+        currency,
       });
       setState((s) => ({
         ...s,
@@ -1530,10 +1729,10 @@ function EditAccountSheet({
             fontWeight: 600,
           }}
         >
-          [save]
+          {t("[save]")}
         </span>
       </div>
-      <AccountFormFields type={type} setType={setType} name={name} setName={setName} icon={icon} setIcon={setIcon} />
+      <AccountFormFields type={type} setType={setType} name={name} setName={setName} icon={icon} setIcon={setIcon} currency={currency} setCurrency={setCurrency} />
       {error && <div style={{ marginTop: 12, fontSize: 11, color: sam.red }}>{error}</div>}
     </div>
   );

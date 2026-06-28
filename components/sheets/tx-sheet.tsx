@@ -6,6 +6,7 @@ import { Mono, Comment } from "@/components/ui/sam-primitives";
 import type { ClientAppState, SheetPayload } from "@/components/screens/types";
 import { deleteExpenseAction, updateExpenseAction } from "@/lib/actions/data-actions";
 import { useReducedMotion } from "@/lib/hooks/use-reduced-motion";
+import { currencySymbol } from "@/lib/finance/currency";
 
 type TxSheetProps = {
   sheet: Extract<SheetPayload, { kind: "tx" }>;
@@ -21,6 +22,7 @@ export function TxSheet({ sheet, state, setState, onClose }: TxSheetProps) {
   const { sam } = useSam();
   const reducedMotion = useReducedMotion();
   const tx = sheet.tx;
+  const isIncome = tx.kind === "income";
   const [mode, setMode] = useState<TxMode>("view");
   const [amount, setAmount] = useState(String(tx.amount));
   const [name, setName] = useState(tx.name);
@@ -170,7 +172,7 @@ export function TxSheet({ sheet, state, setState, onClose }: TxSheetProps) {
         <Mono c={sam.cyan} b>
           {headerCmd}
         </Mono>
-        {mode === "view" && (
+        {mode === "view" && !isIncome && (
           <span onClick={() => setMode("edit")} style={{ color: sam.yellow, cursor: "pointer" }}>
             [edit]
           </span>
@@ -279,19 +281,20 @@ export function TxSheet({ sheet, state, setState, onClose }: TxSheetProps) {
               style={{
                 fontSize: 30,
                 fontWeight: 700,
-                color: sam.red,
+                color: isIncome ? sam.green : sam.red,
                 fontVariantNumeric: "tabular-nums",
                 marginTop: 4,
               }}
             >
-              -${tx.amount.toFixed(2)}
+              {isIncome ? "+" : "-"}{currencySymbol(tx.currency)}{tx.amount.toFixed(2)}
             </div>
             <div style={{ fontSize: 14, color: sam.text, marginTop: 2, fontWeight: 600 }}>{tx.name}</div>
           </div>
           <div style={{ fontSize: 13, borderTop: `1px solid ${sam.border}`, paddingTop: 12 }}>
             {(
               [
-                ["├─", "category", tx.category],
+                ["├─", "type", isIncome ? "income" : "expense"],
+                ...(!isIncome ? ([["├─", "category", tx.category]] as const) : []),
                 ["├─", "account", accountLabel],
                 ["├─", "date", tx.time],
                 ["├─", "merchant", tx.name],
@@ -333,7 +336,7 @@ export function TxSheet({ sheet, state, setState, onClose }: TxSheetProps) {
         </div>
       )}
 
-      {mode === "view" && (
+      {mode === "view" && !isIncome && (
         <div style={{ marginTop: 18, display: "flex", gap: 12 }}>
           <span onClick={() => setMode("recategorize")} style={{ color: sam.cyan, cursor: "pointer" }}>
             [recategorize]

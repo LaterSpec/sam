@@ -43,6 +43,7 @@ export function registerCategoryTools(server: McpServer, ctx: ActorContext) {
     inputSchema: {
       name: z.string().min(1).max(120),
       monthlyCap: z.number().nonnegative().optional(),
+      currency: z.enum(["USD", "PEN"]).default("USD"),
       icon: z.string().max(8).optional(),
       color: z
         .string()

@@ -80,10 +80,10 @@ export const profiles = pgTable("profiles", {
   prefs: jsonb("prefs")
     .notNull()
     .default({
-      notifications: true,
-      biometric: true,
       theme: "ayu-mirage",
-      rollover: false,
+      language: "es",
+      defaultCurrency: "USD",
+      timezone: "America/Lima",
     }),
   memberSince: date("member_since").notNull().defaultNow(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -99,6 +99,7 @@ export const accounts = pgTable(
     name: text("name").notNull(),
     type: text("type").notNull().default("cash"),
     balance: numeric("balance", { precision: 14, scale: 2 }).notNull().default("0"),
+    currency: text("currency").notNull().default("USD"),
     creditLimit: numeric("credit_limit", { precision: 14, scale: 2 }),
     last4: text("last4"),
     icon: text("icon").notNull().default("◉"),
@@ -120,6 +121,7 @@ export const categories = pgTable(
     name: text("name").notNull(),
     icon: text("icon").notNull().default("●"),
     color: text("color").notNull().default("#8b949e"),
+    currency: text("currency").notNull().default("USD"),
     monthlyCap: numeric("monthly_cap", { precision: 14, scale: 2 }).notNull().default("0"),
     sort: integer("sort").notNull().default(0),
     createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -127,6 +129,30 @@ export const categories = pgTable(
   (t) => [
     index("categories_user_id_idx").on(t.userId),
     uniqueIndex("categories_user_key_idx").on(t.userId, t.key),
+  ]
+);
+
+export const accountTransfers = pgTable(
+  "account_transfers",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    fromAccountId: uuid("from_account_id")
+      .notNull()
+      .references(() => accounts.id, { onDelete: "restrict" }),
+    toAccountId: uuid("to_account_id")
+      .notNull()
+      .references(() => accounts.id, { onDelete: "restrict" }),
+    amount: numeric("amount", { precision: 14, scale: 2 }).notNull(),
+    currency: text("currency").notNull(),
+    status: text("status").notNull().default("posted"),
+    reversedAt: timestamp("reversed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("account_transfers_user_created_idx").on(t.userId, t.createdAt),
   ]
 );
 
@@ -144,6 +170,12 @@ export const transactions = pgTable(
     kind: text("kind").notNull().default("expense"),
     icon: text("icon"),
     notes: text("notes"),
+    currency: text("currency").notNull().default("USD"),
+    status: text("status").notNull().default("confirmed"),
+    source: text("source").notNull().default("manual"),
+    recurringOccurrenceId: uuid("recurring_occurrence_id"),
+    transferId: uuid("transfer_id"),
+    scheduledFor: timestamp("scheduled_for", { withTimezone: true }),
     occurredAt: timestamp("occurred_at").notNull().defaultNow(),
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
@@ -151,6 +183,72 @@ export const transactions = pgTable(
     index("transactions_user_id_idx").on(t.userId),
     index("transactions_category_id_idx").on(t.categoryId),
     index("transactions_occurred_at_idx").on(t.occurredAt),
+    uniqueIndex("transactions_recurring_occurrence_idx").on(t.recurringOccurrenceId),
+  ]
+);
+
+export const recurringRules = pgTable(
+  "recurring_rules",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    accountId: uuid("account_id")
+      .notNull()
+      .references(() => accounts.id, { onDelete: "restrict" }),
+    categoryId: uuid("category_id").references(() => categories.id, { onDelete: "restrict" }),
+    kind: text("kind").notNull(),
+    name: text("name").notNull(),
+    amount: numeric("amount", { precision: 14, scale: 2 }).notNull(),
+    frequencyUnit: text("frequency_unit").notNull(),
+    frequencyInterval: integer("frequency_interval").notNull().default(1),
+    startDate: date("start_date").notNull(),
+    nextOccurrenceDate: date("next_occurrence_date").notNull(),
+    endDate: date("end_date"),
+    timezone: text("timezone").notNull().default("America/Lima"),
+    status: text("status").notNull().default("active"),
+    needsReview: boolean("needs_review").notNull().default(false),
+    legacyIncomeSourceId: uuid("legacy_income_source_id"),
+    lastProcessedAt: timestamp("last_processed_at", { withTimezone: true }),
+    lastError: text("last_error"),
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("recurring_rules_user_status_idx").on(t.userId, t.status),
+    index("recurring_rules_due_idx").on(t.status, t.nextOccurrenceDate),
+    uniqueIndex("recurring_rules_legacy_income_source_idx").on(t.legacyIncomeSourceId),
+  ]
+);
+
+export const recurringOccurrences = pgTable(
+  "recurring_occurrences",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    ruleId: uuid("rule_id")
+      .notNull()
+      .references(() => recurringRules.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    scheduledDate: date("scheduled_date").notNull(),
+    status: text("status").notNull().default("processing"),
+    transactionId: uuid("transaction_id").references(() => transactions.id, {
+      onDelete: "set null",
+    }),
+    errorCode: text("error_code"),
+    errorMessage: text("error_message"),
+    attempts: integer("attempts").notNull().default(1),
+    postedAt: timestamp("posted_at", { withTimezone: true }),
+    lastAttemptAt: timestamp("last_attempt_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("recurring_occurrences_rule_date_idx").on(t.ruleId, t.scheduledDate),
+    index("recurring_occurrences_user_status_idx").on(t.userId, t.status),
+    index("recurring_occurrences_scheduled_idx").on(t.scheduledDate),
   ]
 );
 
@@ -375,8 +473,6 @@ export const mcpAuditLogs = pgTable(
 );
 
 export type UserPrefs = {
-  notifications: boolean;
-  biometric: boolean;
   theme:
     | "solarized-cream"
     | "ayu-mirage"
@@ -387,6 +483,8 @@ export type UserPrefs = {
     | "ayu-light"
     | "dark"
     | "light";
-  rollover: boolean;
   accentHue?: number;
+  language?: "en" | "es";
+  defaultCurrency?: "USD" | "PEN";
+  timezone?: string;
 };

@@ -3,11 +3,15 @@
 import { useState } from "react";
 import { useSam } from "@/lib/theme/sam-theme";
 import { Mono, Comment, Prompt, TabBar, ScreenHeader, userHandleFromState } from "@/components/ui/sam-primitives";
+import { useT, useI18n } from "@/lib/i18n/i18n-context";
+import { currencySymbol, formatGroupedTotals, normalizeCurrency } from "@/lib/finance/currency";
 import type { ScreenProps } from "./types";
 import { SCREEN_PAD } from "./types";
 
 export function ActivityScreen({ state, setState, openSheet }: ScreenProps) {
   const { sam } = useSam();
+  const t = useT();
+  const { lang } = useI18n();
   const [filter, setFilter] = useState("all");
   const [query, setQuery] = useState("");
   const [expandedDays, setExpandedDays] = useState<Record<string, boolean>>({});
@@ -21,6 +25,9 @@ export function ActivityScreen({ state, setState, openSheet }: ScreenProps) {
     c: sam.green,
     tag: "income",
     day: e.occurred_at,
+    currency: normalizeCurrency(
+      e.currency ?? state.accounts.find((account) => account.id === e.accountId)?.currency
+    ),
   }));
   const expenses = state.expenses.map((e) => ({
     id: e.id,
@@ -31,6 +38,9 @@ export function ActivityScreen({ state, setState, openSheet }: ScreenProps) {
     c: e.catColor,
     tag: e.category,
     day: e.occurred_at,
+    currency: normalizeCurrency(
+      e.currency ?? state.accounts.find((account) => account.id === e.accountId)?.currency
+    ),
   }));
   let all = [...income, ...expenses];
   if (filter !== "all") all = all.filter((r) => r.type === filter.slice(0, -1));
@@ -52,8 +62,8 @@ export function ActivityScreen({ state, setState, openSheet }: ScreenProps) {
   const orderedDays = Object.keys(groups).sort((a, b) => b.localeCompare(a));
   const dayLabel = (key: string) =>
     key === "Unknown"
-      ? "Unknown"
-      : new Date(`${key}T00:00:00`).toLocaleDateString("en", {
+      ? t("Unknown")
+      : new Date(`${key}T00:00:00`).toLocaleDateString(lang === "es" ? "es" : "en", {
           weekday: "short",
           month: "short",
           day: "numeric",
@@ -66,12 +76,12 @@ export function ActivityScreen({ state, setState, openSheet }: ScreenProps) {
       </ScreenHeader>
       <div style={{ marginTop: 20 }}>
         <Prompt user={userHandleFromState(state)} host="init.Activity" cmd="log --all" />
-        <Comment>{counts.all} tx · filter live · tap to view</Comment>
+        <Comment>{t("{n} tx · filter live · tap to view", { n: counts.all })}</Comment>
         <div style={{ marginTop: 14, display: "flex", gap: 8, fontSize: 12, flexWrap: "wrap" }}>
           {(["all", "income", "expenses"] as const).map((f) => (
             <span key={f} onClick={() => setFilter(f)} style={{ cursor: "pointer" }}>
               <Mono c={filter === f ? sam.yellow : sam.comment} b={filter === f}>
-                [{f}]
+                [{t(f)}]
               </Mono>
               <Mono c={sam.comment} style={{ fontSize: 10 }}>
                 {" "}
@@ -95,7 +105,7 @@ export function ActivityScreen({ state, setState, openSheet }: ScreenProps) {
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="grep tx ..."
+            placeholder={t("grep tx ...")}
             style={{
               flex: 1,
               background: "transparent",
@@ -114,14 +124,20 @@ export function ActivityScreen({ state, setState, openSheet }: ScreenProps) {
         </div>
         {orderedDays.length === 0 && (
           <div style={{ marginTop: 24, fontSize: 12, color: sam.comment, textAlign: "center" }}>
-            {`// no matches for "${query}"`}
+            {`// ${t('no matches for "{q}"', { q: query })}`}
           </div>
         )}
         {orderedDays.map((day) => {
           const rows = groups[day];
           const expanded = !!expandedDays[day];
           const visibleRows = expanded ? rows : rows.slice(0, 3);
-          const net = rows.reduce((a, r) => a + (r.type === "income" ? r.amount : -r.amount), 0);
+          const netByCurrency = formatGroupedTotals(
+            rows.map((row) => ({
+              amount: row.type === "income" ? row.amount : -row.amount,
+              currency: row.currency,
+            })),
+            { decimals: 0 }
+          );
           return (
             <div key={day} style={{ marginTop: 18 }}>
               <div
@@ -129,18 +145,20 @@ export function ActivityScreen({ state, setState, openSheet }: ScreenProps) {
                 style={{ fontSize: 12, color: sam.cyan, fontWeight: 600, cursor: "pointer" }}
               >
                 ▸ {dayLabel(day)}
-                <span style={{ float: "right", color: net >= 0 ? sam.green : sam.comment, fontWeight: 400 }}>
-                  [{rows.length}] {expanded ? "▴" : "▾"} · {net >= 0 ? "+" : "-"}${Math.abs(net).toFixed(0)}
+                <span style={{ float: "right", color: sam.comment, fontWeight: 400 }}>
+                  [{rows.length}] {expanded ? "▴" : "▾"} · {netByCurrency}
                 </span>
               </div>
               {visibleRows.map((r) => (
                 <div
                   key={r.id}
-                  onClick={() =>
-                    r.type === "expense"
-                      ? openSheet({ kind: "tx", tx: state.expenses.find((e) => e.id === r.id)! })
-                      : openSheet({ kind: "income-src", src: r })
-                  }
+                  onClick={() => {
+                    const tx =
+                      r.type === "expense"
+                        ? state.expenses.find((e) => e.id === r.id)
+                        : state.incomeTx.find((e) => e.id === r.id);
+                    if (tx) openSheet({ kind: "tx", tx });
+                  }}
                   style={{ marginTop: 10, fontSize: 13, cursor: "pointer", padding: "4px 6px", marginLeft: -6, marginRight: -6 }}
                 >
                   <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
@@ -151,7 +169,7 @@ export function ActivityScreen({ state, setState, openSheet }: ScreenProps) {
                     <Mono c={sam.text} b>{r.name}</Mono>
                     <span style={{ flex: 1 }} />
                     <Mono c={r.type === "income" ? sam.green : sam.red} b>
-                      {r.type === "income" ? "+" : "-"}${r.amount.toFixed(2)}
+                      {r.type === "income" ? "+" : "-"}{currencySymbol(r.currency)}{r.amount.toFixed(2)}
                     </Mono>
                   </div>
                   <div style={{ paddingLeft: 26, color: sam.comment, fontSize: 11 }}>{`// ${r.tag}`}</div>

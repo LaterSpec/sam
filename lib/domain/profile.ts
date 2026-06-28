@@ -12,11 +12,9 @@ export async function getProfile(ctx: ActorContext) {
     email: ctx.email,
     fullName: row.fullName,
     username: row.username,
-    plan: row.plan,
-    streak: row.streak,
     currency: row.currency,
     memberSince: row.memberSince,
-    prefs: row.prefs,
+    prefs: prefsSchema.parse(row.prefs),
     capabilities: ctx.scopes,
   };
 }

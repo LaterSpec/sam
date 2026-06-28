@@ -408,3 +408,93 @@ export function SlidePrivacy({ active, slideKey, skipMotion }: SlideProps) {
     </div>
   );
 }
+
+export function SlideMcp({ active, slideKey, skipMotion }: SlideProps) {
+  const { sam } = useSam();
+  const k = active ? slideKey : -1;
+  const [t, setT] = useState(skipMotion ? 5000 : 0);
+
+  useEffect(() => {
+    if (!active) {
+      setT(0);
+      return;
+    }
+    if (skipMotion) {
+      setT(5000);
+      return;
+    }
+    setT(0);
+    const start = performance.now();
+    let raf = 0;
+    const step = (now: number) => {
+      setT(now - start);
+      if (now - start < 4200) raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [k, active, skipMotion]);
+
+  const lines = [
+    { t: 700, text: "cursor@ai $ mcp connect sam", c: sam.cyan },
+    { t: 1200, text: "→ auth · Bearer sam_mcp_••••", c: sam.comment, indent: true },
+    { t: 1700, text: "✓ connected · 34 tools ready", c: sam.green, indent: true },
+    { t: 2300, text: "claude@ai $ sam expenses --month", c: sam.magenta },
+    { t: 2800, text: "→ 42 tx · $1,820 spent", c: sam.text, indent: true },
+    { t: 3400, text: "you stay in control · read or write", c: sam.yellow },
+  ];
+
+  const agents = [
+    { n: "Cursor", on: t > 1200, c: sam.cyan },
+    { n: "Claude", on: t > 2300, c: sam.magenta },
+    { n: "Agents", on: t > 3400, c: sam.green },
+  ];
+
+  return (
+    <div
+      style={{
+        width: "100%",
+        height: "100%",
+        background: sam.bgAlt,
+        border: `1px solid ${sam.border}`,
+        padding: "14px 16px",
+        fontFamily: sam.font,
+        fontSize: 13,
+        color: sam.text,
+        overflow: "hidden",
+        display: "flex",
+        flexDirection: "column",
+        gap: 10,
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <Mono c={sam.yellow}>◇</Mono>
+        <Mono c={sam.text} b>
+          sam.mcp
+        </Mono>
+        <span style={{ flex: 1 }} />
+        {agents.map((a, i) => (
+          <Mono
+            key={i}
+            c={a.on ? a.c : sam.comment}
+            style={{ fontSize: 10, opacity: a.on ? 1 : 0.4, transition: "opacity 240ms" }}
+          >
+            ● {a.n}
+          </Mono>
+        ))}
+      </div>
+      <div style={{ flex: 1, lineHeight: 1.7, fontSize: 12 }}>
+        {lines.map(
+          (line, i) =>
+            t >= line.t && (
+              <div key={i} className="sam-fade-in" style={{ paddingLeft: line.indent ? 14 : 0 }}>
+                <Mono c={line.c} b={!line.indent}>
+                  {line.text}
+                </Mono>
+              </div>
+            )
+        )}
+        {t > 4000 ? <Cursor /> : <Cursor c={sam.text} />}
+      </div>
+    </div>
+  );
+}

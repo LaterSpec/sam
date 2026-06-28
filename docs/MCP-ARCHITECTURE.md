@@ -26,6 +26,7 @@ Implemented tool catalog (read = `sam:read`; writes scoped):
 - Summaries: `sam_get_spending_summary` (groupBy category/day/month), `sam_get_cashflow`
 - Goals: `sam_list_goals`, `sam_create_goal`, `sam_update_goal`, `sam_set_goal_saved`
 - Income: `sam_list_income_sources`, `sam_add_income`
+- Recurring: `sam_list_recurring_rules`, `sam_create_recurring_rule`, `sam_update_recurring_rule`, `sam_pause_recurring_rule`, `sam_resume_recurring_rule`, `sam_archive_recurring_rule`, `sam_delete_recurring_rule`, `sam_list_recurring_occurrences`, `sam_retry_recurring_occurrence`
 - Savings: `sam_list_savings_buckets`, `sam_set_bucket_balance`
 - Invest: `sam_list_holdings`, `sam_list_watchlist`, `sam_get_quote`, `sam_buy_holding`, `sam_sell_holding`, `sam_add_watch`, `sam_remove_watch`
 
@@ -237,6 +238,7 @@ Start with coarse but meaningful scopes:
 | `sam:expenses.write` | Create/update expense transactions |
 | `sam:categories.write` | Create/update categories and budget caps |
 | `sam:income.write` | Add income sources and income transactions |
+| `sam:recurring.write` | Manage recurring rules and retry occurrences |
 | `sam:accounts.write` | Create/update accounts |
 | `sam:accounts.transfer` | Transfer between accounts |
 | `sam:goals.write` | Create/update goals |
@@ -391,7 +393,7 @@ Returns totals and grouped breakdowns. Category filters and grouped category buc
 
 Scope: `sam:income.write`
 
-Creates an income source and optionally credits an account.
+Records one income transaction and credits its account. Recurring income uses `sam_create_recurring_rule`.
 
 ### `sam_transfer_between_accounts`
 

@@ -50,7 +50,7 @@ export SAM_MCP_TOKEN="sam_mcp_..."
 
 ## What agents can do
 
-SAM exposes **34 typed tools** scoped to the authenticated user. Natural-language requests are translated by the agent into tool calls; SAM validates input, enforces scopes, and returns structured JSON.
+SAM exposes **43 typed tools** scoped to the authenticated user. Natural-language requests are translated by the agent into tool calls; SAM validates input, enforces scopes, and returns structured JSON.
 
 | User intent | Suggested tools |
 | --- | --- |
@@ -59,6 +59,8 @@ SAM exposes **34 typed tools** scoped to the authenticated user. Natural-languag
 | "How much is left in my food budget?" | `sam_list_categories`, `sam_get_budget_status` |
 | "What's my net worth?" | `sam_get_net_worth`, `sam_list_accounts` |
 | "Move $200 from Checking to Savings" | `sam_list_accounts` → `sam_transfer_between_accounts` (needs `confirm: true`) |
+| "Pay rent every month" | `sam_create_recurring_rule` (expense + account + category) |
+| "Why did my subscription fail?" | `sam_list_recurring_occurrences` → `sam_retry_recurring_occurrence` |
 | "Show my savings goals" | `sam_list_goals` |
 | "What's AAPL trading at?" | `sam_get_quote` |
 
@@ -127,7 +129,7 @@ Parse `result.content[0].text` as JSON. On domain errors:
 
 ### Recommended agent workflow
 
-1. **`sam_get_profile`** — currency, plan, and granted `capabilities` (scopes).
+1. **`sam_get_profile`** — configured currency, language, timezone, and granted `capabilities` (scopes).
 2. **Read before write** — e.g. `sam_list_accounts` / `sam_list_categories` before creating expenses.
 3. **Date ranges** — use ISO dates (`2026-06-01` … `2026-06-30`) with summary/transaction tools.
 4. **High-risk actions** — `sam_transfer_between_accounts` requires `confirm: true`; ask the user before setting it.
@@ -161,7 +163,8 @@ More examples: [examples.md](../.agents/skills/sam-mcp/examples.md).
 | `sam:read` | Read accounts, categories, transactions, summaries, goals, invest |
 | `sam:expenses.write` | Create, update, delete expenses |
 | `sam:categories.write` | Create/update categories and budget caps |
-| `sam:income.write` | Add income sources |
+| `sam:income.write` | Record one-time income transactions |
+| `sam:recurring.write` | Create/update/pause/archive recurring rules and retry failed occurrences |
 | `sam:savings.write` | Update savings bucket balances |
 | `sam:goals.write` | Create/update goals |
 | `sam:accounts.write` | Create/update accounts |

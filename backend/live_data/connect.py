@@ -3,7 +3,7 @@
 Authenticates against IBKR Gateway (request-code → 2FA entered in terminal →
 verify-code → token), opens the live-prices SSE stream, subscribes to the IBKR
 symbol universe and upserts each tick into public.market_quotes (source='live')
-so the SAM front can read real-time prices from Supabase.
+so the SAM front can read real-time prices from Postgres.
 
 Run it while the market is open to feed live data:
 

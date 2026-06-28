@@ -3,6 +3,7 @@ import { JetBrains_Mono } from "next/font/google";
 import { PwaLayoutDebug } from "@/components/pwa/pwa-layout-debug";
 import { PwaProvider } from "@/components/pwa/pwa-provider";
 import { ServiceWorkerRegistration } from "@/components/pwa/service-worker-registration";
+import { I18nProvider } from "@/lib/i18n/i18n-context";
 import "./globals.css";
 
 const jetbrains = JetBrains_Mono({
@@ -47,9 +48,11 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es" className={`${jetbrains.variable} h-full`}>
+    <html lang="en" className={`${jetbrains.variable} h-full`}>
       <body className="min-h-full antialiased">
-        <div className="app-root">{children}</div>
+        <I18nProvider>
+          <div className="app-root">{children}</div>
+        </I18nProvider>
         <PwaLayoutDebug />
         <ServiceWorkerRegistration />
         <PwaProvider />

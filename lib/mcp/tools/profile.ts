@@ -9,7 +9,7 @@ export function registerProfileTools(server: McpServer, ctx: ActorContext) {
   defineTool(server, ctx, {
     name: "sam_get_profile",
     description:
-      "Get the user's profile: name, username, plan, currency, streak, preferences and granted MCP capabilities.",
+      "Get the user's configured profile, language, currency, timezone, theme and granted MCP capabilities.",
     scope: SCOPES.read,
     annotations: { readOnlyHint: true },
     handler: (ctx) => profile.getProfile(ctx),
@@ -27,11 +27,9 @@ export function registerProfileTools(server: McpServer, ctx: ActorContext) {
 
   defineTool(server, ctx, {
     name: "sam_update_prefs",
-    description: "Update user preferences (notifications, biometric, theme, rollover, accentHue).",
+    description: "Update configured user preferences (theme, language, currency and timezone).",
     scope: SCOPES.profileWrite,
     inputSchema: {
-      notifications: z.boolean().optional(),
-      biometric: z.boolean().optional(),
       theme: z
         .enum([
           "solarized-cream",
@@ -45,8 +43,10 @@ export function registerProfileTools(server: McpServer, ctx: ActorContext) {
           "light",
         ])
         .optional(),
-      rollover: z.boolean().optional(),
       accentHue: z.number().min(0).max(360).optional(),
+      language: z.enum(["en", "es"]).optional(),
+      defaultCurrency: z.enum(["USD", "PEN"]).optional(),
+      timezone: z.string().min(1).max(80).optional(),
     },
     handler: (ctx, args) => profile.updatePrefs(ctx, args),
   });

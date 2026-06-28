@@ -20,7 +20,7 @@ This folder previously held Python experiments for market data:
 | `market.yahoo_sync` | Write Yahoo quotes and daily bars |
 | `live_data.connect` | Connect to an IBKR Gateway live stream |
 
-Those flows were part of the old local/Supabase architecture and are not the active production path.
+Those flows were part of the old local architecture and are not the active production path.
 
 ## Current Market Sync
 

@@ -5,6 +5,9 @@ import { useRouter } from "next/navigation";
 import { useSam } from "@/lib/theme/sam-theme";
 import { Mono, Comment, Prompt, TabBar, ScreenHeader } from "@/components/ui/sam-primitives";
 import { signOutAction, deleteAccountAction, updatePrefsAction, updateUsernameAction } from "@/lib/actions/data-actions";
+import { useI18n } from "@/lib/i18n/i18n-context";
+import { LanguageToggle } from "@/components/ui/language-toggle";
+import { SUPPORTED_CURRENCIES, normalizeCurrency, type Currency } from "@/lib/finance/currency";
 import type { ScreenProps } from "./types";
 import { SCREEN_PAD } from "./types";
 
@@ -16,6 +19,7 @@ function samUserHandle(state: ScreenProps["state"]) {
 
 export function ProfileScreen({ state, setState, openSheet }: ScreenProps) {
   const { sam } = useSam();
+  const { t, lang, setLang } = useI18n();
   const router = useRouter();
   const [confirmDel, setConfirmDel] = useState(false);
   const [busy, setBusy] = useState("");
@@ -23,19 +27,31 @@ export function ProfileScreen({ state, setState, openSheet }: ScreenProps) {
   const [usernameDraft, setUsernameDraft] = useState(samUserHandle(state));
   const [usernameError, setUsernameError] = useState("");
 
-  const toggle = (k: "notifications" | "biometric") => {
-    const prefs = { ...state.prefs, [k]: !state.prefs[k] };
+  const changeLanguage = (next: typeof lang) => {
+    setLang(next);
+    const prefs = { ...state.prefs, language: next };
+    setState((s) => ({ ...s, prefs }));
+    void updatePrefsAction(prefs);
+  };
+
+  const currentCurrency = normalizeCurrency(state.prefs.defaultCurrency);
+  const changeCurrency = (next: Currency) => {
+    const prefs = { ...state.prefs, defaultCurrency: next };
+    setState((s) => ({ ...s, prefs }));
+    void updatePrefsAction(prefs);
+  };
+  const changeTimezone = (timezone: string) => {
+    const prefs = { ...state.prefs, timezone };
     setState((s) => ({ ...s, prefs }));
     void updatePrefsAction(prefs);
   };
 
   const user = state.user;
   const accountCount = (state.accounts || []).length;
-  const totalSaved = state.goals.reduce((a, g) => a + g.saved, 0);
   const initial = (user.full_name || user.email || "?").charAt(0).toUpperCase();
   const displayName = user.username || user.full_name || user.email.split("@")[0];
   const memberSince = user.member_since
-    ? new Date(user.member_since + "T00:00:00").toLocaleDateString("en", { month: "short", year: "numeric" })
+    ? new Date(user.member_since + "T00:00:00").toLocaleDateString(lang === "es" ? "es" : "en", { month: "short", year: "numeric" })
     : "—";
   const handle = samUserHandle(state);
 
@@ -90,15 +106,19 @@ export function ProfileScreen({ state, setState, openSheet }: ScreenProps) {
     }
   };
 
-  const Toggle = ({ value, onChange }: { value: boolean; onChange: () => void }) => (
-    <span onClick={onChange} style={{ cursor: "pointer", userSelect: "none" }}>
-      <Mono c={value ? sam.cyan : sam.comment} b={value}>
-        [on]
-      </Mono>
-      <Mono c={!value ? sam.text : sam.comment} b={!value}>
-        {" "}
-        off
-      </Mono>
+  const CurrencyToggle = () => (
+    <span style={{ userSelect: "none" }}>
+      {SUPPORTED_CURRENCIES.map((c, i) => {
+        const active = c.code === currentCurrency;
+        return (
+          <span key={c.code} onClick={() => changeCurrency(c.code)} style={{ cursor: "pointer" }}>
+            {i > 0 && <Mono c={sam.comment}> · </Mono>}
+            <Mono c={active ? sam.cyan : sam.comment} b={active}>
+              {c.label}
+            </Mono>
+          </span>
+        );
+      })}
     </span>
   );
 
@@ -123,9 +143,32 @@ export function ProfileScreen({ state, setState, openSheet }: ScreenProps) {
       icon: "⚙",
       c: sam.cyan,
       items: [
-        { k: "currency", v: <Mono c={sam.comment}>USD $</Mono> },
-        { k: "notifications", v: <Toggle value={state.prefs.notifications} onChange={() => toggle("notifications")} /> },
-        { k: "biometric lock", v: <Toggle value={state.prefs.biometric} onChange={() => toggle("biometric")} /> },
+        { k: "language", v: <LanguageToggle value={lang} onChange={changeLanguage} /> },
+        { k: "currency", v: <CurrencyToggle /> },
+        {
+          k: "timezone",
+          v: (
+            <select
+              value={state.prefs.timezone ?? "America/Lima"}
+              onChange={(event) => changeTimezone(event.target.value)}
+              style={{
+                maxWidth: 150,
+                border: `1px solid ${sam.border}`,
+                background: sam.bgAlt,
+                color: sam.comment,
+                fontFamily: sam.font,
+                fontSize: 11,
+              }}
+            >
+              <option value="America/Lima">America/Lima</option>
+              <option value="America/Bogota">America/Bogota</option>
+              <option value="America/Mexico_City">America/Mexico_City</option>
+              <option value="America/New_York">America/New_York</option>
+              <option value="Europe/Madrid">Europe/Madrid</option>
+              <option value="UTC">UTC</option>
+            </select>
+          ),
+        },
       ],
     },
     {
@@ -134,8 +177,6 @@ export function ProfileScreen({ state, setState, openSheet }: ScreenProps) {
       c: sam.green,
       items: [
         { k: "export csv", v: <Mono c={sam.cyan}>→</Mono>, onClick: exportCsv },
-        { k: "sync accounts", v: <Mono c={sam.comment}>{accountCount} linked</Mono> },
-        { k: "backup", v: <Mono c={sam.comment}>just now</Mono> },
       ],
     },
   ];
@@ -151,7 +192,7 @@ export function ProfileScreen({ state, setState, openSheet }: ScreenProps) {
       </ScreenHeader>
       <div style={{ marginTop: 20 }}>
         <Prompt user={handle} host="init.Profile" cmd="whoami" />
-        <Comment>member of the 0.3% who budget weekly. keep going.</Comment>
+        <Comment>{t("your configured account and finance data")}</Comment>
         <div
           style={{
             marginTop: 16,
@@ -182,14 +223,13 @@ export function ProfileScreen({ state, setState, openSheet }: ScreenProps) {
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 16, fontWeight: 700, color: sam.text }}>{displayName}</div>
             <div style={{ fontSize: 12, color: sam.comment }}>
-              {memberSince} · ${totalSaved.toLocaleString()} saved
+              {memberSince} · {accountCount} {t("accounts")}
             </div>
-            <div style={{ fontSize: 11, color: sam.green, marginTop: 2 }}>◆ {state.streak} day streak</div>
           </div>
         </div>
         {editingUsername && (
           <div style={{ marginTop: 12, padding: 12, border: `1px solid ${sam.border}`, background: sam.surface }}>
-            <Comment>username · no spaces</Comment>
+            <Comment>{t("username · no spaces")}</Comment>
             <div style={{ display: "flex", gap: 8, marginTop: 8, alignItems: "center" }}>
               <Mono c={sam.cyan}>@</Mono>
               <input
@@ -205,10 +245,10 @@ export function ProfileScreen({ state, setState, openSheet }: ScreenProps) {
             {usernameError && <div style={{ marginTop: 6, color: sam.red, fontSize: 11 }}>{usernameError}</div>}
             <div style={{ display: "flex", gap: 8, marginTop: 10, fontSize: 12 }}>
               <span onClick={() => setEditingUsername(false)} style={{ cursor: "pointer", color: sam.comment }}>
-                [cancel]
+                {t("[cancel]")}
               </span>
               <span onClick={busy === "username" ? undefined : saveUsername} style={{ cursor: "pointer", color: sam.green, fontWeight: 600 }}>
-                {busy === "username" ? "[saving...]" : "[save]"}
+                {busy === "username" ? t("[saving...]") : t("[save]")}
               </span>
             </div>
           </div>
@@ -221,7 +261,7 @@ export function ProfileScreen({ state, setState, openSheet }: ScreenProps) {
           ].map((s, i) => (
             <div key={i} style={{ textAlign: "center", padding: "8px 4px", border: `1px solid ${sam.border}` }}>
               <div style={{ fontSize: 18, fontWeight: 700, color: s.c }}>{s.v}</div>
-              <div style={{ fontSize: 10, color: sam.comment }}>{`// ${s.l}`}</div>
+              <div style={{ fontSize: 10, color: sam.comment }}>{`// ${t(s.l)}`}</div>
             </div>
           ))}
         </div>
@@ -231,7 +271,7 @@ export function ProfileScreen({ state, setState, openSheet }: ScreenProps) {
               <Mono c={sec.c}>{sec.icon}</Mono>
               <Mono c={sec.c} b>
                 {" "}
-                {sec.title}
+                {t(sec.title)}
               </Mono>
             </div>
             {sec.items.map((it, i) => {
@@ -249,7 +289,7 @@ export function ProfileScreen({ state, setState, openSheet }: ScreenProps) {
                   }}
                 >
                   <Mono c={sam.comment}>{isLast ? "└─ " : "├─ "}</Mono>
-                  <Mono c={sam.text}>{it.k}</Mono>
+                  <Mono c={sam.text}>{t(it.k)}</Mono>
                   <span style={{ flex: 1 }} />
                   <span>{it.v}</span>
                 </div>
@@ -262,7 +302,7 @@ export function ProfileScreen({ state, setState, openSheet }: ScreenProps) {
             <Mono c={sam.magenta}>⬡</Mono>
             <Mono c={sam.magenta} b>
               {" "}
-              integrations
+              {t("integrations")}
             </Mono>
           </div>
           <div
@@ -270,7 +310,7 @@ export function ProfileScreen({ state, setState, openSheet }: ScreenProps) {
             style={{ display: "flex", fontSize: 13, marginTop: 6, alignItems: "baseline", cursor: "pointer" }}
           >
             <Mono c={sam.comment}>└─ </Mono>
-            <Mono c={sam.cyan}>connect mcp</Mono>
+            <Mono c={sam.cyan}>{t("connect mcp")}</Mono>
             <span style={{ flex: 1 }} />
             <Mono c={sam.cyan}>→</Mono>
           </div>
@@ -280,7 +320,7 @@ export function ProfileScreen({ state, setState, openSheet }: ScreenProps) {
             <Mono c={sam.red}>⚠</Mono>
             <Mono c={sam.red} b>
               {" "}
-              danger
+              {t("danger")}
             </Mono>
           </div>
           <div
@@ -288,7 +328,7 @@ export function ProfileScreen({ state, setState, openSheet }: ScreenProps) {
             style={{ display: "flex", fontSize: 13, marginTop: 6, alignItems: "baseline", cursor: "pointer" }}
           >
             <Mono c={sam.comment}>├─ </Mono>
-            <Mono c={sam.text}>sign out</Mono>
+            <Mono c={sam.text}>{t("sign out")}</Mono>
             <span style={{ flex: 1 }} />
             <Mono c={sam.red}>{busy === "out" ? "..." : "→"}</Mono>
           </div>
@@ -297,7 +337,7 @@ export function ProfileScreen({ state, setState, openSheet }: ScreenProps) {
             style={{ display: "flex", fontSize: 13, marginTop: 6, alignItems: "baseline", cursor: "pointer" }}
           >
             <Mono c={sam.comment}>├─ </Mono>
-            <Mono c={sam.yellow}>change credentials</Mono>
+            <Mono c={sam.yellow}>{t("change credentials")}</Mono>
             <span style={{ flex: 1 }} />
             <Mono c={sam.yellow}>→</Mono>
           </div>
@@ -307,14 +347,14 @@ export function ProfileScreen({ state, setState, openSheet }: ScreenProps) {
               style={{ display: "flex", fontSize: 13, marginTop: 6, alignItems: "baseline", cursor: "pointer" }}
             >
               <Mono c={sam.comment}>└─ </Mono>
-              <Mono c={sam.red}>delete account</Mono>
+              <Mono c={sam.red}>{t("delete account")}</Mono>
               <span style={{ flex: 1 }} />
               <Mono c={sam.red}>→</Mono>
             </div>
           ) : (
             <div style={{ marginTop: 8, padding: 10, border: `1px solid ${sam.red}55`, background: `${sam.red}12` }}>
               <div style={{ fontSize: 11, color: sam.comment }}>
-                {`// this wipes your account + all data. cannot be undone.`}
+                {`// ${t("this wipes your account + all data. cannot be undone.")}`}
               </div>
               <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
                 <div
@@ -328,7 +368,7 @@ export function ProfileScreen({ state, setState, openSheet }: ScreenProps) {
                     cursor: "pointer",
                   }}
                 >
-                  [cancel]
+                  {t("[cancel]")}
                 </div>
                 <div
                   onClick={busy ? undefined : deleteAccount}
@@ -342,14 +382,14 @@ export function ProfileScreen({ state, setState, openSheet }: ScreenProps) {
                     cursor: "pointer",
                   }}
                 >
-                  {busy === "del" ? "[deleting...]" : "[confirm delete]"}
+                  {busy === "del" ? t("[deleting...]") : t("[confirm delete]")}
                 </div>
               </div>
             </div>
           )}
         </div>
         <div style={{ marginTop: 22, fontSize: 11, color: sam.comment, textAlign: "center" }}>
-          sam v1.0.0 · build 2026.05.29
+          sam v2.0.0 · build 2026.06.28
         </div>
       </div>
     </div>

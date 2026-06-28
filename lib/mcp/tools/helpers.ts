@@ -82,7 +82,7 @@ export function defineTool<Shape extends ZodRawShape>(
       return jsonResult(data);
     } catch (e) {
       const code = e instanceof DomainError ? e.code : "tool_error";
-      const message =
+      const internalMessage =
         e instanceof DomainError
           ? e.message
           : e instanceof Error
@@ -93,10 +93,10 @@ export function defineTool<Shape extends ZodRawShape>(
         toolName: def.name,
         input: args,
         resultStatus: "error",
-        errorMessage: `${code}: ${message}`,
+        errorMessage: `${code}: ${internalMessage}`,
         requestId,
       });
-      return errorResult(code, message);
+      return errorResult(code, e instanceof DomainError ? e.message : "tool failed");
     }
   };
 

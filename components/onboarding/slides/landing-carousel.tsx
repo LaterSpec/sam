@@ -9,8 +9,11 @@ import {
   SlideGoals,
   SlideInvest,
   SlidePrivacy,
+  SlideMcp,
 } from "./slide-illustrations";
 import { useReducedMotion } from "@/lib/hooks/use-reduced-motion";
+import { useI18n } from "@/lib/i18n/i18n-context";
+import { LanguageToggle } from "@/components/ui/language-toggle";
 
 const SLIDES = [
   {
@@ -22,13 +25,13 @@ const SLIDES = [
   {
     Illustration: SlideOverview,
     title: "see the whole picture",
-    sub: "live balance, budgets that update by the second, charts that actually mean something. all in one screen.",
+    sub: "account balances, budgets tied to your transactions, and charts built from what you log. all in one screen.",
     accentKey: "yellow" as const,
   },
   {
     Illustration: SlideGoals,
     title: "reach what matters",
-    sub: "set goals, automate savings, watch the progress bars fill. SAM tells you how many days you have left.",
+    sub: "set goals, record progress, and see what remains. keep the plan next to the rest of your finances.",
     accentKey: "magenta" as const,
   },
   {
@@ -40,8 +43,14 @@ const SLIDES = [
   {
     Illustration: SlidePrivacy,
     title: "your money. your machine.",
-    sub: "end-to-end encryption, read-only sync, never sold. PWA-first. install once, own forever.",
+    sub: "your finance data stays scoped to your authenticated account. PWA-first and ready to install.",
     accentKey: "green" as const,
+  },
+  {
+    Illustration: SlideMcp,
+    title: "connect SAM to your AI tools",
+    sub: "use MCP to let Cursor, Claude or any agent read and manage your finances — securely, on your terms.",
+    accentKey: "magenta" as const,
   },
 ];
 
@@ -80,6 +89,7 @@ const ProgressBars = memo(function ProgressBars({
 
 export function LandingCarousel({ onDone }: { onDone: () => void }) {
   const { sam } = useSam();
+  const { t, lang, setLang } = useI18n();
   const skipMotion = useReducedMotion();
   const [idx, setIdx] = useState(0);
   const [direction, setDirection] = useState(0);
@@ -144,8 +154,9 @@ export function LandingCarousel({ onDone }: { onDone: () => void }) {
           SAM
         </Mono>
         <span style={{ flex: 1 }} />
-        <button type="button" onClick={onDone} style={{ cursor: "pointer", color: sam.comment, background: "none", border: "none", fontFamily: sam.font, fontSize: 11 }}>
-          [skip]
+        <LanguageToggle value={lang} onChange={setLang} />
+        <button type="button" onClick={onDone} style={{ cursor: "pointer", color: sam.comment, background: "none", border: "none", fontFamily: sam.font, fontSize: 11, marginLeft: 12 }}>
+          {t("[skip]")}
         </button>
       </header>
 
@@ -190,7 +201,7 @@ export function LandingCarousel({ onDone }: { onDone: () => void }) {
             />
             <div key={`t-${animKey}`} className={skipMotion ? undefined : "sam-fade-up"}>
               <div style={{ fontSize: 11, color: sam.comment, marginBottom: 6 }}>
-                {`// ${(idx + 1).toString().padStart(2, "0")} of ${SLIDES.length.toString().padStart(2, "0")}`}
+                {`// ${(idx + 1).toString().padStart(2, "0")} ${t("of")} ${SLIDES.length.toString().padStart(2, "0")}`}
               </div>
               <h2
                 className="onboarding-title"
@@ -204,7 +215,7 @@ export function LandingCarousel({ onDone }: { onDone: () => void }) {
                   letterSpacing: -0.5,
                 }}
               >
-                <span style={{ color: accent }}>›</span> {slide.title}
+                <span style={{ color: accent }}>›</span> {t(slide.title)}
               </h2>
               <p
                 style={{
@@ -216,7 +227,7 @@ export function LandingCarousel({ onDone }: { onDone: () => void }) {
                 }}
               >
                 <span style={{ color: sam.comment }}>// </span>
-                {slide.sub}
+                {t(slide.sub)}
               </p>
             </div>
           </section>
@@ -240,14 +251,14 @@ export function LandingCarousel({ onDone }: { onDone: () => void }) {
             letterSpacing: 0.4,
           }}
         >
-          {idx < SLIDES.length - 1 ? "[continue ▸]" : "[get started ▸]"}
+          {idx < SLIDES.length - 1 ? t("[continue ▸]") : t("[get started ▸]")}
         </button>
         <p
           className="onboarding-hint"
           data-onboarding-hint
           style={{ fontSize: 10, color: sam.comment, textAlign: "center" }}
         >
-          {`// swipe or tap dots to navigate`}
+          {`// ${t("swipe or tap dots to navigate")}`}
         </p>
       </footer>
     </div>

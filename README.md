@@ -188,6 +188,7 @@ Agent skill for this repo: [`.agents/skills/sam-mcp/SKILL.md`](.agents/skills/sa
 - [Market data](docs/LIVE-DATA.md)
 - [PWA](docs/PWA.md)
 - [MCP client guide](docs/MCP.md)
+- [Priority 0 financial reliability plan](docs/FINANCIAL-RELIABILITY-PLAN.md)
 - [MCP architecture](docs/MCP-ARCHITECTURE.md)
 
 ## Legacy And Migration Notes

@@ -4,6 +4,7 @@ export { ActivityScreen } from "./activity";
 export { AccountsScreen, CardsScreen } from "./cards";
 export { ExpensesScreen } from "./expenses";
 export { IncomeScreen } from "./income";
+export { RecurringScreen } from "./recurring";
 export { BudgetScreen } from "./budget";
 export { InvestScreen } from "./invest";
 export { MarketScreen } from "./market";

@@ -1,8 +1,8 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "main": ".open-next/worker.js",
+  "main": "custom-worker.ts",
   "name": "sam-app",
-  "compatibility_date": "2024-12-30",
+  "compatibility_date": "2026-06-28",
   "compatibility_flags": [
     "nodejs_compat",
     "global_fetch_strictly_public"
@@ -17,8 +17,25 @@
       "service": "sam-app"
     }
   ],
+  "triggers": {
+    "crons": [
+      "0 * * * *",
+      "15 6 * * *"
+    ]
+  },
+  "observability": {
+    "enabled": true,
+    "logs": {
+      "head_sampling_rate": 1
+    },
+    "traces": {
+      "enabled": true,
+      "head_sampling_rate": 0.05
+    }
+  },
   "vars": {
     "BETTER_AUTH_URL": "https://sam-app.its-manuel-caceres.workers.dev",
-    "NEXT_PUBLIC_APP_URL": "https://sam-app.its-manuel-caceres.workers.dev"
+    "NEXT_PUBLIC_APP_URL": "https://sam-app.its-manuel-caceres.workers.dev",
+    "RECURRING_CRON_ENABLED": "true"
   }
 }

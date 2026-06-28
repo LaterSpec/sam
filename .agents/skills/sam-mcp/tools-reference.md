@@ -249,7 +249,7 @@ Scope: `sam:goals.write`
 
 ### `sam_list_income_sources`
 
-Recurring sources with amount, frequency, next date.
+Deprecated, read-only compatibility view. Use `sam_list_recurring_rules`.
 
 ### `sam_add_income`
 
@@ -259,12 +259,34 @@ Scope: `sam:income.write`
 | --- | --- | --- |
 | `name` | string (1–120) | yes |
 | `amount` | positive number | yes |
-| `freq` | string (≤32) | optional |
-| `next` | string (≤32) | optional |
-| `accountId` | uuid | optional — credits account if set |
+| `accountId` | uuid | yes |
+| `occurredAt` | ISO datetime | optional |
 
-When an account is credited, the returned `incomeTx` includes user-facing
-`category` text and never exposes an internal category key.
+This always creates one income transaction. Use recurring tools for schedules.
+
+---
+
+## Recurring movements
+
+Read tools (`sam:read`):
+
+- `sam_list_recurring_rules`
+- `sam_list_recurring_occurrences`
+
+Write tools require `sam:recurring.write`:
+
+- `sam_create_recurring_rule`
+- `sam_update_recurring_rule`
+- `sam_pause_recurring_rule`
+- `sam_resume_recurring_rule`
+- `sam_archive_recurring_rule`
+- `sam_delete_recurring_rule` (archive compatibility alias)
+- `sam_retry_recurring_occurrence`
+
+Create inputs: `kind`, `name`, `amount`, `accountId`, `frequencyUnit`,
+`frequencyInterval`, `startDate`, optional `endDate`, and `timezone`.
+Expenses require `categoryId`; income omits it. A past/current start requires
+`confirmCatchUp: true`. Archive/delete require `confirm: true`.
 
 ---
 

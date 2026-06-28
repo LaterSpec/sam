@@ -43,7 +43,9 @@ Human-readable guide: [docs/MCP.md](../../../docs/MCP.md)
 | Create / update category | `sam_create_category`, `sam_update_category`, `sam_update_category_cap` |
 | Transfer money | `sam_list_accounts` → `sam_transfer_between_accounts` (`confirm: true`) |
 | Goals | `sam_list_goals`, `sam_create_goal`, `sam_update_goal`, `sam_set_goal_saved` |
-| Income sources | `sam_list_income_sources`, `sam_add_income` |
+| One-time income | `sam_add_income` |
+| Recurring income/expenses | `sam_list_recurring_rules`, `sam_create_recurring_rule`, `sam_update_recurring_rule`, `sam_pause_recurring_rule`, `sam_resume_recurring_rule`, `sam_list_recurring_occurrences`, `sam_retry_recurring_occurrence` |
+| Legacy income sources | `sam_list_income_sources` (deprecated read-only compatibility view) |
 | Savings buckets | `sam_list_savings_buckets`, `sam_set_bucket_balance` |
 | Simulated invest | `sam_list_holdings`, `sam_get_quote`, `sam_buy_holding`, `sam_sell_holding`, `sam_list_watchlist`, `sam_add_watch`, `sam_remove_watch` |
 | Prefs / username | `sam_update_prefs`, `sam_update_username` |
@@ -80,6 +82,7 @@ Check `capabilities` from `sam_get_profile` before writes.
 | `sam:expenses.write` | `sam_add_expense`, `sam_update_expense`, `sam_delete_expense` |
 | `sam:categories.write` | Category create/update tools |
 | `sam:income.write` | `sam_add_income` |
+| `sam:recurring.write` | Recurring create/update/pause/resume/archive/retry tools |
 | `sam:savings.write` | `sam_set_bucket_balance` |
 | `sam:goals.write` | Goal create/update tools |
 | `sam:accounts.write` | `sam_create_account`, `sam_update_account` |
@@ -98,7 +101,7 @@ Check `capabilities` from `sam_get_profile` before writes.
 
 ## Reporting results to the user
 
-- Use the profile `currency` for money formatting.
+- Respect the `currency` returned per account/transaction and grouped totals; never add different currencies without an FX source.
 - Use category display names exactly as returned by `sam_list_categories`; never send or expose internal category keys.
 - Summarize lists; show tables for ≤20 rows.
 - For spending questions, prefer `sam_get_spending_summary` for totals and `sam_list_transactions` for line items.

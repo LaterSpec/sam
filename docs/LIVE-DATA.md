@@ -117,4 +117,4 @@ Invest actions are simulated inside SAM:
 
 ## Historical Notes
 
-The legacy `backend/` folder documented Python/IBKR experiments and older Supabase-local flows. It is not the active production market-data path. Keep it as historical context unless a future live-market integration deliberately replaces it with a maintained Cloudflare-compatible service.
+The legacy `backend/` folder documented Python/IBKR experiments and older local market-data flows. It is not the active production market-data path. Keep it as historical context unless a future live-market integration deliberately replaces it with a maintained Cloudflare-compatible service.

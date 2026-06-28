@@ -3,6 +3,7 @@
 import { useSam, SAM_PALETTES, SAM_THEME_SWATCHES, resolveSamTheme, type SamTheme } from "@/lib/theme/sam-theme";
 import { Mono, Comment, Prompt, TabBar, ScreenHeader, userHandleFromState } from "@/components/ui/sam-primitives";
 import { updatePrefsAction } from "@/lib/actions/data-actions";
+import { useT } from "@/lib/i18n/i18n-context";
 import type { ScreenProps } from "./types";
 import { SCREEN_PAD } from "./types";
 
@@ -18,6 +19,7 @@ const THEME_ORDER: SamTheme[] = [
 
 export function AjustesScreen({ state, setState }: ScreenProps) {
   const { sam } = useSam();
+  const t = useT();
   const currentTheme = resolveSamTheme(state.prefs.theme);
 
   const selectTheme = (theme: SamTheme) => {
@@ -37,10 +39,10 @@ export function AjustesScreen({ state, setState }: ScreenProps) {
       </ScreenHeader>
       <div style={{ marginTop: 20 }}>
         <Prompt user={userHandleFromState(state)} host="sam" cmd="theme --select" />
-        <Comment>{THEME_ORDER.length} app-wide themes · changes apply everywhere</Comment>
+        <Comment>{t("{n} app-wide themes · changes apply everywhere", { n: THEME_ORDER.length })}</Comment>
 
         <div style={{ marginTop: 18 }}>
-          <div style={{ fontSize: 13, color: sam.cyan, fontWeight: 600 }}>▸ Themes</div>
+          <div style={{ fontSize: 13, color: sam.cyan, fontWeight: 600 }}>▸ {t("Themes")}</div>
           <div style={{ marginTop: 10, border: `1px solid ${sam.border}`, background: sam.surface }}>
             {THEME_ORDER.map((theme, i) => {
               const palette = SAM_PALETTES[theme];
@@ -94,15 +96,15 @@ export function AjustesScreen({ state, setState }: ScreenProps) {
         </div>
 
         <div style={{ marginTop: 20 }}>
-          <div style={{ fontSize: 13, color: sam.cyan, fontWeight: 600 }}>▸ Active theme</div>
+          <div style={{ fontSize: 13, color: sam.cyan, fontWeight: 600 }}>▸ {t("Active theme")}</div>
           <div style={{ marginTop: 8, padding: "10px 12px", border: `1px solid ${sam.border}`, background: sam.overlay, fontSize: 12 }}>
             <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-              <Mono c={sam.comment}>theme</Mono>
+              <Mono c={sam.comment}>{t("theme")}</Mono>
               <span style={{ flex: 1 }} />
               <Mono c={sam.accent} b>{SAM_PALETTES[currentTheme].name}</Mono>
             </div>
             <div style={{ marginTop: 6, color: sam.comment, lineHeight: 1.6 }}>
-              primary text, cards, borders, charts, forms, warnings and progress indicators use this shared token set.
+              {t("primary text, cards, borders, charts, forms, warnings and progress indicators use this shared token set.")}
             </div>
           </div>
         </div>

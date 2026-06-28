@@ -9,7 +9,8 @@ import { defineTool } from "./helpers";
 export function registerIncomeTools(server: McpServer, ctx: ActorContext) {
   defineTool(server, ctx, {
     name: "sam_list_income_sources",
-    description: "List recurring income sources with amount, frequency and next date.",
+    description:
+      "Deprecated compatibility view of legacy income sources. Use sam_list_recurring_rules for schedules.",
     scope: SCOPES.read,
     annotations: { readOnlyHint: true },
     handler: (ctx) => income.listIncomeSources(ctx),
@@ -18,26 +19,24 @@ export function registerIncomeTools(server: McpServer, ctx: ActorContext) {
   defineTool(server, ctx, {
     name: "sam_add_income",
     description:
-      "Add an income source. If accountId is provided, also records an income transaction and credits that account.",
+      "Record one income transaction and credit the selected account. Use sam_create_recurring_rule for recurring income.",
     scope: SCOPES.incomeWrite,
     inputSchema: {
       name: z.string().min(1).max(120),
       amount: z.number().positive(),
-      freq: z.string().max(32).optional(),
-      next: z.string().max(32).optional(),
-      accountId: z.string().uuid().optional(),
+      accountId: z.string().uuid(),
+      occurredAt: z.string().datetime().optional(),
     },
     handler: async (ctx, args) => {
-      const result = await income.addIncome(ctx, {
+      const result = await income.addIncomeTransaction(ctx, {
         name: args.name,
-        amt: args.amount,
-        freq: args.freq,
-        next: args.next,
+        amount: args.amount,
         accountId: args.accountId,
+        occurredAt: args.occurredAt,
       });
       return {
         ...result,
-        incomeTx: result.incomeTx ? presentTransaction(result.incomeTx) : null,
+        tx: presentTransaction(result.tx),
       };
     },
   });

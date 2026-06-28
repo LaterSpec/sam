@@ -2,11 +2,13 @@
 
 import { useSam } from "@/lib/theme/sam-theme";
 import { Mono, Comment, Prompt, BlockBar, BarH, TabBar, ScreenHeader, userHandleFromState } from "@/components/ui/sam-primitives";
+import { useT } from "@/lib/i18n/i18n-context";
 import type { ScreenProps } from "./types";
 import { SCREEN_PAD } from "./types";
 
 export function GoalsScreen({ state, setState, openSheet }: ScreenProps) {
   const { sam } = useSam();
+  const t = useT();
   const totalSaved = state.goals.reduce((a, g) => a + g.saved, 0);
   const totalTarget = state.goals.reduce((a, g) => a + g.target, 0);
   const overallPct = totalTarget > 0 ? Math.round((totalSaved / totalTarget) * 100) : 0;
@@ -20,25 +22,27 @@ export function GoalsScreen({ state, setState, openSheet }: ScreenProps) {
       <div style={{ marginTop: 20 }}>
         <Prompt user={userHandleFromState(state)} host="init.Goals" cmd="status" />
         <Comment>
-          {state.goals.length} goals tracked. {state.goals.filter((g) => g.done).length} completed. tap any to
-          contribute.
+          {t("{n} goals tracked. {m} completed. tap any to contribute.", {
+            n: state.goals.length,
+            m: state.goals.filter((g) => g.done).length,
+          })}
         </Comment>
         <div style={{ marginTop: 14, display: "flex", gap: 10, fontSize: 12, color: sam.comment }}>
           <span>
-            ◎ <Mono c={sam.text} b>{activeCount}</Mono> active
+            ◎ <Mono c={sam.text} b>{activeCount}</Mono> {t("active")}
           </span>
           <span>
-            ◆ <Mono c={sam.green} b>${totalSaved.toLocaleString()}</Mono> saved
+            ◆ <Mono c={sam.green} b>${totalSaved.toLocaleString()}</Mono> {t("saved")}
           </span>
         </div>
         <div style={{ marginTop: 14, padding: 12, border: `1px solid ${sam.border}` }}>
-          <div style={{ fontSize: 11, color: sam.comment, marginBottom: 4 }}>// total progress</div>
+          <div style={{ fontSize: 11, color: sam.comment, marginBottom: 4 }}>// {t("total progress")}</div>
           <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
             <Mono c={sam.yellow} b style={{ fontSize: 22, fontVariantNumeric: "tabular-nums" }}>
               ${totalSaved.toLocaleString()}
             </Mono>
             <Mono c={sam.comment}>
-              of ${totalTarget.toLocaleString()} · {overallPct}%
+              {t("of")} ${totalTarget.toLocaleString()} · {overallPct}%
             </Mono>
           </div>
           <div style={{ marginTop: 8 }}>
@@ -47,7 +51,7 @@ export function GoalsScreen({ state, setState, openSheet }: ScreenProps) {
         </div>
         <div style={{ marginTop: 18 }}>
           <div style={{ fontSize: 13, color: sam.cyan, fontWeight: 600 }}>
-            ▸ All goals
+            ▸ {t("All goals")}
             <span style={{ float: "right", color: sam.textDim, fontWeight: 400 }}>[{state.goals.length}] ▾</span>
           </div>
           {state.goals.map((g) => {
@@ -85,7 +89,7 @@ export function GoalsScreen({ state, setState, openSheet }: ScreenProps) {
                 <div style={{ paddingLeft: 26, marginTop: 4 }}>
                   <div style={{ fontSize: 11, color: sam.comment, marginBottom: 4 }}>
                     <Mono c={g.done ? sam.green : sam.text}>${g.saved.toLocaleString()}</Mono>
-                    <span> / ${g.target.toLocaleString()} · eta </span>
+                    <span> / ${g.target.toLocaleString()} · {t("eta")} </span>
                     <Mono c={g.done ? sam.green : sam.text}>{g.eta}</Mono>
                   </div>
                   <BarH pct={pct} c={g.done ? sam.green : g.c} />
@@ -96,7 +100,7 @@ export function GoalsScreen({ state, setState, openSheet }: ScreenProps) {
         </div>
         <div style={{ marginTop: 18, fontSize: 14 }}>
           <span onClick={() => openSheet({ kind: "new-goal" })} style={{ cursor: "pointer" }}>
-            <Mono c={sam.green} b>[+ new goal]</Mono>
+            <Mono c={sam.green} b>{t("[+ new goal]")}</Mono>
           </span>
         </div>
       </div>

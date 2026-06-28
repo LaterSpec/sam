@@ -1,9 +1,8 @@
-"""Thin psycopg layer over the local Supabase Postgres.
+"""Thin psycopg layer over the project Postgres database.
 
 Both backend jobs write GLOBAL market reference data (market_quotes,
-market_daily_bars). They connect with the local `postgres` superuser, which
-bypasses RLS, so no service-role JWT is needed. Override the connection string
-with SUPABASE_DB_URL in backend/.env if your local stack differs.
+market_daily_bars). Override the connection string with DATABASE_URL in
+backend/.env if your setup differs.
 """
 
 from __future__ import annotations
@@ -14,11 +13,11 @@ from datetime import date
 
 import psycopg
 
-DEFAULT_DB_URL = "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
+DEFAULT_DB_URL = "postgresql://postgres:postgres@127.0.0.1:5432/postgres"
 
 
 def db_url() -> str:
-    return os.getenv("SUPABASE_DB_URL", DEFAULT_DB_URL)
+    return os.getenv("DATABASE_URL", DEFAULT_DB_URL)
 
 
 @contextmanager

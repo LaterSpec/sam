@@ -17,7 +17,14 @@ import {
 import { eq, gte, inArray, asc, and } from "drizzle-orm";
 import { buildMarket, buildDailyBars, mapHolding } from "@/lib/market/build-market";
 import { formatTime, isoDay, num } from "@/lib/utils";
+import { normalizeCurrency, type Currency } from "@/lib/finance/currency";
 import type { UserPrefs } from "@/lib/db/schema";
+import {
+  listRecurringOccurrences,
+  listRecurringRules,
+  type RecurringOccurrenceDto,
+  type RecurringRuleDto,
+} from "@/lib/domain/recurring";
 
 export type AppState = {
   user: {
@@ -36,12 +43,13 @@ export type AppState = {
     name: string;
     type: string;
     balance: number;
+    currency: Currency;
     creditLimit: number | null;
     last4: string | null;
     icon: string;
     color: string;
   }>;
-  budgets: Array<{ id: string; key: string; name: string; icon: string; c: string; cap: number }>;
+  budgets: Array<{ id: string; key: string; name: string; icon: string; c: string; cap: number; currency: Currency }>;
   expenses: Array<{
     id: string;
     name: string;
@@ -54,6 +62,10 @@ export type AppState = {
     occurred_at: string;
     kind: string;
     accountId?: string;
+    status?: string;
+    source?: string;
+    recurringOccurrenceId?: string;
+    currency?: Currency;
   }>;
   incomeTx: AppState["expenses"];
   goals: Array<{
@@ -75,6 +87,8 @@ export type AppState = {
     freq: string;
     next: string | null;
   }>;
+  recurringRules: RecurringRuleDto[];
+  recurringOccurrences: RecurringOccurrenceDto[];
   buckets: Array<{
     id: string;
     name: string;
@@ -109,6 +123,10 @@ function mapExpense(
     occurred_at: t.occurredAt.toISOString(),
     kind: t.kind,
     accountId: t.accountId ?? undefined,
+    status: t.status,
+    source: t.source,
+    recurringOccurrenceId: t.recurringOccurrenceId ?? undefined,
+    currency: normalizeCurrency(t.currency),
   };
 }
 
@@ -129,6 +147,8 @@ export async function loadUserData(userId: string, email: string): Promise<AppSt
     symbolsRows,
     quotesRows,
     snapshotsRows,
+    recurringRuleRows,
+    recurringOccurrenceResult,
   ] = await Promise.all([
     db.select().from(profiles).where(eq(profiles.id, userId)).limit(1),
     db.select().from(accounts).where(eq(accounts.userId, userId)).orderBy(asc(accounts.sort)),
@@ -150,6 +170,14 @@ export async function loadUserData(userId: string, email: string): Promise<AppSt
       .from(portfolioSnapshots)
       .where(and(eq(portfolioSnapshots.userId, userId), gte(portfolioSnapshots.capturedAt, snapCutoff)))
       .orderBy(asc(portfolioSnapshots.capturedAt)),
+    listRecurringRules(
+      { userId, email, authMethod: "session", scopes: [] },
+      { includeArchived: true }
+    ),
+    listRecurringOccurrences(
+      { userId, email, authMethod: "session", scopes: [] },
+      { limit: 100 }
+    ),
   ]);
 
   const profile = profileRow[0];
@@ -197,12 +225,12 @@ export async function loadUserData(userId: string, email: string): Promise<AppSt
     catById[c.id] = c;
   });
 
-  const allTx = txRows.map((t) => mapExpense(t, catById));
+  const allTx = txRows.filter((t) => t.status === "confirmed").map((t) => mapExpense(t, catById));
   const prefs = (profile.prefs as UserPrefs) || {
-    notifications: true,
-    biometric: true,
     theme: "dark",
-    rollover: false,
+    language: "es",
+    defaultCurrency: "USD",
+    timezone: "America/Lima",
   };
 
   return {
@@ -222,6 +250,7 @@ export async function loadUserData(userId: string, email: string): Promise<AppSt
       name: a.name,
       type: a.type,
       balance: num(a.balance),
+      currency: normalizeCurrency(a.currency),
       creditLimit: a.creditLimit != null ? num(a.creditLimit) : null,
       last4: a.last4,
       icon: a.icon,
@@ -234,6 +263,7 @@ export async function loadUserData(userId: string, email: string): Promise<AppSt
       icon: c.icon,
       c: c.color,
       cap: num(c.monthlyCap),
+      currency: normalizeCurrency(c.currency),
     })),
     expenses: allTx.filter((t) => t.kind === "expense"),
     incomeTx: allTx.filter((t) => t.kind === "income"),
@@ -256,6 +286,8 @@ export async function loadUserData(userId: string, email: string): Promise<AppSt
       freq: s.freq,
       next: s.nextDate,
     })),
+    recurringRules: recurringRuleRows,
+    recurringOccurrences: recurringOccurrenceResult.occurrences,
     buckets: bucketsRows.map((b) => ({
       id: b.id,
       name: b.name,

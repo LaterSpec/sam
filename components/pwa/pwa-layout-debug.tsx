@@ -3,9 +3,7 @@
 import { useEffect, useState } from "react";
 
 const APP_BUILD_VERSION =
-  process.env.NEXT_PUBLIC_APP_BUILD_ID ??
-  process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA ??
-  "local-build";
+  process.env.NEXT_PUBLIC_APP_BUILD_ID ?? "local-build";
 
 type DebugRect = {
   top: number;

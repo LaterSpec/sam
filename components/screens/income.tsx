@@ -8,40 +8,55 @@ import {
   monthlyTotals,
   monthOverMonthFromTx,
 } from "@/lib/finance/metrics";
+import { currencySymbol, normalizeCurrency } from "@/lib/finance/currency";
+import { useT } from "@/lib/i18n/i18n-context";
 import type { ScreenProps } from "./types";
 import { SCREEN_PAD } from "./types";
 
 export function IncomeScreen({ state, setState, openSheet }: ScreenProps) {
   const { sam } = useSam();
-  const sources = state.incomeSources;
+  const t = useT();
   const now = new Date();
   const memberSince = state.user.member_since;
   const canTrend = hasTrendHistory(memberSince);
+  const currency = normalizeCurrency(state.prefs.defaultCurrency);
+  const incomeTx = useMemo(
+    () =>
+      (state.incomeTx || []).filter((tx) => {
+        const account = state.accounts.find((candidate) => candidate.id === tx.accountId);
+        return normalizeCurrency(account?.currency ?? currency) === currency;
+      }),
+    [currency, state.accounts, state.incomeTx]
+  );
 
   const monthIncomeFromTx = useMemo(
-    () => monthlyTotals(state.incomeTx || [], 6),
-    [state.incomeTx]
+    () => monthlyTotals(incomeTx, 6, new Date(), state.prefs.timezone),
+    [incomeTx, state.prefs.timezone]
   );
   const hasAnyIncomeHistory = monthIncomeFromTx.some((m) => m.value > 0);
   const chartMonths = monthIncomeFromTx;
   const max = Math.max(1, ...chartMonths.map((m) => m.value));
 
-  const mom = monthOverMonthFromTx(state.incomeTx || [], now);
+  const mom = monthOverMonthFromTx(incomeTx, now, state.prefs.timezone);
   const showMomTrend = canTrend && mom.pct !== null;
 
-  const projected = sources.reduce((a, s) => a + s.amt, 0);
-  const displayTotal = mom.current > 0 ? mom.current : projected;
+  const displayTotal = mom.current;
+  const recentIncome = [...incomeTx].sort(
+    (a, b) => new Date(b.occurred_at).getTime() - new Date(a.occurred_at).getTime()
+  );
 
   return (
     <div style={{ padding: SCREEN_PAD }}>
       <ScreenHeader>
-        <TabBar tabs={["expenses", "income", "budget"]} active="income" onChange={(t) => setState((s) => ({ ...s, expTab: t }))} />
+        <TabBar tabs={["expenses", "income", "recurring", "budget"]} active="income" onChange={(t) => setState((s) => ({ ...s, expTab: t }))} />
       </ScreenHeader>
       <div style={{ marginTop: 20 }}>
         <Prompt user={userHandleFromState(state)} host="init.Income" cmd="sources" />
         <Comment>
-          {sources.length} sources · {sources.filter((s) => s.freq !== "one-time").length} recurring · projected +$
-          {projected.toLocaleString()} this month
+          {t("{n} income transactions · {x} this month", {
+            n: incomeTx.length,
+            x: `${currencySymbol(currency)}${displayTotal.toLocaleString()}`,
+          })}
         </Comment>
         <div
           style={{
@@ -64,22 +79,22 @@ export function IncomeScreen({ state, setState, openSheet }: ScreenProps) {
               fontVariantNumeric: "tabular-nums",
             }}
           >
-            +${displayTotal.toLocaleString()}
+            +{currencySymbol(currency)}{displayTotal.toLocaleString()}
           </div>
           <div style={{ fontSize: 11, color: sam.comment, marginTop: 4 }}>
             {showMomTrend ? (
               <>
                 {mom.pct! >= 0 ? "+" : ""}
                 {mom.pct!.toFixed(1)}%{" "}
-                <Mono c={mom.pct! >= 0 ? sam.green : sam.red}>{mom.pct! >= 0 ? "▲" : "▼"}</Mono> vs last month
+                <Mono c={mom.pct! >= 0 ? sam.green : sam.red}>{mom.pct! >= 0 ? "▲" : "▼"}</Mono> {t("vs last month")}
               </>
             ) : (
-              <>{`// keep using sam to unlock month-over-month trends`}</>
+              <>{`// ${t("keep using sam to unlock month-over-month trends")}`}</>
             )}
           </div>
         </div>
         <div style={{ marginTop: 16 }}>
-          <div style={{ fontSize: 12, color: sam.cyan, fontWeight: 600 }}>▸ last 6 months</div>
+          <div style={{ fontSize: 12, color: sam.cyan, fontWeight: 600 }}>▸ {t("last 6 months")}</div>
           {hasAnyIncomeHistory ? (
             <div style={{ marginTop: 10 }}>
               <div style={{ display: "flex", gap: 8, alignItems: "flex-end", height: 72 }}>
@@ -136,37 +151,40 @@ export function IncomeScreen({ state, setState, openSheet }: ScreenProps) {
             </div>
           ) : (
             <div style={{ marginTop: 10, fontSize: 12, color: sam.comment }}>
-              {`// no income logged yet · add a source to start tracking`}
+              {`// ${t("no income logged yet · add a source to start tracking")}`}
             </div>
           )}
         </div>
         <div style={{ marginTop: 22 }}>
           <div style={{ fontSize: 13, color: sam.cyan, fontWeight: 600 }}>
-            ▸ Sources
-            <span style={{ float: "right", color: sam.textDim, fontWeight: 400 }}>[{sources.length}] ▾</span>
+            ▸ {t("Transactions")}
+            <span style={{ float: "right", color: sam.textDim, fontWeight: 400 }}>[{recentIncome.length}] ▾</span>
           </div>
-          <Comment>tap to view payment history</Comment>
-          {sources.map((s, i) => {
-            const isLast = i === sources.length - 1;
+          <Comment>{t("tap to view details")}</Comment>
+          {recentIncome.length === 0 && (
+            <div style={{ marginTop: 12, fontSize: 12, color: sam.comment }}>{`// ${t("no income logged yet")}`}</div>
+          )}
+          {recentIncome.map((income, i) => {
+            const isLast = i === recentIncome.length - 1;
             return (
               <div
-                key={s.id}
-                onClick={() => openSheet({ kind: "income-src", src: s })}
+                key={income.id}
+                onClick={() => openSheet({ kind: "tx", tx: income })}
                 style={{ marginTop: 12, padding: "6px 8px", marginLeft: -8, marginRight: -8, cursor: "pointer" }}
               >
                 <div style={{ display: "flex", alignItems: "baseline", gap: 6, fontSize: 13 }}>
                   <Mono c={sam.comment}>{isLast ? "└─" : "├─"}</Mono>
-                  <Mono c={s.c}>{s.icon}</Mono>
+                  <Mono c={sam.green}>{income.icon}</Mono>
                   <Mono c={sam.text} b>
-                    {s.name}
+                    {income.name}
                   </Mono>
                   <span style={{ flex: 1 }} />
                   <Mono c={sam.green} b>
-                    +${s.amt.toLocaleString()}
+                    +{currencySymbol(currency)}{income.amount.toLocaleString()}
                   </Mono>
                 </div>
                 <div style={{ paddingLeft: 22, fontSize: 11, color: sam.comment, marginTop: 2 }}>
-                  {`// ${s.freq} · next ${s.next}`}
+                  {`// ${income.time}`}
                 </div>
               </div>
             );
@@ -174,7 +192,7 @@ export function IncomeScreen({ state, setState, openSheet }: ScreenProps) {
         </div>
         <div style={{ marginTop: 20, fontSize: 14 }}>
           <span onClick={() => openSheet({ kind: "new-income" })} style={{ cursor: "pointer" }}>
-            <Mono c={sam.green} b>[+ new source]</Mono>
+            <Mono c={sam.green} b>{t("[+ new income]")}</Mono>
           </span>
         </div>
       </div>

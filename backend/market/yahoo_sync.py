@@ -112,7 +112,7 @@ def sync(symbols: list[str], days: int = 90) -> None:
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser(description="Sync Yahoo Finance quotes + daily bars into Supabase")
+    ap = argparse.ArgumentParser(description="Sync Yahoo Finance quotes + daily bars into Postgres")
     ap.add_argument("--symbols", help="comma-separated list; default = all catalog symbols")
     ap.add_argument("--days", type=int, default=90, help="daily bars to retain per symbol")
     args = ap.parse_args()

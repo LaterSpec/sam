@@ -2,14 +2,15 @@
 
 import { useSam } from "@/lib/theme/sam-theme";
 import { Mono, Comment, Prompt, BarH, TabBar, ScreenHeader, userHandleFromState } from "@/components/ui/sam-primitives";
+import { useT } from "@/lib/i18n/i18n-context";
 import type { ScreenProps } from "./types";
 import { SCREEN_PAD } from "./types";
 
 export function SavingsScreen({ state, setState, openSheet }: ScreenProps) {
   const { sam } = useSam();
+  const t = useT();
   const buckets = state.buckets;
   const total = buckets.reduce((a, b) => a + b.balance, 0);
-  const rule = state.autoSave;
 
   return (
     <div style={{ padding: SCREEN_PAD }}>
@@ -18,9 +19,7 @@ export function SavingsScreen({ state, setState, openSheet }: ScreenProps) {
       </ScreenHeader>
       <div style={{ marginTop: 20 }}>
         <Prompt user={userHandleFromState(state)} host="init.Savings" cmd="buckets" />
-        <Comment>
-          {buckets.length} buckets · auto-save {rule.enabled ? "on" : "off"} · ${rule.amount}/wk
-        </Comment>
+        <Comment>{t("{n} configured buckets", { n: buckets.length })}</Comment>
         <div
           style={{
             marginTop: 14,
@@ -35,48 +34,10 @@ export function SavingsScreen({ state, setState, openSheet }: ScreenProps) {
           <div style={{ fontSize: 28, fontWeight: 700, color: sam.green, marginTop: 4, fontVariantNumeric: "tabular-nums" }}>
             ${total.toLocaleString()}
           </div>
-          <div style={{ fontSize: 11, color: sam.comment, marginTop: 4 }}>
-            +${(rule.enabled ? rule.amount * 4 : 0)}/mo on schedule
-          </div>
-        </div>
-        <div style={{ marginTop: 16, padding: 12, border: `1px dashed ${sam.border}` }}>
-          <div style={{ fontSize: 12, color: sam.cyan, fontWeight: 600 }}>▸ auto-save rule</div>
-          <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 10, fontSize: 13 }}>
-            <Mono c={sam.comment}>every friday</Mono>
-            <span
-              onClick={() =>
-                setState((s) => ({ ...s, autoSave: { ...s.autoSave, amount: Math.max(5, s.autoSave.amount - 5) } }))
-              }
-              style={{ cursor: "pointer", color: sam.comment }}
-            >
-              [-]
-            </span>
-            <Mono c={sam.yellow} b style={{ fontSize: 18 }}>
-              ${rule.amount}
-            </Mono>
-            <span
-              onClick={() => setState((s) => ({ ...s, autoSave: { ...s.autoSave, amount: s.autoSave.amount + 5 } }))}
-              style={{ cursor: "pointer", color: sam.comment }}
-            >
-              [+]
-            </span>
-            <span style={{ flex: 1 }} />
-            <span
-              onClick={() => setState((s) => ({ ...s, autoSave: { ...s.autoSave, enabled: !s.autoSave.enabled } }))}
-              style={{ cursor: "pointer" }}
-            >
-              <Mono c={rule.enabled ? sam.cyan : sam.comment} b={rule.enabled}>
-                [{rule.enabled ? "on" : "off"}]
-              </Mono>
-            </span>
-          </div>
-          <div style={{ marginTop: 6, fontSize: 10, color: sam.comment }}>
-            → splits evenly across {buckets.length} buckets
-          </div>
         </div>
         <div style={{ marginTop: 18 }}>
           <div style={{ fontSize: 13, color: sam.cyan, fontWeight: 600 }}>
-            ▸ Buckets
+            ▸ {t("Buckets")}
             <span style={{ float: "right", color: sam.textDim, fontWeight: 400 }}>[{buckets.length}] ▾</span>
           </div>
           {buckets.map((b) => (
@@ -106,14 +67,14 @@ export function SavingsScreen({ state, setState, openSheet }: ScreenProps) {
               <div style={{ paddingLeft: 2, marginTop: 6 }}>
                 <BarH pct={Math.min(100, (b.balance / b.target) * 100)} c={b.c} />
                 <div style={{ fontSize: 11, color: sam.comment, marginTop: 4 }}>
-                  target ${b.target.toLocaleString()} · {Math.round((b.balance / b.target) * 100)}% · apy {b.apy}%
+                  {t("target")} ${b.target.toLocaleString()} · {Math.round((b.balance / b.target) * 100)}% · apy {b.apy}%
                 </div>
               </div>
             </div>
           ))}
         </div>
         <div style={{ marginTop: 16, fontSize: 14 }}>
-          <Mono c={sam.green} b>[+ new bucket]</Mono>
+          <Mono c={sam.green} b>{t("[+ new bucket]")}</Mono>
         </div>
       </div>
     </div>

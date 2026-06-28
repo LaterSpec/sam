@@ -3,13 +3,26 @@
 import { useState } from "react";
 import { useSam } from "@/lib/theme/sam-theme";
 import { Mono, Comment, Prompt, TabBar, ScreenHeader, userHandleFromState } from "@/components/ui/sam-primitives";
+import { useT, useI18n } from "@/lib/i18n/i18n-context";
+import { currencySymbol, normalizeCurrency } from "@/lib/finance/currency";
 import type { ScreenProps } from "./types";
 import { SCREEN_PAD } from "./types";
 
 export function StatsScreen({ state, setState }: ScreenProps) {
   const { sam } = useSam();
+  const t = useT();
+  const { lang } = useI18n();
+  const dateLocale = lang === "es" ? "es" : "en";
   const [period, setPeriod] = useState<"1w" | "6m" | "1y" | "ytd">("6m");
-  const money = (n: number) => `${n < 0 ? "-" : ""}$${Math.abs(Math.round(n)).toLocaleString()}`;
+  const currency = normalizeCurrency(state.prefs.defaultCurrency);
+  const symbol = currencySymbol(currency);
+  const money = (n: number) => `${n < 0 ? "-" : ""}${symbol}${Math.abs(Math.round(n)).toLocaleString()}`;
+  const belongsToCurrency = (tx: ScreenProps["state"]["expenses"][number]) => {
+    if (tx.currency) return tx.currency === currency;
+    return normalizeCurrency(state.accounts.find((account) => account.id === tx.accountId)?.currency) === currency;
+  };
+  const currencyExpenses = (state.expenses || []).filter(belongsToCurrency);
+  const currencyIncome = (state.incomeTx || []).filter(belongsToCurrency);
 
   const now = new Date();
   const periodMonths: Record<string, number> = { "6m": 6, "1y": 12, ytd: now.getMonth() + 1 };
@@ -20,7 +33,7 @@ export function StatsScreen({ state, setState }: ScreenProps) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
     const key = d.getFullYear() + "-" + d.getMonth();
     monthIdx[key] = months.length;
-    months.push({ key, label: d.toLocaleDateString("en", { month: "short" }), net: 0 });
+    months.push({ key, label: d.toLocaleDateString(dateLocale, { month: "short" }), net: 0 });
   }
   const bucket = (arr: ScreenProps["state"]["expenses"], sign: number) => {
     (arr || []).forEach((t) => {
@@ -30,10 +43,12 @@ export function StatsScreen({ state, setState }: ScreenProps) {
       if (monthIdx[k] !== undefined) months[monthIdx[k]].net += sign * t.amount;
     });
   };
-  bucket(state.incomeTx, 1);
-  bucket(state.expenses, -1);
+  bucket(currencyIncome, 1);
+  bucket(currencyExpenses, -1);
 
-  const currentWallet = (state.accounts || []).reduce((a, x) => a + x.balance, 0);
+  const currentWallet = (state.accounts || [])
+    .filter((account) => account.currency === currency)
+    .reduce((a, x) => a + x.balance, 0);
   const weekDays = Array.from({ length: 8 }, (_, idx) => {
     const d = new Date(now);
     d.setHours(0, 0, 0, 0);
@@ -51,7 +66,7 @@ export function StatsScreen({ state, setState }: ScreenProps) {
     // later transactions. This keeps the 1w chart deterministic when no snapshots exist.
     const dayEnd = new Date(day);
     dayEnd.setHours(23, 59, 59, 999);
-    const laterTx = [...(state.incomeTx || []), ...(state.expenses || [])].reduce((sum, tx) => {
+    const laterTx = [...currencyIncome, ...currencyExpenses].reduce((sum, tx) => {
       if (!tx.occurred_at) return sum;
       const t = new Date(tx.occurred_at);
       if (t <= dayEnd) return sum;
@@ -63,18 +78,26 @@ export function StatsScreen({ state, setState }: ScreenProps) {
   const values = period === "1w" ? weekValues : months.map((m) => m.net);
   const labels =
     period === "1w"
-      ? weekDays.map((d) => d.toLocaleDateString("en", { weekday: "short" }).slice(0, 1))
+      ? weekDays.map((d) => d.toLocaleDateString(dateLocale, { weekday: "short" }).slice(0, 1))
       : months.map((m) => (nMonths > 6 ? m.label[0] : m.label));
   const maxAbs = Math.max(1, ...values.map((v) => Math.abs(v)));
   const totalNet = period === "1w" ? values[values.length - 1] - values[0] : values.reduce((a, v) => a + v, 0);
-  const totalSavedGoals = (state.goals || []).reduce((a, g) => a + g.saved, 0);
+  const periodStart =
+    period === "1w"
+      ? new Date(now.getTime() - 7 * 86400000)
+      : period === "ytd"
+        ? new Date(now.getFullYear(), 0, 1)
+        : new Date(now.getFullYear(), now.getMonth() - nMonths + 1, 1);
+  const periodExpenses = currencyExpenses.filter((tx) => new Date(tx.occurred_at) >= periodStart);
+  const periodIncome = currencyIncome.filter((tx) => new Date(tx.occurred_at) >= periodStart);
 
   const byCat: Record<string, number> = {};
-  (state.expenses || []).forEach((e) => {
+  periodExpenses.forEach((e) => {
     byCat[e.catKey] = (byCat[e.catKey] || 0) + e.amount;
   });
-  const totalSpent = (state.expenses || []).reduce((a, e) => a + e.amount, 0) || 1;
-  const totalIncome = (state.incomeSources || []).reduce((a, s) => a + s.amt, 0);
+  const totalSpentRaw = periodExpenses.reduce((a, e) => a + e.amount, 0);
+  const totalSpent = totalSpentRaw || 1;
+  const totalIncome = periodIncome.reduce((a, tx) => a + tx.amount, 0);
   const saveRate =
     totalIncome > 0 ? Math.max(0, Math.round(((totalIncome - totalSpent) / totalIncome) * 100)) : 0;
   const catSplit = (state.budgets || [])
@@ -88,7 +111,7 @@ export function StatsScreen({ state, setState }: ScreenProps) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const dayCounts = new Array(28).fill(0);
-  [...(state.expenses || []), ...(state.incomeTx || [])].forEach((t) => {
+  [...currencyExpenses, ...currencyIncome].forEach((t) => {
     if (!t.occurred_at) return;
     const d = new Date(t.occurred_at);
     d.setHours(0, 0, 0, 0);
@@ -106,8 +129,15 @@ export function StatsScreen({ state, setState }: ScreenProps) {
         <Prompt user={userHandleFromState(state)} host="init.Stats" cmd={`report --${period}`} />
         <Comment>
           {period === "1w"
-            ? `wallet moved ${money(values[values.length - 1] - values[0])} over 1 week · ${(state.expenses || []).length} tx tracked`
-            : `net ${money(totalNet)} over ${nMonths} months · ${(state.expenses || []).length} tx tracked`}
+            ? t("wallet moved {m} over 1 week · {n} tx tracked", {
+                m: money(values[values.length - 1] - values[0]),
+                n: periodExpenses.length + periodIncome.length,
+              })
+            : t("net {m} over {k} months · {n} tx tracked", {
+                m: money(totalNet),
+                k: nMonths,
+                n: periodExpenses.length + periodIncome.length,
+              })}
         </Comment>
         <div style={{ marginTop: 14, display: "flex", gap: 6, fontSize: 12 }}>
           {(["1w", "6m", "1y", "ytd"] as const).map((p) => (
@@ -130,10 +160,10 @@ export function StatsScreen({ state, setState }: ScreenProps) {
         </div>
         <div style={{ marginTop: 14, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
           {[
-            { v: money(totalNet), l: `net ${period}`, c: totalNet >= 0 ? sam.green : sam.red },
-            { v: `$${Math.round(totalSpent).toLocaleString()}`, l: "spent", c: sam.red },
-            { v: `$${totalSavedGoals.toLocaleString()}`, l: "goal savings", c: sam.cyan },
-            { v: `${saveRate}%`, l: "save rate", c: sam.yellow },
+            { v: money(totalNet), l: `${t("net")} ${period}`, c: totalNet >= 0 ? sam.green : sam.red },
+            { v: `${symbol}${Math.round(totalSpentRaw).toLocaleString()}`, l: t("spent"), c: sam.red },
+            { v: `${symbol}${Math.round(totalIncome).toLocaleString()}`, l: t("income"), c: sam.cyan },
+            { v: `${saveRate}%`, l: t("save rate"), c: sam.yellow },
           ].map((s, i) => (
             <div key={i} style={{ padding: "10px 12px", border: `1px solid ${sam.border}` }}>
               <div style={{ fontSize: 10, color: sam.comment }}>{`// ${s.l}`}</div>
@@ -145,7 +175,7 @@ export function StatsScreen({ state, setState }: ScreenProps) {
         </div>
         <div style={{ marginTop: 18 }}>
           <div style={{ fontSize: 13, color: sam.cyan, fontWeight: 600 }}>
-            ▸ Net cashflow
+            ▸ {t("Net cashflow")}
             <span style={{ float: "right", color: sam.textDim, fontWeight: 400 }}>
               {period} ▾
             </span>
@@ -192,13 +222,13 @@ export function StatsScreen({ state, setState }: ScreenProps) {
         </div>
         <div style={{ marginTop: 20 }}>
           <div style={{ fontSize: 13, color: sam.cyan, fontWeight: 600 }}>
-            ▸ Where it went
+            ▸ {t("Where it went")}
             <span style={{ float: "right", color: sam.textDim, fontWeight: 400 }}>
-              {now.toLocaleDateString("en", { month: "short" })} ▾
+              {now.toLocaleDateString(dateLocale, { month: "short" })} ▾
             </span>
           </div>
           {catSplit.length === 0 ? (
-            <div style={{ marginTop: 10, fontSize: 12, color: sam.comment }}>{`// no spending logged yet`}</div>
+            <div style={{ marginTop: 10, fontSize: 12, color: sam.comment }}>{`// ${t("no spending logged yet")}`}</div>
           ) : (
             <>
               <div style={{ marginTop: 10, display: "flex", height: 12, border: `1px solid ${sam.border}` }}>
@@ -224,7 +254,7 @@ export function StatsScreen({ state, setState }: ScreenProps) {
           )}
         </div>
         <div style={{ marginTop: 20 }}>
-          <div style={{ fontSize: 13, color: sam.cyan, fontWeight: 600 }}>▸ Activity · last 28d</div>
+          <div style={{ fontSize: 13, color: sam.cyan, fontWeight: 600 }}>▸ {t("Activity · last 28d")}</div>
           <div style={{ marginTop: 10, display: "grid", gridTemplateColumns: "repeat(14, 1fr)", gap: 3 }}>
             {dayCounts.map((cnt, i) => {
               const colors = [sam.track, `${sam.green}55`, `${sam.green}99`, sam.green];
@@ -234,12 +264,12 @@ export function StatsScreen({ state, setState }: ScreenProps) {
             })}
           </div>
           <div style={{ marginTop: 6, fontSize: 10, color: sam.comment, display: "flex", alignItems: "center", gap: 4 }}>
-            less
+            {t("less")}
             <div style={{ width: 8, height: 8, background: sam.track }} />
             <div style={{ width: 8, height: 8, background: `${sam.green}55` }} />
             <div style={{ width: 8, height: 8, background: `${sam.green}99` }} />
             <div style={{ width: 8, height: 8, background: sam.green }} />
-            more
+            {t("more")}
           </div>
         </div>
       </div>

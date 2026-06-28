@@ -18,6 +18,7 @@ export type CategoryDto = {
   icon: string;
   c: string;
   cap: number;
+  currency: string;
 };
 
 export type CategoryWithSpendDto = CategoryDto & {
@@ -33,6 +34,7 @@ type CategorySpendRow = {
   icon: string;
   color: string;
   monthly_cap: string | number;
+  currency: string;
   spent: string | number;
 };
 
@@ -52,14 +54,17 @@ export async function listCategories(ctx: ActorContext): Promise<CategoryWithSpe
       c.icon,
       c.color,
       c.monthly_cap,
+      c.currency,
       coalesce(sum(t.amount) filter (
         where t.kind = 'expense'
+          and t.status = 'confirmed'
+          and t.currency = c.currency
           and t.occurred_at >= date_trunc('month', now())
       ), 0) as spent
     from categories c
     left join transactions t on t.category_id = c.id and t.user_id = c.user_id
     where c.user_id = $1
-    group by c.id, c.key, c.name, c.icon, c.color, c.monthly_cap, c.sort
+    group by c.id, c.key, c.name, c.icon, c.color, c.monthly_cap, c.currency, c.sort
     order by c.sort asc
     `,
     [ctx.userId]
@@ -75,6 +80,7 @@ export async function listCategories(ctx: ActorContext): Promise<CategoryWithSpe
       icon: r.icon,
       c: r.color,
       cap,
+      currency: r.currency,
       spentThisMonth: Math.round(spent * 100) / 100,
       remaining: Math.round((cap - spent) * 100) / 100,
       pctUsed: cap > 0 ? Math.round((spent / cap) * 1000) / 10 : null,
@@ -109,9 +115,26 @@ export async function getBudgetStatus(ctx: ActorContext, nearThresholdPct = 80) 
   const nearLimit = withCap.filter(
     (c) => c.spentThisMonth <= c.cap && (c.pctUsed ?? 0) >= nearThresholdPct
   );
+  const byCurrency = Array.from(
+    cats.reduce((totals, category) => {
+      const current = totals.get(category.currency) ?? { cap: 0, spent: 0 };
+      current.cap += category.cap;
+      current.spent += category.spentThisMonth;
+      totals.set(category.currency, current);
+      return totals;
+    }, new Map<string, { cap: number; spent: number }>()),
+    ([currency, totals]) => ({
+      currency,
+      totalCap: Math.round(totals.cap * 100) / 100,
+      totalSpent: Math.round(totals.spent * 100) / 100,
+    })
+  );
+  const single = byCurrency.length === 1 ? byCurrency[0] : null;
   return {
-    totalCap: Math.round(withCap.reduce((a, c) => a + c.cap, 0) * 100) / 100,
-    totalSpent: Math.round(cats.reduce((a, c) => a + c.spentThisMonth, 0) * 100) / 100,
+    totalCap: single?.totalCap ?? null,
+    totalSpent: single?.totalSpent ?? null,
+    mixedCurrency: byCurrency.length > 1,
+    byCurrency,
     overBudget,
     nearLimit,
     categories: cats,
@@ -120,7 +143,7 @@ export async function getBudgetStatus(ctx: ActorContext, nearThresholdPct = 80) 
 
 export async function createCategory(
   ctx: ActorContext,
-  input: { name: string; monthlyCap?: number; icon?: string; color?: string }
+  input: { name: string; monthlyCap?: number; icon?: string; color?: string; currency?: string }
 ): Promise<CategoryDto> {
   const uid = ctx.userId;
   const name = shortTextSchema.parse(input.name);
@@ -142,6 +165,7 @@ export async function createCategory(
       name,
       icon: input.icon || "●",
       color,
+      currency: input.currency === "PEN" ? "PEN" : "USD",
       monthlyCap: String(cap),
       sort: (existing[0]?.sort ?? -1) + 1,
     })
@@ -153,6 +177,7 @@ export async function createCategory(
     icon: row.icon,
     c: row.color,
     cap: Number(row.monthlyCap),
+    currency: row.currency,
   };
 }
 
@@ -186,6 +211,7 @@ export async function updateCategory(
     icon: row.icon,
     c: row.color,
     cap: Number(row.monthlyCap),
+    currency: row.currency,
   };
 }
 
@@ -204,5 +230,6 @@ export async function setCategoryCap(ctx: ActorContext, categoryId: string, cap:
     icon: row.icon,
     c: row.color,
     cap: Number(row.monthlyCap),
+    currency: row.currency,
   };
 }

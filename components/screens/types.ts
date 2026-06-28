@@ -10,9 +10,7 @@ export type ClientAppState = AppState & {
   profileTab: string;
   selectedDay: number;
   selectedGoal: string | null;
-  pending: number;
   hiddenCards: string[];
-  autoSave: { enabled: boolean; amount: number };
 };
 
 export type SheetPayload =
@@ -30,6 +28,8 @@ export type SheetPayload =
   | { kind: "new-budget" }
   | { kind: "income-src"; src: AppState["incomeSources"][number] | Record<string, unknown> }
   | { kind: "new-income" }
+  | { kind: "new-recurring" }
+  | { kind: "recurring-rule"; ruleId: string }
   | { kind: "account"; accountId: string }
   | { kind: "new-account" }
   | { kind: "edit-account"; accountId: string }

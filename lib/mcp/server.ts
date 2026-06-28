@@ -9,10 +9,11 @@ import { registerIncomeTools } from "./tools/income";
 import { registerSavingsTools } from "./tools/savings";
 import { registerInvestTools } from "./tools/invest";
 import { registerProfileTools } from "./tools/profile";
+import { registerRecurringTools } from "./tools/recurring";
 
 export const MCP_SERVER_INFO = {
   name: "sam",
-  version: "1.1.0",
+  version: "2.0.0",
 } as const;
 
 /**
@@ -32,6 +33,7 @@ export function buildMcpServer(ctx: ActorContext): McpServer {
   registerSummaryTools(server, ctx);
   registerGoalTools(server, ctx);
   registerIncomeTools(server, ctx);
+  registerRecurringTools(server, ctx);
   registerSavingsTools(server, ctx);
   registerInvestTools(server, ctx);
 

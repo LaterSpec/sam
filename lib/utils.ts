@@ -36,8 +36,8 @@ export function fmtMoneyShort(v: number): string {
   return `$${v.toFixed(a < 10 ? 2 : 0)}`;
 }
 
-export function formatDateLong(d = new Date()): string {
-  return d.toLocaleDateString("en", {
+export function formatDateLong(d = new Date(), locale = "en"): string {
+  return d.toLocaleDateString(locale, {
     weekday: "long",
     month: "long",
     day: "numeric",
@@ -45,8 +45,8 @@ export function formatDateLong(d = new Date()): string {
   });
 }
 
-export function formatMonthYear(d = new Date()): string {
-  return d.toLocaleDateString("en", { month: "long", year: "numeric" });
+export function formatMonthYear(d = new Date(), locale = "en"): string {
+  return d.toLocaleDateString(locale, { month: "long", year: "numeric" });
 }
 
 export function dayOfMonth(iso: string): number {

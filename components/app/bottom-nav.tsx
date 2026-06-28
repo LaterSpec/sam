@@ -2,14 +2,16 @@
 
 import { useSam } from "@/lib/theme/sam-theme";
 import { Mono } from "@/components/ui/sam-primitives";
+import { useT } from "@/lib/i18n/i18n-context";
+import { NavIcon } from "@/components/app/nav-icons";
 
 const ITEMS = [
-  { k: "home", label: "home", icon: "⌂" },
-  { k: "expenses", label: "expenses", icon: "$" },
-  { k: "invest", label: "invest", icon: "▲" },
-  { k: "goals", label: "goals", icon: "◎" },
-  { k: "profile", label: "profile", icon: "@" },
-];
+  { k: "home", label: "home", icon: "home" },
+  { k: "expenses", label: "expenses", icon: "expenses" },
+  { k: "invest", label: "invest", icon: "invest" },
+  { k: "goals", label: "goals", icon: "goals" },
+  { k: "profile", label: "profile", icon: "profile" },
+] as const;
 
 export function BottomNav({
   active,
@@ -19,6 +21,7 @@ export function BottomNav({
   onChange: (tab: string) => void;
 }) {
   const { sam } = useSam();
+  const t = useT();
   const activeIdx = Math.max(0, ITEMS.findIndex((it) => it.k === active));
   const pct = 100 / ITEMS.length;
 
@@ -68,16 +71,14 @@ export function BottomNav({
               }}
             >
               <div
-                className="bottom-nav-icon"
+                className="bottom-nav-icon flex items-center justify-center"
                 style={{
-                  fontSize: 14,
-                  fontWeight: isActive ? 600 : 400,
                   transform: isActive ? "scale(1.06)" : "scale(1)",
                   transition: "transform 280ms cubic-bezier(.2,.9,.2,1)",
-                  textShadow: isActive ? `0 0 12px ${sam.yellow}66` : "none",
+                  filter: isActive ? `drop-shadow(0 0 10px ${sam.yellow}55)` : "none",
                 }}
               >
-                {it.icon}
+                <NavIcon name={it.icon} active={isActive} />
               </div>
               <div
                 className="bottom-nav-label"
@@ -88,7 +89,7 @@ export function BottomNav({
                   opacity: isActive ? 1 : 0.85,
                 }}
               >
-                {isActive ? `[${it.label}]` : it.label}
+                {isActive ? `[${t(it.label)}]` : t(it.label)}
               </div>
             </button>
           );

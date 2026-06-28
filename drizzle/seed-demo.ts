@@ -1,5 +1,5 @@
 /**
- * Demo user seed — port of docs/database/supabase-archive/seed.sql
+ * Demo user seed.
  * Login: alex@sam.app / sam12345
  *
  * Requires: npm run db:push && npm run db:seed (market symbols first)

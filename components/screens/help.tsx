@@ -3,28 +3,15 @@
 import { useState } from "react";
 import { useSam } from "@/lib/theme/sam-theme";
 import { Mono, Comment, Prompt, TabBar, ScreenHeader, userHandleFromState } from "@/components/ui/sam-primitives";
+import { useT } from "@/lib/i18n/i18n-context";
 import type { ScreenProps } from "./types";
 import { SCREEN_PAD } from "./types";
 
 export function HelpScreen({ state, setState }: ScreenProps) {
   const { sam } = useSam();
+  const t = useT();
   const [query, setQuery] = useState("");
   const [openFaq, setOpenFaq] = useState<number | null>(null);
-  const [copied, setCopied] = useState(false);
-
-  const copyEmail = () => {
-    const email = "hello@sam.app";
-    const done = () => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1800);
-    };
-    if (navigator.clipboard?.writeText) {
-      navigator.clipboard.writeText(email).then(done).catch(done);
-    } else {
-      done();
-    }
-  };
-
   const faqs = [
     {
       q: "Where is my data stored?",
@@ -42,6 +29,11 @@ export function HelpScreen({ state, setState }: ScreenProps) {
       a: "Accounts → [+ create account] to add a cash or card balance. Expenses → [+ new expense] to log spending against a category.",
     },
     {
+      q: "How do I connect SAM to AI tools (MCP)?",
+      c: sam.cyan,
+      a: "1) Profile → integrations → connect mcp → create a token (copy it, it is shown once). 2) In your AI client (Cursor, Claude, Hermes, OpenClaw...) add an MCP server with URL <your-app>/api/mcp and header Authorization: Bearer <your token>. 3) Reload the client and ask it about your finances. See docs/MCP.md for client-specific setup.",
+    },
+    {
       q: "How do I export my data?",
       c: sam.magenta,
       a: "Profile → data → export csv downloads all your transactions as a CSV file.",
@@ -54,19 +46,16 @@ export function HelpScreen({ state, setState }: ScreenProps) {
   ];
 
   const filtered = query
-    ? faqs.filter(
-        (f) =>
-          f.q.toLowerCase().includes(query.toLowerCase()) || f.a.toLowerCase().includes(query.toLowerCase())
-      )
+    ? faqs.filter((f) => {
+        const ql = query.toLowerCase();
+        return (
+          f.q.toLowerCase().includes(ql) ||
+          f.a.toLowerCase().includes(ql) ||
+          t(f.q).toLowerCase().includes(ql) ||
+          t(f.a).toLowerCase().includes(ql)
+        );
+      })
     : faqs;
-
-  const cmds = [
-    { k: ":balance", d: "show total across accounts" },
-    { k: ":expense <amt>", d: "quick add expense" },
-    { k: ":goal <name>", d: "create a new goal" },
-    { k: ":sync", d: "force refresh all feeds" },
-    { k: ":export csv", d: "download transactions" },
-  ];
 
   return (
     <div style={{ padding: SCREEN_PAD }}>
@@ -75,7 +64,7 @@ export function HelpScreen({ state, setState }: ScreenProps) {
       </ScreenHeader>
       <div style={{ marginTop: 20 }}>
         <Prompt user={userHandleFromState(state)} host="init.Help" cmd="man sam" />
-        <Comment>type to search · avg response &lt; 4h</Comment>
+        <Comment>{t("search the product guide")}</Comment>
         <div
           style={{
             marginTop: 14,
@@ -91,7 +80,7 @@ export function HelpScreen({ state, setState }: ScreenProps) {
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="grep 'how to...'"
+            placeholder={t("grep 'how to...'")}
             style={{
               flex: 1,
               background: "transparent",
@@ -115,7 +104,7 @@ export function HelpScreen({ state, setState }: ScreenProps) {
           </div>
           {filtered.length === 0 && (
             <div style={{ marginTop: 12, fontSize: 12, color: sam.comment, textAlign: "center" }}>
-              {`// no results for "${query}"`}
+              {`// ${t('no results for "{q}"', { q: query })}`}
             </div>
           )}
           {filtered.map((f, i) => {
@@ -130,7 +119,7 @@ export function HelpScreen({ state, setState }: ScreenProps) {
                 <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
                   <Mono c={sam.comment}>{isLast ? "└─" : "├─"}</Mono>
                   <Mono c={f.c}>?</Mono>
-                  <Mono c={sam.text}>{f.q}</Mono>
+                  <Mono c={sam.text}>{t(f.q)}</Mono>
                   <span style={{ flex: 1 }} />
                   <Mono c={sam.comment}>{isOpen ? "▾" : "▸"}</Mono>
                 </div>
@@ -147,43 +136,12 @@ export function HelpScreen({ state, setState }: ScreenProps) {
                       background: sam.overlay,
                     }}
                   >
-                    {f.a}
+                    {t(f.a)}
                   </div>
                 )}
               </div>
             );
           })}
-        </div>
-        <div style={{ marginTop: 20 }}>
-          <div style={{ fontSize: 13, color: sam.cyan, fontWeight: 600 }}>▸ Quick commands</div>
-          <Comment>shortcuts for power users</Comment>
-          <div style={{ marginTop: 8, padding: 10, border: `1px solid ${sam.border}`, background: sam.overlay }}>
-            {cmds.map((c, i) => (
-              <div key={i} style={{ fontSize: 12, marginTop: i === 0 ? 0 : 6, display: "flex", gap: 10 }}>
-                <Mono c={sam.yellow} b style={{ minWidth: 110 }}>
-                  {c.k}
-                </Mono>
-                <Mono c={sam.comment}>{c.d}</Mono>
-              </div>
-            ))}
-          </div>
-        </div>
-        <div style={{ marginTop: 20 }}>
-          <div style={{ fontSize: 13, color: sam.cyan, fontWeight: 600 }}>▸ Contact</div>
-          <div style={{ marginTop: 8, fontSize: 13 }}>
-            <div style={{ display: "flex", marginTop: 4 }}>
-              <Mono c={sam.comment}>├─ </Mono>
-              <Mono>chat with support</Mono>
-              <span style={{ flex: 1 }} />
-              <Mono c={sam.cyan}>[open]</Mono>
-            </div>
-            <div onClick={copyEmail} style={{ display: "flex", marginTop: 4, cursor: "pointer" }}>
-              <Mono c={sam.comment}>└─ </Mono>
-              <Mono>email hello@sam.app</Mono>
-              <span style={{ flex: 1 }} />
-              <Mono c={copied ? sam.green : sam.cyan}>{copied ? "[copied ✓]" : "[copy]"}</Mono>
-            </div>
-          </div>
         </div>
       </div>
     </div>

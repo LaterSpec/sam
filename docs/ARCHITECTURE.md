@@ -132,7 +132,7 @@ Database clients live in:
 - `lib/db/index.ts` for Drizzle over Neon HTTP
 - `lib/db/sql.ts` for raw Neon SQL queries
 
-Domain data is partitioned by `userId` in application code. The old Supabase RLS model was replaced by explicit `userId` filters in Server Actions and query helpers.
+Domain data is partitioned by `userId` in application code, with explicit `userId` filters in Server Actions and query helpers.
 
 Important user-scoped query path:
 
@@ -206,6 +206,15 @@ npm run deploy:cloudflare
 ```
 
 Use `npm run preview:cloudflare` to validate the Worker build locally before deployment.
+
+The custom OpenNext entrypoint is `custom-worker.ts`. It reuses the generated
+fetch handler and adds Cloudflare scheduled handlers:
+
+- hourly recurring occurrence processing
+- daily delayed market-data sync
+
+Cron schedules use UTC. `RECURRING_CRON_ENABLED` is the rollout switch; enable
+it only after the additive migration and verification succeed.
 
 ## Documentation Pointers
 

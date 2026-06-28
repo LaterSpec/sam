@@ -2,6 +2,7 @@
 
 import { useSam } from "@/lib/theme/sam-theme";
 import { Mono, Comment, Prompt, BlockBar, TabBar, ScreenHeader, userHandleFromState } from "@/components/ui/sam-primitives";
+import { useT, useI18n } from "@/lib/i18n/i18n-context";
 import type { ScreenProps } from "./types";
 import { SCREEN_PAD } from "./types";
 
@@ -74,6 +75,9 @@ function maxDrawdown(values: number[]) {
 
 export function AnalysisScreen({ state, setState }: ScreenProps) {
   const { sam } = useSam();
+  const t = useT();
+  const { lang } = useI18n();
+  const dateLocale = lang === "es" ? "es" : "en";
   const holdings = state.holdings || [];
   const market = state.market || {};
   const dailyBars = state.dailyBars || {};
@@ -118,27 +122,27 @@ export function AnalysisScreen({ state, setState }: ScreenProps) {
 
   const hasData = holdings.length > 0 && values.length >= 2;
   const riskScore = hasData ? Math.max(1, Math.min(10, Math.round(volPct / 3))) : 0;
-  const riskLabel = riskScore <= 3 ? "CONSERVATIVE" : riskScore <= 6 ? "MODERATE" : "AGGRESSIVE";
+  const riskLabel = riskScore <= 3 ? t("CONSERVATIVE") : riskScore <= 6 ? t("MODERATE") : t("AGGRESSIVE");
   const riskColor = riskScore <= 3 ? sam.green : riskScore <= 6 ? sam.yellow : sam.red;
 
   const metrics = [
-    { label: "Period return", value: hasData ? `${periodRet >= 0 ? "+" : ""}${periodRet.toFixed(1)}%` : "—", c: periodRet >= 0 ? sam.green : sam.red, note: "~60d" },
-    { label: "Volatility", value: hasData ? `${volPct.toFixed(1)}%` : "—", c: sam.yellow, note: "annualized" },
-    { label: "Max drawdown", value: hasData ? `${mdd.toFixed(1)}%` : "—", c: sam.red, note: "period low" },
-    { label: "Sharpe ratio", value: hasData ? sharpe.toFixed(2) : "—", c: sharpe >= 1 ? sam.green : sam.text, note: "rf=0" },
-    { label: "Beta vs SPY", value: beta != null ? beta.toFixed(2) : "—", c: sam.cyan, note: beta != null && beta < 1 ? "defensive" : "market" },
+    { label: t("Period return"), value: hasData ? `${periodRet >= 0 ? "+" : ""}${periodRet.toFixed(1)}%` : "—", c: periodRet >= 0 ? sam.green : sam.red, note: t("~60d") },
+    { label: t("Volatility"), value: hasData ? `${volPct.toFixed(1)}%` : "—", c: sam.yellow, note: t("annualized") },
+    { label: t("Max drawdown"), value: hasData ? `${mdd.toFixed(1)}%` : "—", c: sam.red, note: t("period low") },
+    { label: t("Sharpe ratio"), value: hasData ? sharpe.toFixed(2) : "—", c: sharpe >= 1 ? sam.green : sam.text, note: t("rf=0") },
+    { label: t("Beta vs SPY"), value: beta != null ? beta.toFixed(2) : "—", c: sam.cyan, note: beta != null && beta < 1 ? t("defensive") : t("market") },
   ];
 
   const suggestions: { icon: string; c: string; text: string }[] = [];
   const top = allocation[0];
   if (top && top.pct > 40)
-    suggestions.push({ icon: "⚠", c: sam.yellow, text: `${top.label} is ${top.pct.toFixed(0)}% of the book · consider trimming` });
+    suggestions.push({ icon: "⚠", c: sam.yellow, text: t("{sym} is {pct}% of the book · consider trimming", { sym: top.label, pct: top.pct.toFixed(0) }) });
   if (holdings.length === 1)
-    suggestions.push({ icon: "◆", c: sam.cyan, text: "single position · diversify across more tickers" });
+    suggestions.push({ icon: "◆", c: sam.cyan, text: t("single position · diversify across more tickers") });
   if (volPct > 30)
-    suggestions.push({ icon: "⚠", c: sam.red, text: `high volatility (${volPct.toFixed(0)}%) · size positions carefully` });
+    suggestions.push({ icon: "⚠", c: sam.red, text: t("high volatility ({pct}%) · size positions carefully", { pct: volPct.toFixed(0) }) });
   if (suggestions.length === 0 && hasData)
-    suggestions.push({ icon: "◉", c: sam.green, text: "allocation looks balanced · maintain positions" });
+    suggestions.push({ icon: "◉", c: sam.green, text: t("allocation looks balanced · maintain positions") });
 
   if (holdings.length === 0) {
     return (
@@ -158,7 +162,7 @@ export function AnalysisScreen({ state, setState }: ScreenProps) {
               fontSize: 12,
             }}
           >
-            // no holdings to analyze yet · buy a position from the market tab
+            {`// ${t("no holdings to analyze yet · buy a position from the market tab")}`}
           </div>
         </div>
       </div>
@@ -172,7 +176,7 @@ export function AnalysisScreen({ state, setState }: ScreenProps) {
       </ScreenHeader>
       <div style={{ marginTop: 20 }}>
         <Prompt user={userHandleFromState(state)} host="init.Analysis" cmd="portfolio --analyze" />
-        <Comment>based on {holdings.length} holdings · {new Date().toLocaleDateString("en", { month: "short", year: "numeric" })}</Comment>
+        <Comment>{t("based on {n} holdings", { n: holdings.length })} · {new Date().toLocaleDateString(dateLocale, { month: "short", year: "numeric" })}</Comment>
         <div
           style={{
             marginTop: 16,
@@ -184,7 +188,7 @@ export function AnalysisScreen({ state, setState }: ScreenProps) {
           }}
         >
           <div>
-            <div style={{ fontSize: 10, color: sam.comment, marginBottom: 4 }}>// risk score</div>
+            <div style={{ fontSize: 10, color: sam.comment, marginBottom: 4 }}>// {t("risk score")}</div>
             <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
               <span style={{ fontSize: 32, fontWeight: 700, color: riskColor, fontVariantNumeric: "tabular-nums" }}>
                 {riskScore || "—"}
@@ -210,13 +214,13 @@ export function AnalysisScreen({ state, setState }: ScreenProps) {
               ))}
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, color: sam.comment }}>
-              <span>conservative</span>
-              <span>aggressive</span>
+              <span>{t("conservative")}</span>
+              <span>{t("aggressive")}</span>
             </div>
           </div>
         </div>
         <div style={{ marginTop: 18 }}>
-          <div style={{ fontSize: 13, color: sam.cyan, fontWeight: 600, marginBottom: 10 }}>▸ allocation</div>
+          <div style={{ fontSize: 13, color: sam.cyan, fontWeight: 600, marginBottom: 10 }}>▸ {t("allocation")}</div>
           {allocation.map((a) => (
             <div key={a.label} style={{ marginTop: 8 }}>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 4 }}>
@@ -236,7 +240,7 @@ export function AnalysisScreen({ state, setState }: ScreenProps) {
           ))}
         </div>
         <div style={{ marginTop: 18 }}>
-          <div style={{ fontSize: 13, color: sam.cyan, fontWeight: 600, marginBottom: 8 }}>▸ risk metrics</div>
+          <div style={{ fontSize: 13, color: sam.cyan, fontWeight: 600, marginBottom: 8 }}>▸ {t("risk metrics")}</div>
           <div style={{ border: `1px solid ${sam.border}`, fontSize: 12 }}>
             {metrics.map((m, i) => (
               <div
@@ -262,7 +266,7 @@ export function AnalysisScreen({ state, setState }: ScreenProps) {
           </div>
         </div>
         <div style={{ marginTop: 18, marginBottom: 24 }}>
-          <div style={{ fontSize: 13, color: sam.cyan, fontWeight: 600, marginBottom: 8 }}>▸ rebalancing signals</div>
+          <div style={{ fontSize: 13, color: sam.cyan, fontWeight: 600, marginBottom: 8 }}>▸ {t("rebalancing signals")}</div>
           {suggestions.map((s, i) => (
             <div
               key={i}
@@ -283,7 +287,7 @@ export function AnalysisScreen({ state, setState }: ScreenProps) {
             </div>
           ))}
           <div style={{ marginTop: 12, fontSize: 10, color: sam.comment }}>
-            {`// metrics from ~60d reconstructed series · informational only · not financial advice`}
+            {`// ${t("metrics from ~60d reconstructed series · informational only · not financial advice")}`}
           </div>
         </div>
       </div>

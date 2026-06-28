@@ -28,7 +28,7 @@ htmlcov/
 credentials.json
 secrets.json
 
-# ── Supabase local ───────────────────────────────────────────
+# ── Supabase local (legacy tooling only) ─────────────────────
 supabase/.branches/
 supabase/.temp/
 supabase/.cache/

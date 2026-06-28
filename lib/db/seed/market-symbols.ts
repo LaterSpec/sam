@@ -1,4 +1,4 @@
-/** 85 tickers from supabase migration 0004 — archived in docs/database/supabase-archive/ */
+/** 85 tickers for the global market catalog. */
 export const MARKET_SYMBOLS_SEED: Array<{
   symbol: string;
   name: string;

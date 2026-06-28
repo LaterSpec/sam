@@ -32,11 +32,11 @@ export const themeSchema = z.enum([
 
 export const prefsSchema = z
   .object({
-    notifications: z.boolean().default(true),
-    biometric: z.boolean().default(true),
     theme: themeSchema.default("ayu-mirage"),
-    rollover: z.boolean().default(false),
     accentHue: z.number().finite().min(0).max(360).optional(),
+    language: z.enum(["en", "es"]).optional(),
+    defaultCurrency: z.enum(["USD", "PEN"]).optional(),
+    timezone: z.string().min(1).max(80).default("America/Lima"),
   })
   .strip();
 

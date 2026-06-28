@@ -15,6 +15,7 @@ import {
   AccountsScreen,
   ExpensesScreen,
   IncomeScreen,
+  RecurringScreen,
   BudgetScreen,
   InvestScreen,
   MarketScreen,
@@ -38,6 +39,7 @@ import {
 import { portfolioValue } from "@/lib/market/build-market";
 import { Mono } from "@/components/ui/sam-primitives";
 import { useSam } from "@/lib/theme/sam-theme";
+import { useI18n, useT } from "@/lib/i18n/i18n-context";
 
 const TAB_ORDER = ["home", "expenses", "invest", "goals", "profile"];
 
@@ -53,9 +55,7 @@ const UI_DEFAULTS = {
   profileTab: "profile",
   selectedDay: new Date().getDate(),
   selectedGoal: null as string | null,
-  pending: 3,
   hiddenCards: [] as string[],
-  autoSave: { enabled: true, amount: 50 },
 };
 
 function resolveScreen(tab: string, subTab: string) {
@@ -66,6 +66,7 @@ function resolveScreen(tab: string, subTab: string) {
   }
   if (tab === "expenses") {
     if (subTab === "income") return IncomeScreen;
+    if (subTab === "recurring") return RecurringScreen;
     if (subTab === "budget") return BudgetScreen;
     return ExpensesScreen;
   }
@@ -125,6 +126,72 @@ function ErrorFallback({ error, onReset }: { error: Error; onReset: () => void }
   );
 }
 
+function PullToRefreshIndicator({
+  pullY,
+  refreshing,
+  threshold,
+}: {
+  pullY: number;
+  refreshing: boolean;
+  threshold: number;
+}) {
+  const { sam } = useSam();
+  const t = useT();
+  const visible = pullY > 0 || refreshing;
+  if (!visible) return null;
+  const ready = pullY >= threshold;
+  const top = refreshing ? 8 : Math.max(0, pullY - 26);
+  const label = refreshing
+    ? t("refreshing")
+    : ready
+      ? t("release to refresh")
+      : t("pull to refresh");
+  return (
+    <div
+      aria-hidden={!refreshing}
+      style={{
+        position: "absolute",
+        top,
+        left: 0,
+        right: 0,
+        zIndex: 30,
+        display: "flex",
+        justifyContent: "center",
+        pointerEvents: "none",
+        transition: "top 180ms cubic-bezier(.2,.9,.2,1)",
+      }}
+    >
+      <div
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 8,
+          padding: "5px 12px",
+          fontFamily: sam.font,
+          fontSize: 11,
+          color: sam.comment,
+          background: sam.surface,
+          border: `1px solid ${sam.border}`,
+          borderRadius: 999,
+          boxShadow: `0 4px 14px ${sam.bg}99`,
+        }}
+      >
+        <span
+          style={{
+            display: "inline-block",
+            color: ready || refreshing ? sam.accent : sam.comment,
+            animation: refreshing ? "sam-spin 700ms linear infinite" : undefined,
+            transform: refreshing ? undefined : `rotate(${Math.min(180, pullY * 2)}deg)`,
+          }}
+        >
+          {refreshing ? "◍" : "↓"}
+        </span>
+        <span>{label}</span>
+      </div>
+    </div>
+  );
+}
+
 function AppShellInner({
   initialData,
   onThemeChange,
@@ -133,18 +200,23 @@ function AppShellInner({
   onThemeChange: (t: SamTheme) => void;
 }) {
   const { sam } = useSam();
+  const { setLang } = useI18n();
   const [state, setState] = useState<ClientAppState>({
     ...UI_DEFAULTS,
     ...initialData,
     selectedGoal: initialData.goals[0]?.id ?? null,
   });
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [pullY, setPullY] = useState(0);
+  const pull = useRef({ startY: 0, active: false });
   const [authError, setAuthError] = useState("");
   const [sheet, setSheet] = useState<SheetPayload | null>(null);
   const [prevTab, setPrevTab] = useState(state.tab);
   const [animDir, setAnimDir] = useState(0);
   const stateRef = useRef(state);
   stateRef.current = state;
+  const scrollPaneRef = useRef<HTMLDivElement | null>(null);
 
   const hydrate = async () => {
     setLoading(true);
@@ -163,9 +235,62 @@ function AppShellInner({
     }
   };
 
+  const PULL_THRESHOLD = 64;
+  const PULL_MAX = 96;
+
+  const doRefresh = async () => {
+    if (refreshing) return;
+    setRefreshing(true);
+    try {
+      const data = await fetchUserDataAction();
+      if (data) {
+        setState((s) => ({ ...s, ...data, selectedGoal: data.goals[0]?.id ?? s.selectedGoal }));
+      }
+      if (stateRef.current.tab === "invest") {
+        const m = await fetchMarketQuotesAction();
+        if (m) setState((s) => ({ ...s, market: m }));
+      }
+    } catch {
+      /* keep current data on failure */
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  const onPullStart = (e: React.TouchEvent) => {
+    if (refreshing) return;
+    const pane = scrollPaneRef.current;
+    if (pane && pane.scrollTop <= 0) {
+      pull.current = { startY: e.touches[0].clientY, active: true };
+    }
+  };
+
+  const onPullMove = (e: React.TouchEvent) => {
+    if (!pull.current.active || refreshing) return;
+    const dy = e.touches[0].clientY - pull.current.startY;
+    if (dy > 0 && (scrollPaneRef.current?.scrollTop ?? 0) <= 0) {
+      setPullY(Math.min(dy * 0.5, PULL_MAX));
+    } else {
+      pull.current.active = false;
+      setPullY(0);
+    }
+  };
+
+  const onPullEnd = () => {
+    if (!pull.current.active) return;
+    pull.current.active = false;
+    if (pullY >= PULL_THRESHOLD) void doRefresh();
+    setPullY(0);
+  };
+
   useEffect(() => {
     onThemeChange(resolveSamTheme(state.prefs?.theme));
   }, [state.prefs?.theme, onThemeChange]);
+
+  useEffect(() => {
+    const lang = state.prefs?.language;
+    if (lang === "en" || lang === "es") setLang(lang);
+  }, [state.prefs?.language, setLang]);
 
   useEffect(() => {
     const t = resolveSamTheme(state.prefs?.theme);
@@ -223,8 +348,26 @@ function AppShellInner({
     };
   }, [state.user]);
 
+  const SUBTAB_KEY: Record<string, keyof typeof UI_DEFAULTS> = {
+    home: "homeTab",
+    expenses: "expTab",
+    invest: "investTab",
+    goals: "goalsTab",
+    profile: "profileTab",
+  };
+
   const setTab = (t: string) => {
-    if (t === state.tab) return;
+    // Double-tap on the already-active nav item returns to that section's first
+    // sub-page and scrolls back to the top.
+    if (t === state.tab) {
+      const subKey = SUBTAB_KEY[t];
+      if (subKey) {
+        const def = UI_DEFAULTS[subKey] as string;
+        setState((s) => (s[subKey] === def ? s : { ...s, [subKey]: def }));
+      }
+      scrollPaneRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
     const from = TAB_ORDER.indexOf(state.tab);
     const to = TAB_ORDER.indexOf(t);
     setAnimDir(to > from ? 1 : -1);
@@ -291,6 +434,7 @@ function AppShellInner({
           background: "var(--sam-bg)",
         }}
       >
+        <PullToRefreshIndicator pullY={pullY} refreshing={refreshing} threshold={PULL_THRESHOLD} />
         {transitioning && (
           <div
             key={`${prevTab}-out`}
@@ -313,8 +457,16 @@ function AppShellInner({
         >
           <div
             key={subTab}
+            ref={scrollPaneRef}
+            onTouchStart={onPullStart}
+            onTouchMove={onPullMove}
+            onTouchEnd={onPullEnd}
             className={`absolute inset-0 overflow-y-auto overscroll-contain ${SCREEN_SAFE_PAD}`}
-            style={{ animation: "sam-subtab-in 240ms cubic-bezier(.2,.9,.2,1)" }}
+            style={{
+              animation: "sam-subtab-in 240ms cubic-bezier(.2,.9,.2,1)",
+              transform: pullY > 0 ? `translateY(${pullY}px)` : undefined,
+              transition: pull.current.active ? "none" : "transform 220ms cubic-bezier(.2,.9,.2,1)",
+            }}
           >
             <ScreenErrorBoundary onReset={hydrate} key={`${state.tab}:${subTab}`}>
               <ActiveScreen state={state} setState={setState} openSheet={setSheet} />

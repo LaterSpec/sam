@@ -3,6 +3,7 @@
 import { useSam } from "@/lib/theme/sam-theme";
 import { Mono, Prompt, TabBar, ScreenHeader, userHandleFromState } from "@/components/ui/sam-primitives";
 import { MiniLineChart } from "@/components/charts/mini-line-chart";
+import { useT } from "@/lib/i18n/i18n-context";
 import type { ScreenProps } from "./types";
 import { SCREEN_PAD } from "./types";
 
@@ -10,6 +11,7 @@ type MarketQuote = { price?: number; pct?: number; source?: string; live?: boole
 
 export function MarketScreen({ state, setState, openSheet }: ScreenProps) {
   const { sam } = useSam();
+  const t = useT();
   const market = state.market || {};
   const dailyBars = state.dailyBars || {};
   const holdings = state.holdings || [];
@@ -79,28 +81,39 @@ export function MarketScreen({ state, setState, openSheet }: ScreenProps) {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "78px 1fr 110px",
+            gridTemplateColumns: "minmax(64px, 78px) minmax(0, 1fr) minmax(72px, auto)",
             alignItems: "center",
             padding: "10px 12px",
             gap: 10,
           }}
         >
-          <div>
+          <div style={{ minWidth: 0 }}>
             <Mono c={sam.yellow} b style={{ fontSize: 14 }}>
               {sym}
             </Mono>
-            <div style={{ fontSize: 10, color: sam.comment, marginTop: 1 }}>{name}</div>
+            <div
+              style={{
+                fontSize: 10,
+                color: sam.comment,
+                marginTop: 1,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {name}
+            </div>
           </div>
-          <div style={{ display: "flex", justifyContent: "center" }}>
+          <div style={{ minWidth: 0, display: "flex", justifyContent: "center" }}>
             {prices ? (
-              <MiniLineChart prices={prices} color={noData ? sam.comment : pctColor} width={110} height={34} />
+              <MiniLineChart prices={prices} color={noData ? sam.comment : pctColor} width={110} height={34} responsive />
             ) : (
               <Mono c={sam.comment} style={{ fontSize: 10 }}>
-                no data
+                {t("no data")}
               </Mono>
             )}
           </div>
-          <div style={{ textAlign: "right" }}>
+          <div style={{ textAlign: "right", minWidth: 0 }}>
             {noData ? (
               <Mono c={sam.comment} style={{ fontSize: 11 }}>
                 —
@@ -132,17 +145,17 @@ export function MarketScreen({ state, setState, openSheet }: ScreenProps) {
           >
             <span>
               <Mono c={sam.textDim}>{qty!.toLocaleString(undefined, { maximumFractionDigits: 4 })}</Mono>
-              <Mono c={sam.comment}> shares</Mono>
+              <Mono c={sam.comment}> {t("shares")}</Mono>
             </span>
             <span>
-              <Mono c={sam.comment}>val </Mono>
+              <Mono c={sam.comment}>{t("val")} </Mono>
               <Mono c={sam.text} b style={{ fontVariantNumeric: "tabular-nums" }}>
                 ${val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </Mono>
             </span>
             <span>
               <Mono c={pctColor} b>
-                {up ? "+" : "-"}${Math.abs(dayGain!).toFixed(2)} today
+                {up ? "+" : "-"}${Math.abs(dayGain!).toFixed(2)} {t("today")}
               </Mono>
             </span>
           </div>
@@ -179,7 +192,7 @@ export function MarketScreen({ state, setState, openSheet }: ScreenProps) {
             }}
           />
           <Mono c={isOpen ? sam.green : sam.comment} b style={{ fontSize: 11 }}>
-            {isOpen ? "MARKET OPEN" : "MARKET CLOSED"}
+            {isOpen ? t("MARKET OPEN") : t("MARKET CLOSED")}
           </Mono>
           <Mono c={sam.comment} style={{ fontSize: 11 }}>
             · NYSE {hh}:{mm} EST
@@ -191,19 +204,19 @@ export function MarketScreen({ state, setState, openSheet }: ScreenProps) {
             </Mono>
           ) : (
             <Mono c={sam.comment} style={{ fontSize: 10 }}>
-              ~15m delay
+              {t("~15m delay")}
             </Mono>
           )}
         </div>
         <div style={{ fontSize: 10, color: sam.comment, marginBottom: 14 }}>
           {liveActive
-            ? "// source: IBKR live feed · real-time"
-            : "// source: Yahoo Finance · last close / delayed snapshot"}
+            ? `// ${t("source: IBKR live feed · real-time")}`
+            : `// ${t("source: Yahoo Finance · last close / delayed snapshot")}`}
         </div>
         <div style={{ fontSize: 13, color: sam.cyan, fontWeight: 600, marginBottom: 10 }}>
-          ▸ your holdings
+          ▸ {t("your holdings")}
           <Mono c={sam.comment} style={{ fontWeight: 400, marginLeft: 8, fontSize: 11 }}>
-            {holdings.length} positions · tap for detail
+            {t("{n} positions · tap for detail", { n: holdings.length })}
           </Mono>
         </div>
         {holdings.length === 0 && (
@@ -217,7 +230,7 @@ export function MarketScreen({ state, setState, openSheet }: ScreenProps) {
               marginBottom: 14,
             }}
           >
-            // no positions yet · tap a watchlist ticker to buy
+            {`// ${t("no positions yet · tap a watchlist ticker to buy")}`}
           </div>
         )}
         {holdings.map((h) => (
@@ -225,15 +238,15 @@ export function MarketScreen({ state, setState, openSheet }: ScreenProps) {
         ))}
         <div style={{ display: "flex", alignItems: "baseline", marginTop: 18, marginBottom: 10 }}>
           <Mono c={sam.cyan} b style={{ fontSize: 13 }}>
-            ▸ watchlist
+            ▸ {t("watchlist")}
           </Mono>
           <Mono c={sam.comment} style={{ marginLeft: 8, fontSize: 11 }}>
-            {watchlist.length} tracked
+            {t("{n} tracked", { n: watchlist.length })}
           </Mono>
           <span style={{ flex: 1 }} />
           <span onClick={() => openSheet({ kind: "add-ticker" })} style={{ cursor: "pointer" }}>
             <Mono c={sam.green} b style={{ fontSize: 12 }}>
-              [+ add]
+              {t("[+ add]")}
             </Mono>
           </span>
         </div>
@@ -248,18 +261,18 @@ export function MarketScreen({ state, setState, openSheet }: ScreenProps) {
               marginBottom: 14,
             }}
           >
-            // no tickers yet · tap [+ add] to start tracking
+            {`// ${t("no tickers yet · tap [+ add] to start tracking")}`}
           </div>
         )}
         {watchlist.map((w) => (
           <TickerCard key={w.sym} sym={w.sym} name={w.name} owned={false} />
         ))}
         <div style={{ fontSize: 13, color: sam.cyan, fontWeight: 600, marginBottom: 8, marginTop: 16 }}>
-          ▸ top movers today
+          ▸ {t("top movers today")}
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 20 }}>
           <div>
-            <div style={{ fontSize: 11, color: sam.green, fontWeight: 600, marginBottom: 6 }}>// gainers</div>
+            <div style={{ fontSize: 11, color: sam.green, fontWeight: 600, marginBottom: 6 }}>// {t("gainers")}</div>
             {gainers.map((m) => (
               <div key={m.sym} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginTop: 5 }}>
                 <Mono c={sam.text} b>
@@ -272,7 +285,7 @@ export function MarketScreen({ state, setState, openSheet }: ScreenProps) {
             ))}
           </div>
           <div>
-            <div style={{ fontSize: 11, color: sam.red, fontWeight: 600, marginBottom: 6 }}>// losers</div>
+            <div style={{ fontSize: 11, color: sam.red, fontWeight: 600, marginBottom: 6 }}>// {t("losers")}</div>
             {losers.map((m) => (
               <div key={m.sym} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginTop: 5 }}>
                 <Mono c={sam.text} b>
@@ -286,7 +299,7 @@ export function MarketScreen({ state, setState, openSheet }: ScreenProps) {
           </div>
         </div>
         <div style={{ fontSize: 10, color: sam.comment, marginBottom: 24 }}>
-          {`// orders are simulated · not financial advice · do your own research`}
+          {`// ${t("orders are simulated · not financial advice · do your own research")}`}
         </div>
       </div>
     </div>
