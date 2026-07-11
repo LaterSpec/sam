@@ -344,39 +344,22 @@ body {
 }
 
 /*
- * WebKit shortens the standalone containing block by the top safe area when
- * viewport-fit=cover and black-translucent are combined. Restore only that
- * missing strip so the app reaches the physical bottom without using 100vh.
+ * Standalone (installed PWA) sizing. Older WebKit builds shorten the
+ * containing block by the top safe area when viewport-fit=cover +
+ * black-translucent are combined; newer builds don't. Instead of
+ * compensating with calc(100% + inset) hacks (which overshoot on fixed
+ * builds and push the bottom nav off-screen), size the shell with dvh:
+ * 100dvh always equals the real visible viewport on every build.
+ * Browsers without dvh support keep the 100% fallback declared above.
  */
-@supports (-webkit-touch-callout: none) {
-  @media (display-mode: standalone) {
-    .app-root {
-      height: calc(100% + env(safe-area-inset-top, 0px));
-    }
+@media (display-mode: standalone) {
+  html,
+  body {
+    height: 100dvh;
+  }
 
-    /*
-     * .app-root is extended by the top inset to compensate WebKit shortening the
-     * standalone containing block. On Safari builds where that bug is fixed the
-     * extension instead pushes bottom-anchored controls past the visible
-     * viewport, so the lower half of a button renders but cannot be tapped.
-     * Re-claim that same inset as bottom spacing (no height changes) so the last
-     * interactive element always stays fully on-screen and clickable.
-     */
-    .app-scroll-pane::after {
-      height: calc(var(--app-bottom-reserve) + env(safe-area-inset-top, 0px));
-    }
-
-    .onboarding-footer {
-      padding-bottom: calc(
-        max(18px, env(safe-area-inset-bottom, 0px) + 10px) + env(safe-area-inset-top, 0px)
-      );
-    }
-
-    .auth-picker-shell {
-      padding-bottom: calc(
-        max(18px, env(safe-area-inset-bottom, 0px) + 10px) + env(safe-area-inset-top, 0px)
-      );
-    }
+  .app-root {
+    height: 100dvh;
   }
 }
 
