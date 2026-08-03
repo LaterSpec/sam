@@ -18,10 +18,7 @@
     }
   ],
   "triggers": {
-    "crons": [
-      "0 * * * *",
-      "15 6 * * *"
-    ]
+    "crons": []
   },
   "observability": {
     "enabled": true,
@@ -36,6 +33,6 @@
   "vars": {
     "BETTER_AUTH_URL": "https://sam-app.its-manuel-caceres.workers.dev",
     "NEXT_PUBLIC_APP_URL": "https://sam-app.its-manuel-caceres.workers.dev",
-    "RECURRING_CRON_ENABLED": "true"
+    "RECURRING_CRON_ENABLED": "false"
   }
 }
