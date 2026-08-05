@@ -50,7 +50,7 @@ export SAM_MCP_TOKEN="sam_mcp_..."
 
 ## What agents can do
 
-SAM exposes **43 typed tools** scoped to the authenticated user. Natural-language requests are translated by the agent into tool calls; SAM validates input, enforces scopes, and returns structured JSON.
+SAM exposes **36 typed tools** scoped to the authenticated user. Natural-language requests are translated by the agent into tool calls; SAM validates input, enforces scopes, and returns structured JSON.
 
 | User intent | Suggested tools |
 | --- | --- |
@@ -62,7 +62,6 @@ SAM exposes **43 typed tools** scoped to the authenticated user. Natural-languag
 | "Pay rent every month" | `sam_create_recurring_rule` (expense + account + category) |
 | "Why did my subscription fail?" | `sam_list_recurring_occurrences` → `sam_retry_recurring_occurrence` |
 | "Show my savings goals" | `sam_list_goals` |
-| "What's AAPL trading at?" | `sam_get_quote` |
 
 Full catalog: [tools-reference.md](../.agents/skills/sam-mcp/tools-reference.md).
 
@@ -160,7 +159,7 @@ More examples: [examples.md](../.agents/skills/sam-mcp/examples.md).
 
 | Scope | Allows |
 | --- | --- |
-| `sam:read` | Read accounts, categories, transactions, summaries, goals, invest |
+| `sam:read` | Read accounts, categories, transactions, summaries and goals |
 | `sam:expenses.write` | Create, update, delete expenses |
 | `sam:categories.write` | Create/update categories and budget caps |
 | `sam:income.write` | Record one-time income transactions |
@@ -169,7 +168,6 @@ More examples: [examples.md](../.agents/skills/sam-mcp/examples.md).
 | `sam:goals.write` | Create/update goals |
 | `sam:accounts.write` | Create/update accounts |
 | `sam:accounts.transfer` | Transfer between accounts (high risk) |
-| `sam:invest.write` | Simulated buy/sell and watchlist |
 | `sam:profile.write` | Update username and preferences |
 
 **Default scopes** on new tokens: `sam:read`, `sam:expenses.write`, `sam:categories.write`.

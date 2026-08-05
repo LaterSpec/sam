@@ -14,7 +14,6 @@ export const ES: Record<string, string> = {
   home: "inicio",
   expenses: "gastos",
   expense: "gasto",
-  invest: "invertir",
   goals: "metas",
   profile: "perfil",
 
@@ -24,9 +23,6 @@ export const ES: Record<string, string> = {
   income: "ingresos",
   recurring: "recurrentes",
   budget: "presupuesto",
-  portfolio: "portafolio",
-  market: "mercado",
-  analysis: "análisis",
   savings: "ahorros",
   stats: "estadísticas",
   help: "ayuda",
@@ -78,10 +74,6 @@ export const ES: Record<string, string> = {
   posted: "registrada",
   skipped: "omitida",
   processing: "procesando",
-  tracked: "seguidos",
-  positions: "posiciones",
-  holdings: "tus posiciones",
-  watchlist: "lista de seguimiento",
   refresh: "actualizar",
   refreshing: "actualizando",
   "pull to refresh": "desliza para actualizar",
@@ -102,9 +94,9 @@ export const ES: Record<string, string> = {
   "reach what matters": "alcanza lo que importa",
   "set goals, record progress, and see what remains. keep the plan next to the rest of your finances.":
     "fija metas, registra avances y mira lo que falta. mantén el plan junto al resto de tus finanzas.",
-  "invest, watch the market": "invierte, observa el mercado",
-  "track tickers, build a portfolio, follow live prices — stocks, ETFs and crypto, all in the same terminal.":
-    "sigue tickers, arma un portafolio, observa precios en vivo — acciones, ETFs y cripto, todo en la misma terminal.",
+  "know what comes next": "anticipa lo que viene",
+  "see recurring payments, budget pressure, and your projected balance before the month closes.":
+    "consulta pagos recurrentes, presión presupuestaria y tu saldo proyectado antes de cerrar el mes.",
   "your money. your machine.": "tu dinero. tu máquina.",
   "your finance data stays scoped to your authenticated account. PWA-first and ready to install.":
     "tus datos financieros permanecen asociados a tu cuenta autenticada. PWA primero y lista para instalar.",
@@ -183,9 +175,6 @@ export const ES: Record<string, string> = {
   "new expense": "nuevo gasto",
   "new income": "nuevo ingreso",
   "Lunch, Coffee, Uber...": "Almuerzo, Café, Uber...",
-  "no positions yet — tap a watchlist ticker to buy":
-    "aún no hay posiciones — toca un ticker de la lista para comprar",
-  "no positions yet": "aún no hay posiciones",
   "tap for detail": "toca para ver detalle",
   "tap to adjust cap": "toca para ajustar el tope",
   "new envelope": "nuevo sobre",
@@ -307,26 +296,6 @@ export const ES: Record<string, string> = {
   "budget · spent · remaining": "presupuesto · gastado · restante",
   Envelopes: "Sobres",
 
-  // ── Invest ──────────────────────────────────────────────────
-  "{n} holdings · {feed} · tap to buy/sell":
-    "{n} posiciones · {feed} · toca para comprar/vender",
-  "live feed": "feed en vivo",
-  delayed: "con retraso",
-  "$0 invested · buy from the market tab to start":
-    "$0 invertido · compra desde la pestaña mercado para empezar",
-  performance: "rendimiento",
-  "today · ~10m points": "hoy · puntos cada ~10m",
-  "since day 0 · daily": "desde el día 0 · diario",
-  "your value chart starts when you buy · it grows from there":
-    "tu gráfico de valor empieza cuando compras · crece desde ahí",
-  Holdings: "Posiciones",
-  "no positions · open the market tab and tap a ticker to buy":
-    "sin posiciones · abre la pestaña mercado y toca un ticker para comprar",
-  "live feed active · simulated positions · not financial advice":
-    "feed en vivo activo · posiciones simuladas · no es asesoría financiera",
-  "data delayed / last close · simulated positions · not financial advice":
-    "datos con retraso / último cierre · posiciones simuladas · no es asesoría financiera",
-
   // ── Activity ────────────────────────────────────────────────
   Unknown: "Desconocido",
   "{n} tx · filter live · tap to view": "{n} tx · filtro en vivo · toca para ver",
@@ -367,60 +336,4 @@ export const ES: Record<string, string> = {
   less: "menos",
   more: "más",
 
-  // ── Analysis ────────────────────────────────────────────────
-  CONSERVATIVE: "CONSERVADOR",
-  MODERATE: "MODERADO",
-  AGGRESSIVE: "AGRESIVO",
-  "Period return": "Retorno del periodo",
-  Volatility: "Volatilidad",
-  "Max drawdown": "Caída máxima",
-  "Sharpe ratio": "Ratio de Sharpe",
-  "Beta vs SPY": "Beta vs SPY",
-  "~60d": "~60d",
-  annualized: "anualizado",
-  "period low": "mínimo del periodo",
-  "rf=0": "rf=0",
-  defensive: "defensivo",
-  "{sym} is {pct}% of the book · consider trimming":
-    "{sym} es {pct}% de la cartera · considera reducir",
-  "single position · diversify across more tickers":
-    "una sola posición · diversifica en más tickers",
-  "high volatility ({pct}%) · size positions carefully":
-    "alta volatilidad ({pct}%) · dimensiona las posiciones con cuidado",
-  "allocation looks balanced · maintain positions":
-    "la distribución se ve balanceada · mantén las posiciones",
-  "no holdings to analyze yet · buy a position from the market tab":
-    "aún no hay posiciones para analizar · compra una desde la pestaña mercado",
-  "based on {n} holdings": "basado en {n} posiciones",
-  "risk score": "puntaje de riesgo",
-  conservative: "conservador",
-  aggressive: "agresivo",
-  allocation: "distribución",
-  "risk metrics": "métricas de riesgo",
-  "rebalancing signals": "señales de rebalanceo",
-  "metrics from ~60d reconstructed series · informational only · not financial advice":
-    "métricas de una serie reconstruida de ~60d · solo informativo · no es asesoría financiera",
-
-  // ── Market ──────────────────────────────────────────────────
-  "no data": "sin datos",
-  shares: "acciones",
-  val: "val",
-  "MARKET OPEN": "MERCADO ABIERTO",
-  "MARKET CLOSED": "MERCADO CERRADO",
-  "~15m delay": "~15m de retraso",
-  "source: IBKR live feed · real-time": "fuente: feed en vivo de IBKR · tiempo real",
-  "source: Yahoo Finance · last close / delayed snapshot":
-    "fuente: Yahoo Finance · último cierre / snapshot con retraso",
-  "your holdings": "tus posiciones",
-  "{n} positions · tap for detail": "{n} posiciones · toca para ver detalle",
-  "no positions yet · tap a watchlist ticker to buy":
-    "aún no hay posiciones · toca un ticker de la lista para comprar",
-  "{n} tracked": "{n} en seguimiento",
-  "no tickers yet · tap [+ add] to start tracking":
-    "aún no hay tickers · toca [+ agregar] para empezar a seguir",
-  "top movers today": "mayores movimientos de hoy",
-  gainers: "ganadores",
-  losers: "perdedores",
-  "orders are simulated · not financial advice · do your own research":
-    "las órdenes son simuladas · no es asesoría financiera · investiga por tu cuenta",
 };

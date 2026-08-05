@@ -7,10 +7,6 @@ import {
   goals,
   categories,
   savingsBuckets,
-  holdings,
-  watchlist,
-  trades,
-  portfolioSnapshots,
   profiles,
   accounts,
   user as userTable,
@@ -19,8 +15,7 @@ import {
 } from "@/lib/db/schema";
 import { eq, and, desc } from "drizzle-orm";
 import { requireSession } from "@/lib/auth/session";
-import { loadUserData, getMarketQuotesOnly, getBarsForSymbols } from "@/lib/db/queries/load-user-data";
-import { mapHolding } from "@/lib/market/build-market";
+import { loadUserData } from "@/lib/db/queries/load-user-data";
 import { revalidatePath } from "next/cache";
 import { formatTime } from "@/lib/utils";
 import { accountColor, accountDefaultIcon } from "@/lib/accounts/account-types";
@@ -146,8 +141,6 @@ const colorSchema = z
   .trim()
   .regex(/^#[0-9a-fA-F]{6}$/)
   .optional();
-const symbolSchema = z.string().trim().toUpperCase().regex(/^[A-Z0-9.\-]{1,16}$/);
-
 const themeSchema = z.enum([
   "solarized-cream",
   "ayu-mirage",
@@ -188,16 +181,6 @@ function keyFromName(name: string) {
 export async function fetchUserDataAction() {
   const session = await requireSession();
   return loadUserData(session.user.id, session.user.email);
-}
-
-export async function fetchMarketQuotesAction() {
-  await requireSession();
-  return getMarketQuotesOnly();
-}
-
-export async function fetchBarsAction(symbols: string[]) {
-  await requireSession();
-  return getBarsForSymbols(symbols);
 }
 
 export async function addExpenseAction(input: {
@@ -801,142 +784,15 @@ export async function updatePrefsAction(prefs: Record<string, unknown>) {
   revalidatePath("/app");
 }
 
-export async function recordSnapshotAction(value: number) {
-  const session = await requireSession();
-  const parsed = moneySchema.parse(value);
-  const recent = await db
-    .select({ capturedAt: portfolioSnapshots.capturedAt })
-    .from(portfolioSnapshots)
-    .where(eq(portfolioSnapshots.userId, session.user.id))
-    .orderBy(desc(portfolioSnapshots.capturedAt))
-    .limit(1);
-  if (recent[0] && Date.now() - recent[0].capturedAt.getTime() < 10 * 60 * 1000) return;
-  await db.insert(portfolioSnapshots).values({ userId: session.user.id, value: String(parsed) });
-}
-
-export async function buyHoldingAction(input: {
-  symbol: string;
+export async function addAccountAction(input: {
   name: string;
-  amount: number;
-  price: number;
+  type: string;
+  icon?: string;
+  color?: string;
+  currency?: string;
+  creditLimit?: number | null;
+  last4?: string | null;
 }) {
-  const session = await requireSession();
-  const uid = session.user.id;
-  const symbol = symbolSchema.parse(input.symbol);
-  const name = (input.name || symbol).trim().slice(0, 120);
-  const amount = positiveMoneySchema.parse(input.amount);
-  const price = positiveMoneySchema.parse(input.price);
-  const qty = amount / price;
-
-  const existing = await db
-    .select()
-    .from(holdings)
-    .where(and(eq(holdings.userId, uid), eq(holdings.symbol, symbol)))
-    .limit(1);
-
-  let row;
-  if (existing[0]) {
-    const ex = existing[0];
-    const newQty = Number(ex.qty) + qty;
-    const newAvg = newQty > 0 ? (Number(ex.qty) * Number(ex.avgCost) + amount) / newQty : price;
-    [row] = await db
-      .update(holdings)
-      .set({ qty: String(newQty), avgCost: String(newAvg), updatedAt: new Date() })
-      .where(and(eq(holdings.id, ex.id), eq(holdings.userId, uid)))
-      .returning();
-  } else {
-    [row] = await db
-      .insert(holdings)
-      .values({
-        userId: uid,
-        symbol,
-        name,
-        qty: String(qty),
-        avgCost: String(price),
-      })
-      .returning();
-  }
-
-  await db.insert(trades).values({
-    userId: uid,
-    symbol,
-    side: "buy",
-    qty: String(qty),
-    price: String(price),
-    amount: String(amount),
-  });
-  await db.delete(watchlist).where(and(eq(watchlist.userId, uid), eq(watchlist.symbol, symbol)));
-  revalidatePath("/app");
-  return { row: mapHolding(row), removedFromWatch: symbol };
-}
-
-export async function sellHoldingAction(input: {
-  symbol: string;
-  amount?: number;
-  qty?: number;
-  price: number;
-}) {
-  const session = await requireSession();
-  const uid = session.user.id;
-  const symbol = symbolSchema.parse(input.symbol);
-  const price = positiveMoneySchema.parse(input.price);
-  const existing = await db
-    .select()
-    .from(holdings)
-    .where(and(eq(holdings.userId, uid), eq(holdings.symbol, symbol)))
-    .limit(1);
-
-  if (!existing[0]) return { error: "not held" };
-  const ex = existing[0];
-  const sellQty = input.qty != null ? positiveMoneySchema.parse(input.qty) : positiveMoneySchema.parse(input.amount ?? 0) / price;
-  if (sellQty <= 0) throw new Error("quantity must be positive");
-  const newQty = Number(ex.qty) - sellQty;
-  const amt = Math.min(sellQty, Number(ex.qty)) * price;
-
-  let removed = false;
-  let row = null;
-  if (newQty <= 1e-6) {
-    await db.delete(holdings).where(and(eq(holdings.id, ex.id), eq(holdings.userId, uid)));
-    removed = true;
-  } else {
-    [row] = await db
-      .update(holdings)
-      .set({ qty: String(newQty), updatedAt: new Date() })
-      .where(and(eq(holdings.id, ex.id), eq(holdings.userId, uid)))
-      .returning();
-  }
-
-  await db.insert(trades).values({
-    userId: uid,
-    symbol,
-    side: "sell",
-    qty: String(Math.min(sellQty, Number(ex.qty))),
-    price: String(price),
-    amount: String(amt),
-  });
-  revalidatePath("/app");
-  return { row: row ? mapHolding(row) : null, removed, symbol };
-}
-
-export async function addWatchAction(symbol: string, name: string) {
-  const session = await requireSession();
-  const cleanSymbol = symbolSchema.parse(symbol);
-  const cleanName = (name || cleanSymbol).trim().slice(0, 120);
-  const [row] = await db
-    .insert(watchlist)
-    .values({ userId: session.user.id, symbol: cleanSymbol, name: cleanName })
-    .returning();
-  revalidatePath("/app");
-  return { sym: row.symbol, name: row.name };
-}
-
-export async function removeWatchAction(symbol: string) {
-  const session = await requireSession();
-  await db.delete(watchlist).where(and(eq(watchlist.userId, session.user.id), eq(watchlist.symbol, symbolSchema.parse(symbol))));
-  revalidatePath("/app");
-}
-
-export async function addAccountAction(input: { name: string; type: string; icon?: string; currency?: string }) {
   const session = await requireSession();
   if (shouldUseSharedFinanceDomain()) {
     const result = await createAccountDomain(
@@ -989,7 +845,10 @@ export async function updateAccountAction(input: {
   name?: string;
   type?: string;
   icon?: string;
+  color?: string;
   currency?: string;
+  creditLimit?: number | null;
+  last4?: string | null;
 }) {
   const session = await requireSession();
   if (shouldUseSharedFinanceDomain()) {

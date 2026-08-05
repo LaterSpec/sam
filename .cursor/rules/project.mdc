@@ -11,7 +11,7 @@ alwaysApply: true
 - Ignore `sam-demo/` completely.
 - Full-viewport PWA layout — no iOS device frames or phone chrome.
 - Prefer Server Actions / Route Handlers over separate Python backend.
-- Market ingestion: Cloudflare Cron / route handler or external worker; IBKR live is optional long-running worker.
+- Background finance work must use Cloudflare Cron / route handlers compatible with OpenNext.
 - Extract and document DB schema before removing Supabase files.
 - Do not reintroduce Supabase as an active dependency.
 - Make small, reviewable changes.

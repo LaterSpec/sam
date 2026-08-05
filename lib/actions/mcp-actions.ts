@@ -38,7 +38,7 @@ export async function listMcpTokensAction(): Promise<McpTokenSummary[]> {
     id: r.id,
     name: r.name,
     publicPrefix: r.publicPrefix,
-    scopes: r.scopes ?? [],
+    scopes: (r.scopes ?? []).filter(isValidScope),
     createdAt: r.createdAt.toISOString(),
     lastUsedAt: r.lastUsedAt ? r.lastUsedAt.toISOString() : null,
     expiresAt: r.expiresAt ? r.expiresAt.toISOString() : null,

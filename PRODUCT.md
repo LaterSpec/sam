@@ -6,7 +6,7 @@ product
 
 ## Users
 
-People managing personal finances across accounts, expenses, budgets, goals, income, investments, and profile settings. They use the app as an everyday money cockpit where quick scanning and trustworthy balances matter more than decorative flourish.
+People managing personal finances across accounts, expenses, budgets, goals, income, recurring payments, and profile settings. They use the app as an everyday money cockpit where quick scanning and trustworthy balances matter more than decorative flourish.
 
 ## Product Purpose
 

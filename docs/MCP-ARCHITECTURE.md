@@ -28,7 +28,6 @@ Implemented tool catalog (read = `sam:read`; writes scoped):
 - Income: `sam_list_income_sources`, `sam_add_income`
 - Recurring: `sam_list_recurring_rules`, `sam_create_recurring_rule`, `sam_update_recurring_rule`, `sam_pause_recurring_rule`, `sam_resume_recurring_rule`, `sam_archive_recurring_rule`, `sam_delete_recurring_rule`, `sam_list_recurring_occurrences`, `sam_retry_recurring_occurrence`
 - Savings: `sam_list_savings_buckets`, `sam_set_bucket_balance`
-- Invest: `sam_list_holdings`, `sam_list_watchlist`, `sam_get_quote`, `sam_buy_holding`, `sam_sell_holding`, `sam_add_watch`, `sam_remove_watch`
 
 Not exposed via MCP: account deletion and credential changes.
 
@@ -242,8 +241,6 @@ Start with coarse but meaningful scopes:
 | `sam:accounts.write` | Create/update accounts |
 | `sam:accounts.transfer` | Transfer between accounts |
 | `sam:goals.write` | Create/update goals |
-| `sam:invest.read` | Read holdings/watchlist/market data |
-| `sam:invest.write` | Simulated buy/sell/watchlist actions |
 
 Recommended initial scopes:
 

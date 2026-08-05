@@ -2,7 +2,7 @@
  * Demo user seed.
  * Login: alex@sam.app / sam12345
  *
- * Requires: npm run db:push && npm run db:seed (market symbols first)
+ * Requires: npm run db:push
  */
 import { config } from "dotenv";
 config({ path: ".env.local" });
@@ -138,7 +138,7 @@ async function seedDemo() {
     await db.insert(incomeSources).values([
       { userId, name: "Acme Corp · salary", amount: "3200", icon: "⬢", color: "#56d364", freq: "monthly", nextDate: "Jun 1", sort: 0 },
       { userId, name: "Freelance · design", amount: "450", icon: "◆", color: "#58a6ff", freq: "this month", nextDate: "—", sort: 1 },
-      { userId, name: "Dividends · VTI", amount: "28", icon: "◉", color: "#e3b341", freq: "quarterly", nextDate: "Jun 15", sort: 2 },
+      { userId, name: "Savings interest", amount: "28", icon: "◉", color: "#e3b341", freq: "monthly", nextDate: "Jun 15", sort: 2 },
     ]);
     console.log("✓ Seeded income sources");
   }

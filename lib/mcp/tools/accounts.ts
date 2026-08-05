@@ -32,7 +32,10 @@ export function registerAccountTools(server: McpServer, ctx: ActorContext) {
       name: z.string().min(1).max(120),
       type: z.enum(["cash", "checking", "savings", "card"]).default("cash"),
       icon: z.string().max(8).optional(),
+      color: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
       currency: z.enum(["USD", "PEN"]).default("USD"),
+      creditLimit: z.number().nonnegative().nullable().optional(),
+      last4: z.string().regex(/^\d{4}$/).nullable().optional(),
     },
     handler: (ctx, args) => accounts.createAccount(ctx, args),
   });
@@ -46,7 +49,10 @@ export function registerAccountTools(server: McpServer, ctx: ActorContext) {
       name: z.string().min(1).max(120).optional(),
       type: z.enum(["cash", "checking", "savings", "card"]).optional(),
       icon: z.string().max(8).optional(),
+      color: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
       currency: z.enum(["USD", "PEN"]).optional(),
+      creditLimit: z.number().nonnegative().nullable().optional(),
+      last4: z.string().regex(/^\d{4}$/).nullable().optional(),
     },
     handler: (ctx, args) => accounts.updateAccount(ctx, args),
   });

@@ -1,6 +1,6 @@
 # SAM - Financial Terminal
 
-SAM is a personal financial terminal PWA for onboarding, budgeting, goals, simulated investing, watchlists, and market data.
+SAM is a personal financial terminal for accounts, transactions, budgets, goals, savings and recurring payments. Desktop browsers use the Living Ledger workspace; phones use the installable native-like PWA experience.
 
 **Stack:** Next.js 15 App Router, React 19, TypeScript, Tailwind CSS, Drizzle ORM, Neon Postgres, Better Auth, Serwist PWA, OpenNext for Cloudflare, Cloudflare Workers.
 
@@ -21,9 +21,7 @@ cp .env.example .env.local
 
 npm install
 npm run db:push
-npm run db:seed
 npm run db:seed:demo
-npm run market:sync
 npm run dev
 ```
 
@@ -43,12 +41,12 @@ Agents and MCP clients should use the **production MCP URL** when not running SA
 | Route | Purpose |
 | --- | --- |
 | `/onboarding` | Landing and authentication flow |
-| `/app` | Authenticated SAM app |
+| `/app` | Device-aware authenticated entry: desktop workspace or phone UI |
+| `/app/[section]` | Desktop workspace sections with phone-safe mobile mapping |
 | `/canvas` | Design reference / legacy visual sandbox |
 | `/~offline` | PWA offline fallback |
 | `/api/auth/[...all]` | Better Auth route handler |
 | `/api/mcp` | MCP Streamable HTTP endpoint (personal finance tools for AI agents) |
-| `/api/cron/market-sync` | Protected market-data sync endpoint |
 
 ## Scripts
 
@@ -62,9 +60,7 @@ Agents and MCP clients should use the **production MCP URL** when not running SA
 | `npm run db:generate` | Generate Drizzle migrations |
 | `npm run db:migrate` | Apply Drizzle migrations |
 | `npm run db:push` | Push current schema to Neon |
-| `npm run db:seed` | Seed market symbols |
 | `npm run db:seed:demo` | Seed demo user `alex@sam.app / sam12345` |
-| `npm run market:sync` | Sync Yahoo market quotes and daily bars |
 | `npm run icons:generate` | Regenerate PWA icon PNGs |
 
 ## Environment
@@ -79,7 +75,7 @@ See [`.env.example`](.env.example).
 | `NEXT_PUBLIC_APP_URL` | Public app origin used by the frontend |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Optional Google OAuth credentials |
 | `BETTER_AUTH_EMAIL_ENABLED` | Enable email/password auth, normally `true` in local/demo |
-| `CRON_SECRET` | Bearer secret for `/api/cron/market-sync` |
+| `CRON_SECRET` | Bearer secret retained for the disconnected recurring cron endpoint |
 | `MCP_TOKEN_PEPPER` | Salts MCP personal token hashes (required in production) |
 
 For Cloudflare production secrets, use Wrangler secrets for sensitive values:
@@ -114,7 +110,7 @@ Cloudflare production values (`sam-app.its-manuel-caceres.workers.dev`):
 
 `BETTER_AUTH_URL` and `NEXT_PUBLIC_APP_URL` must match the active origin without a trailing slash.
 
-New users receive automatic bootstrap data: profile, default accounts, default categories, and curated watchlist.
+New users receive automatic bootstrap data: profile, default accounts and default categories.
 
 ## Deploy To Cloudflare
 
@@ -126,27 +122,6 @@ npm run deploy:cloudflare
 Production deployment target: Cloudflare Workers.
 
 Database target: Neon Postgres.
-
-## Market Data
-
-Market data is stored in Neon:
-
-- `market_symbols` stores the active ticker universe.
-- `market_quotes` stores latest quotes by source and session date.
-- `market_daily_bars` stores historical daily closes for charts and fallbacks.
-
-The active sync path is TypeScript:
-
-```bash
-npm run market:sync
-```
-
-The protected route handler can be called by a scheduler:
-
-```bash
-curl -H "Authorization: Bearer $CRON_SECRET" \
-  https://sam-app.its-manuel-caceres.workers.dev/api/cron/market-sync
-```
 
 ## PWA
 
@@ -160,7 +135,7 @@ Connect Cursor, Claude, Hermes Agent, OpenClaw, or any MCP client to your SAM da
 
 1. Log in at [https://sam-app.its-manuel-caceres.workers.dev/app](https://sam-app.its-manuel-caceres.workers.dev/app) → Profile → **Connect MCP** → create a token.
 2. Copy [`.cursor/mcp.json.example`](.cursor/mcp.json.example) to `.cursor/mcp.json`, set `url` to the production MCP URL above, and set `SAM_MCP_TOKEN`.
-3. See [docs/MCP.md](docs/MCP.md) for protocol details, all 34 tools, and client-specific setup.
+3. See [docs/MCP.md](docs/MCP.md) for protocol details, the current finance tools, and client-specific setup.
 
 Example Cursor config (production):
 
@@ -185,7 +160,7 @@ Agent skill for this repo: [`.agents/skills/sam-mcp/SKILL.md`](.agents/skills/sa
 - [Database](docs/DATABASE.md)
 - [Schema summary](docs/database/schema-summary.md)
 - [Supabase migration notes](docs/database/supabase-migration-notes.md)
-- [Market data](docs/LIVE-DATA.md)
+- [Investment removal migration](docs/migrations/investments-removal.md)
 - [PWA](docs/PWA.md)
 - [MCP client guide](docs/MCP.md)
 - [Priority 0 financial reliability plan](docs/FINANCIAL-RELIABILITY-PLAN.md)
@@ -199,4 +174,4 @@ Supabase was used during the migration path and is now archived under `docs/data
 
 ## Disclaimer
 
-SAM is a demo/development project. It is not financial advice. Trades are simulated and do not execute with a broker.
+SAM is a demo/development project. It is not financial advice.

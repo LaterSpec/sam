@@ -15,12 +15,10 @@
     "db:apply": "tsx scripts/db/apply-migration.ts",
     "db:verify": "tsx scripts/db/verify-finance.ts",
     "db:push": "drizzle-kit push",
-    "db:seed": "tsx drizzle/seed.ts",
     "db:seed:demo": "tsx drizzle/seed-demo.ts",
     "db:studio": "drizzle-kit studio",
-    "market:sync": "tsx scripts/market/yahoo-sync.ts",
     "icons:generate": "node scripts/generate-pwa-icons.mjs",
-    "test": "tsx --test tests/recurrence.test.ts",
+    "test": "tsx --test tests/*.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
