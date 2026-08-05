@@ -3,7 +3,7 @@ import { getSql } from "@/lib/db/sql";
 import { accounts, transactions } from "@/lib/db/schema";
 import { eq, and, desc, asc } from "drizzle-orm";
 import { accountColor, accountDefaultIcon } from "@/lib/accounts/account-types";
-import { positiveMoneySchema, shortTextSchema, uuidSchema, ACCOUNT_TYPE_SET } from "./validation";
+import { colorSchema, moneySchema, positiveMoneySchema, shortTextSchema, uuidSchema, ACCOUNT_TYPE_SET } from "./validation";
 import { DomainError, DomainErrorCodes, type ActorContext } from "./types";
 import { normalizeCurrency, type Currency } from "@/lib/finance/currency";
 
@@ -97,7 +97,15 @@ export async function getNetWorth(ctx: ActorContext) {
 
 export async function createAccount(
   ctx: ActorContext,
-  input: { name: string; type: string; icon?: string; currency?: string }
+  input: {
+    name: string;
+    type: string;
+    icon?: string;
+    color?: string;
+    currency?: string;
+    creditLimit?: number | null;
+    last4?: string | null;
+  }
 ): Promise<AccountDto> {
   const uid = ctx.userId;
   const trimmed = shortTextSchema.parse(input.name);
@@ -111,6 +119,9 @@ export async function createAccount(
   const nextSort = (existing[0]?.sort ?? -1) + 1;
   const type = ACCOUNT_TYPE_SET.has(input.type) ? input.type : "cash";
   const icon = input.icon?.trim() || accountDefaultIcon(type);
+  const last4 = input.last4?.trim() || null;
+  if (last4 && !/^\d{4}$/.test(last4)) throw new Error("last4 must contain four digits");
+  const creditLimit = input.creditLimit == null ? null : moneySchema.parse(input.creditLimit);
 
   const [row] = await db
     .insert(accounts)
@@ -121,7 +132,9 @@ export async function createAccount(
       balance: "0",
       currency: normalizeCurrency(input.currency),
       icon,
-      color: accountColor(type),
+      color: colorSchema.parse(input.color) || accountColor(type),
+      creditLimit: type === "card" && creditLimit != null ? String(creditLimit) : null,
+      last4: type === "card" ? last4 : null,
       sort: nextSort,
     })
     .returning();
@@ -131,12 +144,29 @@ export async function createAccount(
 
 export async function updateAccount(
   ctx: ActorContext,
-  input: { id: string; name?: string; type?: string; icon?: string; currency?: string }
+  input: {
+    id: string;
+    name?: string;
+    type?: string;
+    icon?: string;
+    color?: string;
+    currency?: string;
+    creditLimit?: number | null;
+    last4?: string | null;
+  }
 ): Promise<AccountDto> {
   const uid = ctx.userId;
   const id = uuidSchema.parse(input.id);
 
-  const patch: { name?: string; type?: string; icon?: string; color?: string; currency?: Currency } = {};
+  const patch: {
+    name?: string;
+    type?: string;
+    icon?: string;
+    color?: string;
+    currency?: Currency;
+    creditLimit?: string | null;
+    last4?: string | null;
+  } = {};
   if (input.name != null) patch.name = shortTextSchema.parse(input.name);
   if (input.type != null) {
     if (!ACCOUNT_TYPE_SET.has(input.type)) throw new Error("account type not supported");
@@ -162,6 +192,15 @@ export async function updateAccount(
     }
   }
   if (input.icon != null) patch.icon = input.icon.trim() || accountDefaultIcon(input.type ?? "cash");
+  if (input.color != null) patch.color = colorSchema.parse(input.color);
+  if (input.last4 !== undefined) {
+    const last4 = input.last4?.trim() || null;
+    if (last4 && !/^\d{4}$/.test(last4)) throw new Error("last4 must contain four digits");
+    patch.last4 = last4;
+  }
+  if (input.creditLimit !== undefined) {
+    patch.creditLimit = input.creditLimit == null ? null : String(moneySchema.parse(input.creditLimit));
+  }
 
   const [row] = await db
     .update(accounts)

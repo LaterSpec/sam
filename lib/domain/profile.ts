@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
-import { profiles, portfolioSnapshots } from "@/lib/db/schema";
-import { eq, desc } from "drizzle-orm";
-import { moneySchema, prefsSchema } from "./validation";
+import { profiles } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
+import { prefsSchema } from "./validation";
 import type { ActorContext } from "./types";
 
 export async function getProfile(ctx: ActorContext) {
@@ -42,16 +42,4 @@ export async function updatePrefs(ctx: ActorContext, prefs: Record<string, unkno
   const parsed = prefsSchema.parse({ ...current, ...prefs });
   await db.update(profiles).set({ prefs: parsed }).where(eq(profiles.id, ctx.userId));
   return parsed;
-}
-
-export async function recordSnapshot(ctx: ActorContext, value: number) {
-  const parsed = moneySchema.parse(value);
-  const recent = await db
-    .select({ capturedAt: portfolioSnapshots.capturedAt })
-    .from(portfolioSnapshots)
-    .where(eq(portfolioSnapshots.userId, ctx.userId))
-    .orderBy(desc(portfolioSnapshots.capturedAt))
-    .limit(1);
-  if (recent[0] && Date.now() - recent[0].capturedAt.getTime() < 10 * 60 * 1000) return;
-  await db.insert(portfolioSnapshots).values({ userId: ctx.userId, value: String(parsed) });
 }

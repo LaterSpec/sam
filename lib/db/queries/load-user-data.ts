@@ -7,16 +7,9 @@ import {
   goals,
   incomeSources,
   savingsBuckets,
-  holdings,
-  watchlist,
-  marketSymbols,
-  marketQuotes,
-  marketDailyBars,
-  portfolioSnapshots,
 } from "@/lib/db/schema";
-import { eq, gte, inArray, asc, and } from "drizzle-orm";
-import { buildMarket, buildDailyBars, mapHolding } from "@/lib/market/build-market";
-import { formatTime, isoDay, num } from "@/lib/utils";
+import { eq, asc } from "drizzle-orm";
+import { formatTime, num } from "@/lib/utils";
 import { normalizeCurrency, type Currency } from "@/lib/finance/currency";
 import type { UserPrefs } from "@/lib/db/schema";
 import {
@@ -98,12 +91,6 @@ export type AppState = {
     target: number;
     apy: number;
   }>;
-  holdings: ReturnType<typeof mapHolding>[];
-  watchlist: Array<{ sym: string; name: string }>;
-  tickerPool: Array<{ sym: string; name: string }>;
-  market: ReturnType<typeof buildMarket>;
-  dailyBars: ReturnType<typeof buildDailyBars>;
-  portfolioSnapshots: Array<{ t: string; v: number }>;
 };
 
 function mapExpense(
@@ -131,9 +118,6 @@ function mapExpense(
 }
 
 export async function loadUserData(userId: string, email: string): Promise<AppState | null> {
-  const barsCutoff = isoDay(-50);
-  const snapCutoff = new Date(Date.now() - 40 * 864e5);
-
   const [
     profileRow,
     accountsRows,
@@ -142,11 +126,6 @@ export async function loadUserData(userId: string, email: string): Promise<AppSt
     goalsRows,
     incomeRows,
     bucketsRows,
-    holdingsRows,
-    watchlistRows,
-    symbolsRows,
-    quotesRows,
-    snapshotsRows,
     recurringRuleRows,
     recurringOccurrenceResult,
   ] = await Promise.all([
@@ -157,19 +136,6 @@ export async function loadUserData(userId: string, email: string): Promise<AppSt
     db.select().from(goals).where(eq(goals.userId, userId)).orderBy(asc(goals.sort)),
     db.select().from(incomeSources).where(eq(incomeSources.userId, userId)).orderBy(asc(incomeSources.sort)),
     db.select().from(savingsBuckets).where(eq(savingsBuckets.userId, userId)).orderBy(asc(savingsBuckets.sort)),
-    db.select().from(holdings).where(eq(holdings.userId, userId)).orderBy(asc(holdings.openedAt)),
-    db.select().from(watchlist).where(eq(watchlist.userId, userId)).orderBy(asc(watchlist.sort)),
-    db
-      .select({ symbol: marketSymbols.symbol, name: marketSymbols.name, curated: marketSymbols.curated, sort: marketSymbols.sort })
-      .from(marketSymbols)
-      .where(eq(marketSymbols.active, true))
-      .orderBy(asc(marketSymbols.sort)),
-    db.select().from(marketQuotes).where(gte(marketQuotes.sessionDate, isoDay(-1))),
-    db
-      .select({ value: portfolioSnapshots.value, capturedAt: portfolioSnapshots.capturedAt })
-      .from(portfolioSnapshots)
-      .where(and(eq(portfolioSnapshots.userId, userId), gte(portfolioSnapshots.capturedAt, snapCutoff)))
-      .orderBy(asc(portfolioSnapshots.capturedAt)),
     listRecurringRules(
       { userId, email, authMethod: "session", scopes: [] },
       { includeArchived: true }
@@ -182,43 +148,6 @@ export async function loadUserData(userId: string, email: string): Promise<AppSt
 
   const profile = profileRow[0];
   if (!profile) return null;
-
-  const barSyms = Array.from(
-    new Set([
-      ...holdingsRows.map((h) => h.symbol),
-      ...watchlistRows.map((w) => w.symbol),
-      "SPY",
-    ])
-  );
-
-  const barsRows =
-    barSyms.length > 0
-      ? await db
-          .select()
-          .from(marketDailyBars)
-          .where(and(inArray(marketDailyBars.symbol, barSyms), gte(marketDailyBars.barDate, barsCutoff)))
-          .orderBy(asc(marketDailyBars.barDate))
-      : [];
-
-  const market = buildMarket(
-    quotesRows.map((q) => ({
-      symbol: q.symbol,
-      source: q.source,
-      sessionDate: q.sessionDate,
-      price: q.price,
-      bid: q.bid,
-      ask: q.ask,
-      prevClose: q.prevClose,
-      dayOpen: q.dayOpen,
-      changePct: q.changePct,
-      capturedAt: q.capturedAt,
-    })),
-    barsRows.map((b) => ({ symbol: b.symbol, barDate: b.barDate, close: b.close }))
-  );
-
-  const dailyBars = buildDailyBars(
-    barsRows.map((b) => ({ symbol: b.symbol, barDate: b.barDate, close: b.close }))
-  );
 
   const catById: Record<string, typeof categories.$inferSelect> = {};
   categoriesRows.forEach((c) => {
@@ -297,44 +226,5 @@ export async function loadUserData(userId: string, email: string): Promise<AppSt
       target: num(b.target),
       apy: num(b.apy),
     })),
-    holdings: holdingsRows.map(mapHolding),
-    watchlist: watchlistRows.map((w) => ({ sym: w.symbol, name: w.name })),
-    tickerPool: symbolsRows.map((s) => ({ sym: s.symbol, name: s.name })),
-    market,
-    dailyBars,
-    portfolioSnapshots: snapshotsRows.map((r) => ({
-      t: r.capturedAt.toISOString(),
-      v: num(r.value),
-    })),
   };
-}
-
-export async function getMarketQuotesOnly() {
-  const quotesRows = await db.select().from(marketQuotes).where(gte(marketQuotes.sessionDate, isoDay(-1)));
-  return buildMarket(
-    quotesRows.map((q) => ({
-      symbol: q.symbol,
-      source: q.source,
-      sessionDate: q.sessionDate,
-      price: q.price,
-      bid: q.bid,
-      ask: q.ask,
-      prevClose: q.prevClose,
-      dayOpen: q.dayOpen,
-      changePct: q.changePct,
-      capturedAt: q.capturedAt,
-    })),
-    []
-  );
-}
-
-export async function getBarsForSymbols(symbols: string[]) {
-  if (!symbols.length) return {};
-  const cutoff = isoDay(-50);
-  const rows = await db
-    .select()
-    .from(marketDailyBars)
-    .where(and(inArray(marketDailyBars.symbol, symbols), gte(marketDailyBars.barDate, cutoff)))
-    .orderBy(asc(marketDailyBars.barDate));
-  return buildDailyBars(rows.map((b) => ({ symbol: b.symbol, barDate: b.barDate, close: b.close })));
 }

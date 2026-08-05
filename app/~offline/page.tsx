@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function OfflinePage() {
   return (
     <main
@@ -18,13 +20,13 @@ export default function OfflinePage() {
         Revisa tu red e inténtalo de nuevo. La interfaz guardada puede seguir disponible cuando vuelvas a
         abrir la app.
       </p>
-      <a
+      <Link
         href="/app"
         className="mt-6 inline-block rounded-lg px-4 py-2 text-[13px] font-semibold no-underline"
         style={{ background: "#e3b341", color: "#0a0e14" }}
       >
         Reintentar
-      </a>
+      </Link>
     </main>
   );
 }

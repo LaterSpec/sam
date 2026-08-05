@@ -29,7 +29,7 @@ export const GOAL_ICON_PRESETS: FinanceIconPreset[] = [
   { key: "car", label: "Car", icon: "▰", color: "#0969da" },
   { key: "house", label: "House", icon: "⌂", color: "#b58900" },
   { key: "education", label: "Education", icon: "⌁", color: "#8839ef" },
-  { key: "investment", label: "Investment", icon: "▲", color: "#1a7f37" },
+  { key: "long-term", label: "Long-term", icon: "▲", color: "#1a7f37" },
   { key: "tech", label: "Tech", icon: "▤", color: "#268bd2" },
   { key: "wedding", label: "Wedding", icon: "♡", color: "#d33682" },
   { key: "business", label: "Business", icon: "▧", color: "#9a6700" },
@@ -40,4 +40,3 @@ export const GOAL_ICON_PRESETS: FinanceIconPreset[] = [
   { key: "travel", label: "Travel", icon: "✈", color: "#73d0ff" },
   { key: "custom", label: "Custom", icon: "◆", color: "#6e7781" },
 ];
-

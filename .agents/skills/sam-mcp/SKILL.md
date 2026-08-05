@@ -1,6 +1,6 @@
 ---
 name: sam-mcp
-description: Connects to the SAM personal finance MCP server over Streamable HTTP to read and manage the authenticated user's accounts, expenses, budgets, goals, income, savings, and simulated investments. Use when configuring MCP clients (Cursor, Claude, Hermes Agent, OpenClaw), calling SAM finance tools, querying spending or transactions via MCP, adding expenses through an agent, or when the user mentions SAM MCP, /api/mcp, or sam_mcp tokens.
+description: Connects to the SAM personal finance MCP server over Streamable HTTP to read and manage the authenticated user's accounts, expenses, budgets, goals, income, recurring payments, and savings. Use when configuring MCP clients (Cursor, Claude, Hermes Agent, OpenClaw), calling SAM finance tools, querying spending or transactions via MCP, adding expenses through an agent, or when the user mentions SAM MCP, /api/mcp, or sam_mcp tokens.
 ---
 
 # SAM MCP
@@ -47,7 +47,6 @@ Human-readable guide: [docs/MCP.md](../../../docs/MCP.md)
 | Recurring income/expenses | `sam_list_recurring_rules`, `sam_create_recurring_rule`, `sam_update_recurring_rule`, `sam_pause_recurring_rule`, `sam_resume_recurring_rule`, `sam_list_recurring_occurrences`, `sam_retry_recurring_occurrence` |
 | Legacy income sources | `sam_list_income_sources` (deprecated read-only compatibility view) |
 | Savings buckets | `sam_list_savings_buckets`, `sam_set_bucket_balance` |
-| Simulated invest | `sam_list_holdings`, `sam_get_quote`, `sam_buy_holding`, `sam_sell_holding`, `sam_list_watchlist`, `sam_add_watch`, `sam_remove_watch` |
 | Prefs / username | `sam_update_prefs`, `sam_update_username` |
 
 Full schemas and scopes: [tools-reference.md](tools-reference.md)
@@ -87,7 +86,6 @@ Check `capabilities` from `sam_get_profile` before writes.
 | `sam:goals.write` | Goal create/update tools |
 | `sam:accounts.write` | `sam_create_account`, `sam_update_account` |
 | `sam:accounts.transfer` | `sam_transfer_between_accounts` |
-| `sam:invest.write` | Buy/sell/watch tools |
 | `sam:profile.write` | `sam_update_username`, `sam_update_prefs` |
 
 ## Error handling

@@ -25,24 +25,14 @@ Each table contains `user_id` or is keyed directly by the user id:
 - `goals`
 - `income_sources`
 - `savings_buckets`
-- `holdings`
-- `watchlist`
-- `trades`
-- `portfolio_snapshots`
+- `mcp_tokens`
+- `mcp_audit_logs`
 
 Application code must filter these tables by the authenticated Better Auth user id.
 
 Transactions capture `currency`, `status`, and `source`. Recurring occurrences
 are idempotent by `(rule_id, scheduled_date)`. Legacy `income_sources` remains
 temporarily for migration history and is no longer the scheduling model.
-
-## Global Market Tables
-
-Shared market reference and pricing tables:
-
-- `market_symbols`
-- `market_quotes`
-- `market_daily_bars`
 
 ## Security
 

@@ -10,7 +10,6 @@ export const SCOPES = {
   goalsWrite: "sam:goals.write",
   accountsWrite: "sam:accounts.write",
   accountsTransfer: "sam:accounts.transfer",
-  investWrite: "sam:invest.write",
   profileWrite: "sam:profile.write",
 } as const;
 
@@ -40,7 +39,7 @@ export function requireScope(ctx: ActorContext, scope: Scope): void {
 }
 
 export const SCOPE_DESCRIPTIONS: Record<Scope, string> = {
-  [SCOPES.read]: "Read accounts, categories, transactions, summaries, goals, invest",
+  [SCOPES.read]: "Read accounts, categories, transactions, summaries and goals",
   [SCOPES.expensesWrite]: "Create, update and delete expense transactions",
   [SCOPES.categoriesWrite]: "Create and update categories and budget caps",
   [SCOPES.incomeWrite]: "Add income sources and income transactions",
@@ -49,6 +48,5 @@ export const SCOPE_DESCRIPTIONS: Record<Scope, string> = {
   [SCOPES.goalsWrite]: "Create and update goals",
   [SCOPES.accountsWrite]: "Create and update accounts",
   [SCOPES.accountsTransfer]: "Transfer balances between accounts (high risk)",
-  [SCOPES.investWrite]: "Simulated buy/sell and watchlist changes",
   [SCOPES.profileWrite]: "Update username and preferences",
 };

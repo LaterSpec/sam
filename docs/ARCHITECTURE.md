@@ -8,19 +8,18 @@ SAM is a Next.js App Router PWA deployed to Cloudflare Workers with Neon Postgre
 | --- | --- | --- |
 | App framework | Next.js 15 App Router | Server Components, Server Actions, Route Handlers |
 | Runtime/deploy | Cloudflare Workers | Built with `@opennextjs/cloudflare` |
-| UI | React 19, Tailwind CSS | Mobile-first PWA shell |
+| UI | React 19, TypeScript, Tailwind CSS | Separate desktop and phone/PWA trees |
 | Auth | Better Auth | Email/password and optional Google OAuth |
 | Database | Neon Postgres | Accessed with `@neondatabase/serverless` |
 | ORM | Drizzle ORM | Schema in `lib/db/schema.ts` |
 | PWA | Serwist | Service worker in `app/sw.ts` |
-| Market sync | TypeScript jobs and route handler | Yahoo fallback + daily bars |
 
 ## High-Level Flow
 
 ```text
 ┌────────────────────────────────────────────────────────────┐
-│ Browser / Installed PWA                                    │
-│ /onboarding, /app, /canvas                                 │
+│ Desktop browser / Phone browser / Installed phone PWA      │
+│ Request capability selects a stable presentation tree       │
 └───────────────────────────┬────────────────────────────────┘
                             │ HTTPS
                             ▼
@@ -40,7 +39,7 @@ SAM is a Next.js App Router PWA deployed to Cloudflare Workers with Neon Postgre
                                 ▼
 ┌────────────────────────────────────────────────────────────┐
 │ Neon Postgres                                               │
-│ Auth tables, user data, simulated invest, market data       │
+│ Auth tables and user-scoped personal finance data           │
 └────────────────────────────────────────────────────────────┘
 ```
 
@@ -72,11 +71,11 @@ wrangler secret put CRON_SECRET
 | --- | --- | --- |
 | `/` | `app/page.tsx` | Redirect/start flow |
 | `/onboarding` | `app/onboarding/page.tsx` | Auth and onboarding |
-| `/app` | `app/app/page.tsx` | Authenticated application shell |
+| `/app` | `app/app/page.tsx` | Device-aware authenticated entry |
+| `/app/[section]` | `app/app/[section]/page.tsx` | Desktop sections or mapped phone screens |
 | `/canvas` | `app/canvas/page.tsx` | Visual/design reference |
 | `/~offline` | `app/~offline/page.tsx` | Offline PWA fallback |
 | `/api/auth/[...all]` | `app/api/auth/[...all]/route.ts` | Better Auth handler |
-| `/api/cron/market-sync` | `app/api/cron/market-sync/route.ts` | Protected market sync |
 
 ## Folder Map
 
@@ -84,26 +83,22 @@ wrangler secret put CRON_SECRET
 FinancialTerminal/
 ├── app/                         # Next.js App Router
 │   ├── api/auth/[...all]/        # Better Auth route handler
-│   ├── api/cron/market-sync/     # Protected market-data sync endpoint
 │   ├── app/                      # Main authenticated route
 │   ├── onboarding/               # Auth/onboarding route
 │   ├── canvas/                   # Visual reference route
 │   ├── manifest.ts               # Web App Manifest
 │   └── sw.ts                     # Serwist service worker source
 ├── components/
-│   ├── app/                      # App shell/navigation primitives
-│   ├── onboarding/               # Onboarding experience
+│   ├── experiences/desktop/      # Living Ledger desktop UI and auth
+│   ├── experiences/mobile/       # Phone/PWA UI and onboarding
 │   ├── pwa/                      # Install prompt and SW registration
-│   ├── screens/                  # Main app screens
-│   ├── sheets/                   # Bottom sheets/modals
 │   └── ui/                       # SAM UI primitives
 ├── lib/
 │   ├── actions/                  # Server Actions for app mutations
 │   ├── auth/                     # Better Auth setup and session helpers
 │   ├── db/                       # Drizzle schema, db client, queries, seed helpers
 │   ├── finance/                  # Finance calculations
-│   └── market/                   # Market data sync/build helpers
-├── scripts/market/               # CLI wrappers for market sync
+│   └── presentation/             # Request capability resolver
 ├── drizzle/                      # Seed scripts and generated migrations
 ├── docs/                         # Current docs and archived migration notes
 └── sam-demo/                     # Ignored legacy/demo area
@@ -123,7 +118,6 @@ The app supports email/password auth and Google OAuth when credentials are prese
 - profile row
 - default `Cash` and `Card` accounts
 - default expense categories
-- curated watchlist entries
 
 ## Data Access
 
@@ -151,31 +145,13 @@ Server Actions currently own most app mutations:
 - goals: add, update, set saved amount
 - income: add sources and optionally credit accounts
 - accounts: add, update, transfer
-- simulated invest: buy, sell, watchlist
 - profile/prefs: username, preferences, credentials
 
 Each action starts from the authenticated Better Auth session and applies `userId` filters before reading or writing data.
 
-## Market Data
+## Presentation routing
 
-The active market path is TypeScript:
-
-- CLI: `scripts/market/yahoo-sync.ts`
-- core sync: `lib/market/yahoo-sync.ts`
-- protected route: `app/api/cron/market-sync/route.ts`
-
-Market tables are global:
-
-- `market_symbols`
-- `market_quotes`
-- `market_daily_bars`
-
-User investment tables are scoped:
-
-- `holdings`
-- `watchlist`
-- `trades`
-- `portfolio_snapshots`
+`lib/presentation/experience.ts` selects one stable React tree for each request. Phone user agents and `Sec-CH-UA-Mobile: ?1` receive `components/experiences/mobile`; desktop browsers and tablets receive `components/experiences/desktop`. Viewport resizing does not swap trees. `SAM_DESKTOP_UI_ENABLED=false` is the rollout fallback.
 
 ## PWA
 
@@ -192,7 +168,7 @@ The app uses full viewport native-like layouts, not iOS device frames.
 
 - User data isolation is enforced by application-layer `userId` checks.
 - Better Auth sessions protect app routes and Server Actions.
-- The market sync endpoint requires `Authorization: Bearer $CRON_SECRET`.
+- Protected recurring processing requires `Authorization: Bearer $CRON_SECRET`.
 - Secrets should live in Cloudflare Worker secrets, not in `wrangler.jsonc`.
 - Supabase anon/service-role credentials must not be introduced into runtime code.
 
@@ -207,19 +183,15 @@ npm run deploy:cloudflare
 
 Use `npm run preview:cloudflare` to validate the Worker build locally before deployment.
 
-The custom OpenNext entrypoint is `custom-worker.ts`. It reuses the generated
-fetch handler and adds Cloudflare scheduled handlers:
-
-- hourly recurring occurrence processing
-- daily delayed market-data sync
-
-Cron schedules use UTC. `RECURRING_CRON_ENABLED` is the rollout switch; enable
-it only after the additive migration and verification succeed.
+The custom OpenNext entrypoint is `custom-worker.ts` and reuses the generated
+fetch handler. No Cloudflare cron trigger is currently configured. The legacy
+recurring cron route returns `410` after authenticating old scheduler calls;
+recurring rules can still be created and managed in the app.
 
 ## Documentation Pointers
 
 - Database schema: `docs/DATABASE.md`
 - PWA: `docs/PWA.md`
-- Market data: `docs/LIVE-DATA.md`
+- Investment removal: `docs/migrations/investments-removal.md`
 - MCP design: `docs/MCP-ARCHITECTURE.md`
 - Supabase migration history: `docs/database/supabase-migration-notes.md`

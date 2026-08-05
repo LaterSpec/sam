@@ -42,11 +42,8 @@ Keep this archive until migration notes are complete. Do not delete the archive 
 Run:
 
 ```bash
-npm run db:seed
 npm run db:seed:demo
 ```
-
-`npm run db:seed` inserts market symbols.
 
 `npm run db:seed:demo` creates/enriches the demo user:
 
@@ -54,20 +51,7 @@ npm run db:seed:demo
 alex@sam.app / sam12345
 ```
 
-## Market Data
-
-Current market sync path:
-
-- CLI: `npm run market:sync`
-- protected route: `/api/cron/market-sync`
-- implementation: `lib/market/yahoo-sync.ts`
-- database: Neon tables `market_symbols`, `market_quotes`, `market_daily_bars`
-
-The protected route is compatible with Cloudflare deployment and requires:
-
-```http
-Authorization: Bearer $CRON_SECRET
-```
+The historical investment and pricing schema is preserved in the Supabase SQL archive only. Its active Neon/runtime removal is documented in `docs/migrations/investments-removal.md`.
 
 ## Security Reminder
 

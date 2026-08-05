@@ -3,10 +3,7 @@ import {
   profiles,
   accounts,
   categories,
-  watchlist,
-  marketSymbols,
 } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
 
 const BASE_CATEGORIES = [
   { key: "food", name: "Food & Dining", icon: "◉", color: "#e8824a", monthlyCap: "400", sort: 0 },
@@ -43,20 +40,4 @@ export async function bootstrapNewUser(userId: string, name: string, email: stri
     }))
   );
 
-  const curated = await db
-    .select({ symbol: marketSymbols.symbol, name: marketSymbols.name, sort: marketSymbols.sort })
-    .from(marketSymbols)
-    .where(eq(marketSymbols.curated, true))
-    .orderBy(marketSymbols.sort);
-
-  if (curated.length > 0) {
-    await db.insert(watchlist).values(
-      curated.map((s, i) => ({
-        userId,
-        symbol: s.symbol,
-        name: s.name,
-        sort: i,
-      }))
-    );
-  }
 }

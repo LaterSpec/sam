@@ -3,6 +3,7 @@ import { mcpTokens, user as userTable } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import type { ActorContext } from "@/lib/domain/types";
 import { hashSecret, parseToken, timingSafeEqual } from "./token";
+import { isValidScope } from "./scopes";
 
 export type AuthResult =
   | { ok: true; ctx: ActorContext }
@@ -64,7 +65,7 @@ export async function authenticate(
       userId: row.userId,
       email: row.email,
       authMethod: "mcp_token",
-      scopes: row.scopes ?? [],
+      scopes: (row.scopes ?? []).filter(isValidScope),
       tokenId: row.id,
     },
   };

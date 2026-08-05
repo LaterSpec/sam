@@ -21,6 +21,11 @@ function isStandalone(): boolean {
   );
 }
 
+function isPhoneRequest(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return /iPhone|iPod|Windows Phone|Android.+Mobile|Mobile.+Firefox|Opera Mini/i.test(navigator.userAgent);
+}
+
 export function PwaProvider() {
   const pathname = usePathname();
   const inApp = pathname?.startsWith("/app") ?? false;
@@ -31,8 +36,12 @@ export function PwaProvider() {
   const [installEvent, setInstallEvent] = useState<BeforeInstallPromptEvent | null>(null);
   const [showIosHint, setShowIosHint] = useState(false);
   const [dismissed, setDismissed] = useState(false);
+  const [eligible, setEligible] = useState(false);
 
   useEffect(() => {
+    if (!isPhoneRequest()) return;
+    if (document.querySelector(".sam-desktop, .sam-desktop-auth")) return;
+    setEligible(true);
     if (isStandalone()) return;
 
     const dismissedKey = "sam-pwa-install-dismissed";
@@ -73,7 +82,7 @@ export function PwaProvider() {
     dismiss();
   };
 
-  if (dismissed || isStandalone()) return null;
+  if (!eligible || dismissed || isStandalone()) return null;
 
   if (installEvent) {
     return (
