@@ -44,7 +44,7 @@ export function DesktopApp({ initialData, section }: { initialData: AppState; se
 
   return <SamThemeProvider theme={theme}><div className="sam-desktop" style={vars} data-theme={theme}>
     <DesktopShell section={section} copy={copy} query={query} currency={currency} userName={state.user.full_name} hasInspector={Boolean(selection)} onQuery={setQuery} onCurrency={changeCurrency} onAction={openAction}
-      inspector={<DesktopInspector state={state} selection={selection} currency={currency} locale={locale} copy={copy} onClose={() => setSelection(null)}/>} actionDrawer={<DesktopActionDrawer action={action} state={state} currency={currency} copy={copy} onClose={() => setAction(null)} onDone={hydrate}/>}
+      inspector={<DesktopInspector state={state} selection={selection} currency={currency} locale={locale} copy={copy} onClose={() => setSelection(null)} onAction={openAction}/>} actionDrawer={<DesktopActionDrawer action={action} state={state} currency={currency} copy={copy} onClose={() => setAction(null)} onDone={hydrate}/>}
     >
       <DesktopSectionContent state={state} section={section} currency={currency} query={query} onSelect={setSelection} onAction={openAction} copy={copy} locale={locale} theme={theme} language={activeLanguage} onTheme={changeTheme} onLanguage={changeLanguage} onCurrency={changeCurrency}/>
     </DesktopShell>

@@ -21,7 +21,6 @@ export function OverviewSection({
   const obligations = state.recurringRules
     .filter((rule) => rule.kind === "expense" && rule.status === "active" && rule.accountCurrency === currency)
     .reduce((sum, rule) => sum + rule.amount, 0);
-  const flexible = Math.max(0, summary.expenses - obligations);
   const upcoming = state.recurringRules
     .filter((rule) => rule.status === "active" && rule.accountCurrency === currency)
     .sort((a, b) => a.nextOccurrenceDate.localeCompare(b.nextOccurrenceDate))
@@ -58,13 +57,15 @@ export function OverviewSection({
           <span className="desk-panel-note">actual → projected</span>
         </div>
         <CashFlowBraid
+          state={state}
           income={summary.income}
           obligations={obligations}
-          flexible={flexible}
-          savings={summary.saved}
+          expenses={summary.expenses}
           projected={summary.projected}
+          balance={summary.balance}
           currency={currency}
-          labels={{ income: copy.income, obligations: copy.recurring, flexible: copy.expenses, savings: copy.monthSavings, projected: copy.projected, empty: copy.noMonthFlow }}
+          locale={locale}
+          labels={{ income: copy.income, expenses: copy.expenses, projected: copy.projected, empty: copy.noMonthFlow, balance: copy.availableBalance }}
         />
       </section>
 

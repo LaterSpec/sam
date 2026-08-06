@@ -659,11 +659,13 @@ export async function updateBudgetAction(input: {
   amount: number;
   icon: string;
   color: string;
+  currency?: string;
 }) {
   const session = await requireSession();
   const id = uuidSchema.parse(input.id);
   const icon = input.icon || "●";
   const color = colorSchema.parse(input.color) || "#8b949e";
+  const currency = input.currency === "PEN" || input.currency === "USD" ? input.currency : undefined;
   const [row] = await db
     .update(categories)
     .set({
@@ -671,6 +673,7 @@ export async function updateBudgetAction(input: {
       monthlyCap: String(moneySchema.parse(input.amount)),
       icon,
       color,
+      ...(currency ? { currency } : {}),
     })
     .where(and(eq(categories.id, id), eq(categories.userId, session.user.id)))
     .returning();

@@ -10,7 +10,7 @@ export type DesktopSelection =
   | { kind: "recurring"; id: string }
   | null;
 
-export type DesktopAction =
+export type DesktopCreateAction =
   | "expense"
   | "income"
   | "account"
@@ -18,8 +18,14 @@ export type DesktopAction =
   | "goal"
   | "budget"
   | "recurring"
-  | "mcp"
-  | null;
+  | "mcp";
+
+export type DesktopEditAction = {
+  edit: "budget" | "account" | "goal" | "recurring";
+  id: string;
+};
+
+export type DesktopAction = DesktopCreateAction | DesktopEditAction | null;
 
 export type DesktopSectionProps = {
   state: AppState;
