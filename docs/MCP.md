@@ -71,11 +71,11 @@ Full catalog: [tools-reference.md](../.agents/skills/sam-mcp/tools-reference.md)
 
 ### Transport
 
-SAM uses the official MCP SDK `WebStandardStreamableHTTPServerTransport` in **stateless** mode:
+SAM MCP is **stateless** JSON-RPC over HTTP (OpenNext / Cloudflare Workers):
 
-- One HTTP request per JSON-RPC message (no session id required).
-- `enableJsonResponse: true` — responses are plain JSON, not SSE streams (when the client negotiates JSON).
-- Methods: `POST` on `/api/mcp`. `GET` / `DELETE` return **405** (no server-initiated SSE in stateless mode — hanging GET streams were killing the Cloudflare Worker with HTTP 500).
+- One HTTP `POST` per JSON-RPC message (no session id).
+- Responses are plain `application/json` via an in-memory transport (avoids SDK `enableJsonResponse` hangs on Workers).
+- `GET` / `DELETE` return **405** (no server-initiated SSE — those streams hang and get the Worker killed).
 
 ### Required headers
 

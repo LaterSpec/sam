@@ -1,6 +1,6 @@
-import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { authenticate } from "@/lib/mcp/auth";
 import { buildMcpServer } from "@/lib/mcp/server";
+import { JsonRpcTransport } from "@/lib/mcp/json-rpc-transport";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -49,7 +49,25 @@ function methodNotAllowed(): Response {
   });
 }
 
+function acceptOk(request: Request): boolean {
+  const accept = request.headers.get("accept") ?? "";
+  return accept.includes("application/json") && accept.includes("text/event-stream");
+}
+
 async function handlePost(request: Request): Promise<Response> {
+  if (!acceptOk(request)) {
+    return jsonRpcError(
+      406,
+      -32000,
+      "Not Acceptable: Client must accept both application/json and text/event-stream"
+    );
+  }
+
+  const contentType = request.headers.get("content-type") ?? "";
+  if (!contentType.includes("application/json")) {
+    return jsonRpcError(415, -32000, "Unsupported Media Type: Content-Type must be application/json");
+  }
+
   let auth;
   try {
     auth = await authenticate(request.headers.get("authorization"), clientIp(request));
@@ -59,21 +77,45 @@ async function handlePost(request: Request): Promise<Response> {
   }
   if (!auth.ok) return unauthorized(auth.error);
 
-  const server = buildMcpServer(auth.ctx);
-  const transport = new WebStandardStreamableHTTPServerTransport({
-    sessionIdGenerator: undefined, // stateless
-    enableJsonResponse: true,
-  });
-
-  await server.connect(transport);
+  let body: unknown;
   try {
-    return await transport.handleRequest(request);
+    body = await request.json();
+  } catch {
+    return jsonRpcError(400, -32700, "Parse error: Invalid JSON");
+  }
+
+  if (Array.isArray(body)) {
+    return jsonRpcError(400, -32600, "Invalid Request: batch JSON-RPC is not supported");
+  }
+
+  const transport = new JsonRpcTransport();
+  const server = buildMcpServer(auth.ctx);
+  await server.connect(transport);
+
+  try {
+    const result = await transport.exchange(body, {
+      requestInfo: {
+        headers: Object.fromEntries(request.headers.entries()),
+      },
+    });
+
+    // Notifications have no JSON-RPC response body.
+    if (result == null) {
+      return new Response(null, { status: 202 });
+    }
+
+    return new Response(JSON.stringify(result), {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    });
   } catch (e) {
     const message = e instanceof Error ? e.message : "internal_error";
-    return jsonRpcError(500, -32603, message);
+    const code = message === "mcp_handler_timeout" ? -32000 : -32603;
+    const status = message === "mcp_handler_timeout" ? 504 : 500;
+    return jsonRpcError(status, code, message);
   } finally {
-    await transport.close();
-    await server.close();
+    await transport.close().catch(() => undefined);
+    await server.close().catch(() => undefined);
   }
 }
 
