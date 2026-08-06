@@ -36,13 +36,14 @@ export function registerExpenseTools(server: McpServer, ctx: ActorContext) {
   defineTool(server, ctx, {
     name: "sam_add_expense",
     description:
-      "Add an expense using the category's user-facing name. Call sam_list_categories when the name is unknown. Resolves the account by id or default priority and updates its balance.",
+      "Add an expense using the category's user-facing name. Call sam_list_categories when the name is unknown. Resolves the account by id or default priority and updates its balance. Optional occurredAt (ISO datetime) assigns the expense to that month's category budget; defaults to now.",
     scope: SCOPES.expensesWrite,
     inputSchema: {
       amount: z.number().positive(),
       name: z.string().min(1).max(120),
       category: z.string().min(1).max(120).optional(),
       accountId: z.string().uuid().optional(),
+      occurredAt: z.string().datetime().optional(),
     },
     handler: async (ctx, args) => {
       const catKey =
@@ -54,6 +55,7 @@ export function registerExpenseTools(server: McpServer, ctx: ActorContext) {
         name: args.name,
         catKey,
         accountId: args.accountId,
+        occurredAt: args.occurredAt,
       });
       return { ...result, tx: presentTransaction(result.tx) };
     },

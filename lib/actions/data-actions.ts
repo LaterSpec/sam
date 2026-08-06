@@ -188,6 +188,7 @@ export async function addExpenseAction(input: {
   name: string;
   catKey: string;
   accountId?: string;
+  occurredAt?: string;
   budgets: Array<{ id: string; key: string; icon: string; c: string }>;
   accounts: Array<{ id: string; type: string }>;
 }) {
@@ -210,6 +211,8 @@ export async function addExpenseAction(input: {
   const name = shortTextSchema.parse(input.name);
   const accountId = input.accountId ? uuidSchema.parse(input.accountId) : null;
   const catKey = shortTextSchema.parse(input.catKey);
+  const occurredAt = input.occurredAt ? new Date(input.occurredAt) : new Date();
+  if (Number.isNaN(occurredAt.getTime())) throw new Error("invalid occurredAt date");
   const sql = getSql();
 
   const rows = (await sql.query(
@@ -232,8 +235,8 @@ export async function addExpenseAction(input: {
       limit 1
     ),
     inserted_tx as (
-      insert into transactions (user_id, name, amount, kind, category_id, account_id, icon)
-      select $1, $3, $2::numeric, 'expense', selected_category.id, selected_account.id, coalesce(selected_category.icon, '●')
+      insert into transactions (user_id, name, amount, kind, category_id, account_id, icon, occurred_at)
+      select $1, $3, $2::numeric, 'expense', selected_category.id, selected_account.id, coalesce(selected_category.icon, '●'), $6::timestamptz
       from selected_account
       left join selected_category on true
       returning *
@@ -270,7 +273,7 @@ export async function addExpenseAction(input: {
     join updated_account on updated_account.id = inserted_tx.account_id
     left join selected_category on true
     `,
-    [uid, amount, name, accountId, catKey]
+    [uid, amount, name, accountId, catKey, occurredAt.toISOString()]
   )) as AddExpenseSqlRow[];
 
   const row = rows[0];

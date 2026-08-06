@@ -79,13 +79,15 @@ export function mapRawTxRow(row: RawTxRow): TxDto {
 
 export async function addExpense(
   ctx: ActorContext,
-  input: { amount: number; name: string; catKey: string; accountId?: string }
+  input: { amount: number; name: string; catKey: string; accountId?: string; occurredAt?: string }
 ): Promise<{ tx: TxDto; accounts: AccountDto[] }> {
   const uid = ctx.userId;
   const amount = positiveMoneySchema.parse(input.amount);
   const name = shortTextSchema.parse(input.name);
   const accountId = input.accountId ? uuidSchema.parse(input.accountId) : null;
   const catKey = shortTextSchema.parse(input.catKey);
+  const occurredAt = input.occurredAt ? new Date(input.occurredAt) : new Date();
+  if (Number.isNaN(occurredAt.getTime())) throw new Error("invalid occurredAt date");
   const sql = getSql();
 
   const rows = (await sql.query(
@@ -121,11 +123,11 @@ export async function addExpense(
     ),
     inserted_tx as (
       insert into transactions (
-        user_id, name, amount, kind, category_id, account_id, icon, currency, status, source
+        user_id, name, amount, kind, category_id, account_id, icon, currency, status, source, occurred_at
       )
       select
         $1, $3, $2::numeric, 'expense', selected_category.id, updated_account.id,
-        coalesce(selected_category.icon, '●'), updated_account.currency, 'confirmed', 'manual'
+        coalesce(selected_category.icon, '●'), updated_account.currency, 'confirmed', 'manual', $6::timestamptz
       from updated_account
       join selected_category on true
       returning *
@@ -156,7 +158,7 @@ export async function addExpense(
     join updated_account on updated_account.id = inserted_tx.account_id
     left join selected_category on true
     `,
-    [uid, amount, name, accountId, catKey]
+    [uid, amount, name, accountId, catKey, occurredAt.toISOString()]
   )) as AddExpenseSqlRow[];
 
   const row = rows[0];

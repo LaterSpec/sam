@@ -32,7 +32,7 @@ function ActionForm({ action, state, currency, copy, onDone, onClose }: { action
   const submit = async (form: FormData) => {
     setBusy(true); setError("");
     try {
-      if (action === "expense") await addExpenseAction({ name: textValue(form, "name"), amount: numberValue(form, "amount"), catKey: textValue(form, "category"), accountId: textValue(form, "account"), budgets: state.budgets, accounts: state.accounts });
+      if (action === "expense") await addExpenseAction({ name: textValue(form, "name"), amount: numberValue(form, "amount"), catKey: textValue(form, "category"), accountId: textValue(form, "account"), occurredAt: textValue(form, "date"), budgets: state.budgets, accounts: state.accounts });
       if (action === "income") await addIncomeAction({ name: textValue(form, "name"), amt: numberValue(form, "amount"), accountId: textValue(form, "account"), occurredAt: textValue(form, "date") });
       if (action === "account") await addAccountAction({ name: textValue(form, "name"), type: textValue(form, "type"), currency, icon: textValue(form, "type") === "card" ? "▣" : "◉", color: textValue(form, "color"), last4: nullableText(form, "last4"), creditLimit: nullableNumber(form, "limit") });
       if (action === "transfer") await transferAction({ fromId: textValue(form, "from"), toId: textValue(form, "to"), amount: numberValue(form, "amount") });
@@ -51,7 +51,7 @@ function ActionForm({ action, state, currency, copy, onDone, onClose }: { action
     {action !== "transfer" && <Field label={copy.description}><input name="name" required maxLength={120} placeholder={action === "account" ? "Everyday checking" : action === "goal" ? "Emergency runway" : "What is this?"}/></Field>}
     {action === "account" && <><Field label="Account type"><select name="type" value={accountType} onChange={(event) => setAccountType(event.target.value)}><option value="checking">Checking</option><option value="savings">Savings</option><option value="cash">Cash</option><option value="card">Credit card</option></select></Field>{accountType === "card" && <div className="desk-form-row"><Field label="Last four"><input name="last4" inputMode="numeric" pattern="[0-9]{4}" placeholder="1234"/></Field><Field label="Credit limit"><input name="limit" type="number" min="0" step="0.01" placeholder="0.00"/></Field></div>}</>}
     {!["account"].includes(action) && <Field label={copy.amount}><div className="desk-money-input"><span>{currency}</span><input name="amount" type="number" min="0.01" step="0.01" required placeholder="0.00" inputMode="decimal"/></div></Field>}
-    {action === "expense" && <><Field label={copy.account}><AccountSelect name="account" accounts={accounts}/></Field><Field label={copy.category}><select name="category" required defaultValue={budgets[0]?.key}>{budgets.map((budget) => <option key={budget.id} value={budget.key}>{budget.icon} {budget.name}</option>)}</select></Field></>}
+    {action === "expense" && <><Field label={copy.account}><AccountSelect name="account" accounts={accounts}/></Field><Field label={copy.category}><select name="category" required defaultValue={budgets[0]?.key}>{budgets.map((budget) => <option key={budget.id} value={budget.key}>{budget.icon} {budget.name}</option>)}</select></Field><Field label={copy.date}><input name="date" type="datetime-local" defaultValue={new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)} required/></Field></>}
     {action === "income" && <><Field label={copy.account}><AccountSelect name="account" accounts={accounts}/></Field><Field label={copy.date}><input name="date" type="datetime-local" defaultValue={new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}/></Field></>}
     {action === "transfer" && <><Field label="From"><AccountSelect name="from" accounts={accounts}/></Field><Field label="To"><AccountSelect name="to" accounts={accounts} defaultIndex={1}/></Field></>}
     {["account", "goal", "budget"].includes(action) && <Field label="Signal color"><input name="color" type="color" defaultValue={action === "account" ? "#54d8e4" : action === "goal" ? "#a8e63b" : "#f3b63f"}/></Field>}
@@ -72,7 +72,7 @@ function nullableText(form: FormData, key: string) { const value = textValue(for
 function nullableNumber(form: FormData, key: string) { const value = textValue(form, key); return value ? Number(value) : null; }
 
 const ACTION_META = {
-  expense: { icon: <ReceiptText size={20}/>, title: (copy: DesktopCopy) => copy.addExpense, description: "Write a confirmed expense into the ledger." },
+  expense: { icon: <ReceiptText size={20}/>, title: (copy: DesktopCopy) => copy.addExpense, description: "Write a confirmed expense into the ledger for the month you choose." },
   income: { icon: <CircleDollarSign size={20}/>, title: (copy: DesktopCopy) => copy.addIncome, description: "Add income and update its destination account." },
   account: { icon: <Landmark size={20}/>, title: (copy: DesktopCopy) => copy.addAccount, description: "Register a bank account, cash reserve or card." },
   transfer: { icon: <ArrowLeftRight size={20}/>, title: (copy: DesktopCopy) => copy.transfer, description: "Move value safely between accounts in one operation." },
