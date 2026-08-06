@@ -55,7 +55,7 @@ Template in repo: [`.cursor/mcp.json.example`](../../../.cursor/mcp.json.example
 {
   "mcpServers": {
     "sam": {
-      "url": "https://https://sam-app.its-manuel-caceres.workers.dev/api/mcp",
+      "url": "https://sam-app.its-manuel-caceres.workers.dev/api/mcp",
       "headers": {
         "Authorization": "Bearer YOUR_TOKEN_OR_ENV_MANAGED_VALUE"
       }
@@ -78,7 +78,7 @@ Restart Claude Desktop after editing.
   "mcpServers": {
     "sam": {
       "type": "http",
-      "url": "https://https://sam-app.its-manuel-caceres.workers.dev/api/mcp",
+      "url": "https://sam-app.its-manuel-caceres.workers.dev/api/mcp",
       "headers": {
         "Authorization": "Bearer ${SAM_MCP_TOKEN}"
       }
@@ -98,7 +98,7 @@ Claude Code expands `${VAR}` from the environment. `type: "http"` is an alias fo
 ```yaml
 mcp_servers:
   sam:
-    url: "https://https://sam-app.its-manuel-caceres.workers.dev/api/mcp"
+    url: "https://sam-app.its-manuel-caceres.workers.dev/api/mcp"
     headers:
       Authorization: "Bearer ${SAM_MCP_TOKEN}"
     timeout: 120
@@ -118,7 +118,7 @@ After editing, run `/reload-mcp` in Hermes chat.
 CLI shortcut (if available):
 
 ```bash
-hermes mcp add sam --url "https://https://sam-app.its-manuel-caceres.workers.dev/api/mcp" \
+hermes mcp add sam --url "https://sam-app.its-manuel-caceres.workers.dev/api/mcp" \
   --header "Authorization=Bearer ${SAM_MCP_TOKEN}"
 ```
 
@@ -135,7 +135,7 @@ Docs: https://hermes-agent.nousresearch.com/docs/user-guide/features/mcp
   "mcp": {
     "servers": {
       "sam": {
-        "url": "https://https://sam-app.its-manuel-caceres.workers.dev/api/mcp",
+        "url": "https://sam-app.its-manuel-caceres.workers.dev/api/mcp",
         "transport": "streamable-http",
         "headers": {
           "Authorization": "Bearer ${SAM_MCP_TOKEN}"
@@ -170,7 +170,7 @@ Docs: https://documentation.openclaw.ai/cli/mcp
         "name": "sam",
         "transport": {
           "type": "http",
-          "url": "https://https://sam-app.its-manuel-caceres.workers.dev/api/mcp",
+          "url": "https://sam-app.its-manuel-caceres.workers.dev/api/mcp",
           "headers": {
             "Authorization": "Bearer YOUR_TOKEN"
           }
@@ -193,7 +193,7 @@ Docs: https://documentation.openclaw.ai/cli/mcp
 {
   "mcpServers": {
     "sam": {
-      "url": "https://https://sam-app.its-manuel-caceres.workers.dev/api/mcp",
+      "url": "https://sam-app.its-manuel-caceres.workers.dev/api/mcp",
       "headers": {
         "Authorization": "Bearer YOUR_TOKEN"
       }
@@ -212,7 +212,7 @@ Uses `serverUrl` instead of `url` in some versions:
 {
   "mcpServers": {
     "sam": {
-      "serverUrl": "https://https://sam-app.its-manuel-caceres.workers.dev/api/mcp",
+      "serverUrl": "https://sam-app.its-manuel-caceres.workers.dev/api/mcp",
       "headers": {
         "Authorization": "Bearer YOUR_TOKEN"
       }
@@ -229,7 +229,7 @@ Minimum requirements for any MCP Streamable HTTP client:
 
 | Setting | Value |
 | --- | --- |
-| URL | `https://https://sam-app.its-manuel-caceres.workers.dev/api/mcp` |
+| URL | `https://sam-app.its-manuel-caceres.workers.dev/api/mcp` |
 | Method | `POST` (JSON-RPC body) |
 | `Content-Type` | `application/json` |
 | `Accept` | `application/json, text/event-stream` |
@@ -256,7 +256,7 @@ If a client only supports stdio, proxy via `mcp-remote`:
       "args": [
         "-y",
         "mcp-remote",
-        "https://https://sam-app.its-manuel-caceres.workers.dev/api/mcp",
+        "https://sam-app.its-manuel-caceres.workers.dev/api/mcp",
         "--header",
         "Authorization: Bearer ${SAM_MCP_TOKEN}"
       ]

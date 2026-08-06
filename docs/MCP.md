@@ -75,7 +75,7 @@ SAM uses the official MCP SDK `WebStandardStreamableHTTPServerTransport` in **st
 
 - One HTTP request per JSON-RPC message (no session id required).
 - `enableJsonResponse: true` — responses are plain JSON, not SSE streams (when the client negotiates JSON).
-- Methods: `POST`, `GET`, `DELETE` on `/api/mcp`.
+- Methods: `POST` on `/api/mcp`. `GET` / `DELETE` return **405** (no server-initiated SSE in stateless mode — hanging GET streams were killing the Cloudflare Worker with HTTP 500).
 
 ### Required headers
 
