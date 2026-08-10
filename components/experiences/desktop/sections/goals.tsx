@@ -4,8 +4,8 @@ import { formatMoney } from "../desktop-data";
 import type { DesktopCopy } from "../desktop-copy";
 import type { DesktopSectionProps } from "../types";
 
-export function GoalsSection({ state, currency, query, onSelect, onAction, copy, locale }: DesktopSectionProps & { copy: DesktopCopy; locale: string }) {
-  const goals = state.goals.filter((goal) => goal.name.toLowerCase().includes(query.toLowerCase()));
+export function GoalsSection({ state, currency, onSelect, onAction, copy, locale }: DesktopSectionProps & { copy: DesktopCopy; locale: string }) {
+  const goals = state.goals;
   return <div className="desk-section">
     <div className="desk-section-heading"><div><span className="desk-eyebrow">goals / runway</span><h1>{copy.goals}</h1></div><button type="button" className="desk-primary-button" onClick={() => onAction("goal")}><Plus size={15} /> {copy.addGoal}</button></div>
     <section className="desk-panel"><div className="desk-panel-heading"><div className="desk-inline-title"><Flag size={16} /><h2>Goal runways</h2></div><span className="desk-panel-note">saved → target</span></div><GoalRunway goals={goals} currency={currency} locale={locale} onSelect={(id) => onSelect({ kind: "goal", id })} /></section>

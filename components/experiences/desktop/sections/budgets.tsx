@@ -4,8 +4,8 @@ import { budgetRows, formatMoney } from "../desktop-data";
 import type { DesktopCopy } from "../desktop-copy";
 import type { DesktopSectionProps } from "../types";
 
-export function BudgetsSection({ state, currency, query, onSelect, onAction, copy, locale }: DesktopSectionProps & { copy: DesktopCopy; locale: string }) {
-  const rows = budgetRows(state, currency).filter((row) => row.name.toLowerCase().includes(query.toLowerCase()));
+export function BudgetsSection({ state, currency, onSelect, onAction, copy, locale }: DesktopSectionProps & { copy: DesktopCopy; locale: string }) {
+  const rows = budgetRows(state, currency);
   const cap = rows.reduce((sum, row) => sum + row.cap, 0);
   const spent = rows.reduce((sum, row) => sum + row.spent, 0);
   return <div className="desk-section">

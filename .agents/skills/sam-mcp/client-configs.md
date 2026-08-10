@@ -104,14 +104,26 @@ mcp_servers:
     timeout: 120
     connect_timeout: 60
     supports_parallel_tool_calls: true
-    # Optional: limit tools exposed to the agent
-    # tools:
-    #   include:
-    #     - sam_get_profile
-    #     - sam_list_transactions
-    #     - sam_get_spending_summary
-    #     - sam_add_expense
+    # Recommended: whitelist tools so Hermes does not burn LLM/API quota
+    # rediscovering the full 36-tool catalog on every turn ("requests exhausted").
+    tools:
+      include:
+        - sam_get_profile
+        - sam_list_accounts
+        - sam_list_categories
+        - sam_list_transactions
+        - sam_get_spending_summary
+        - sam_get_budget_status
+        - sam_add_expense
+        - sam_update_expense
+        - sam_delete_expense
 ```
+
+If Hermes reports exhausted / rate-limited requests when connecting to MCP:
+1. Confirm `SAM_MCP_TOKEN` is a non-revoked `sam_mcp_…` token (Profile → Connect MCP, or `npx tsx scripts/mcp/manage-token.ts`).
+2. Keep the `tools.include` whitelist above — full tool lists inflate prompt tokens every reload.
+3. Raise timeouts as shown; run `/reload-mcp` after config changes.
+4. SAM MCP itself is stateless POST-only; a bad token yields HTTP 401, not quota errors.
 
 After editing, run `/reload-mcp` in Hermes chat.
 

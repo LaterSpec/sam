@@ -3,10 +3,9 @@ import { formatMoney } from "../desktop-data";
 import type { DesktopCopy } from "../desktop-copy";
 import type { DesktopSectionProps } from "../types";
 
-export function RecurringSection({ state, currency, query, onSelect, onAction, copy, locale }: DesktopSectionProps & { copy: DesktopCopy; locale: string }) {
+export function RecurringSection({ state, currency, onSelect, onAction, copy, locale }: DesktopSectionProps & { copy: DesktopCopy; locale: string }) {
   const rules = state.recurringRules
     .filter((rule) => rule.accountCurrency === currency)
-    .filter((rule) => `${rule.name} ${rule.accountName} ${rule.status}`.toLowerCase().includes(query.toLowerCase()))
     .sort((a, b) => a.nextOccurrenceDate.localeCompare(b.nextOccurrenceDate));
   const active = rules.filter((rule) => rule.status === "active");
   const outgoing = active.filter((rule) => rule.kind === "expense").reduce((sum, rule) => sum + rule.amount, 0);

@@ -8,16 +8,13 @@ import type { DesktopSectionProps } from "../types";
 export function OverviewSection({
   state,
   currency,
-  query,
   onSelect,
   onAction,
   copy,
   locale,
 }: DesktopSectionProps & { copy: DesktopCopy; locale: string }) {
   const summary = desktopSummary(state, currency);
-  const tx = allTransactions(state, currency)
-    .filter((item) => `${item.name} ${item.category}`.toLowerCase().includes(query.toLowerCase()))
-    .slice(0, 8);
+  const tx = allTransactions(state, currency).slice(0, 8);
   const obligations = state.recurringRules
     .filter((rule) => rule.kind === "expense" && rule.status === "active" && rule.accountCurrency === currency)
     .reduce((sum, rule) => sum + rule.amount, 0);

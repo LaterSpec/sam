@@ -3,8 +3,6 @@ export type SamExperience = "mobile" | "desktop";
 export const DESKTOP_SECTIONS = [
   "overview",
   "transactions",
-  "income",
-  "expenses",
   "budgets",
   "accounts",
   "goals",
@@ -14,10 +12,17 @@ export const DESKTOP_SECTIONS = [
   "settings",
 ] as const;
 
+/** Legacy path segments kept for mobile deep-links and redirects. */
+export const LEGACY_DESKTOP_SECTIONS = ["income", "expenses"] as const;
+
 export type DesktopSection = (typeof DESKTOP_SECTIONS)[number];
 
 export function isDesktopSection(value: string): value is DesktopSection {
   return (DESKTOP_SECTIONS as readonly string[]).includes(value);
+}
+
+export function isLegacyDesktopSection(value: string): value is (typeof LEGACY_DESKTOP_SECTIONS)[number] {
+  return (LEGACY_DESKTOP_SECTIONS as readonly string[]).includes(value);
 }
 
 type HeaderReader = Pick<Headers, "get">;

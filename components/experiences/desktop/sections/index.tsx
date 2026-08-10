@@ -24,7 +24,7 @@ type Props = DesktopSectionProps & {
 
 export function DesktopSectionContent(props: Props) {
   if (props.section === "overview") return <OverviewSection {...props} />;
-  if (["transactions", "income", "expenses", "activity"].includes(props.section)) return <LedgerSection {...props} />;
+  if (props.section === "transactions" || props.section === "activity") return <LedgerSection {...props} />;
   if (props.section === "accounts") return <AccountsSection {...props} />;
   if (props.section === "budgets") return <BudgetsSection {...props} />;
   if (props.section === "goals") return <GoalsSection {...props} />;

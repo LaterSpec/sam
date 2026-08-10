@@ -269,10 +269,21 @@ mcp_servers:
     timeout: 120
     connect_timeout: 60
     tools:
-      include: []   # optional whitelist, e.g. [sam_list_transactions, sam_add_expense]
+      include:   # whitelist — avoids burning LLM quota on full tool rediscovery
+        - sam_get_profile
+        - sam_list_accounts
+        - sam_list_categories
+        - sam_list_transactions
+        - sam_get_spending_summary
+        - sam_get_budget_status
+        - sam_add_expense
+        - sam_update_expense
+        - sam_delete_expense
 ```
 
-Reload: `/reload-mcp` in the Hermes chat.
+`sam_add_expense` accepts optional `occurredAt` (`YYYY-MM-DD` or ISO datetime with `Z`/offset); omit to use now. (`sam_add_income` supports the same field when that tool is enabled.)
+
+Reload: `/reload-mcp` in the Hermes chat. If Hermes says requests are exhausted, check the token and keep the whitelist (see skill `client-configs.md`).
 
 Docs: [Hermes MCP guide](https://hermes-agent.nousresearch.com/docs/user-guide/features/mcp)
 

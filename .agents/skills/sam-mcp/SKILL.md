@@ -37,13 +37,13 @@ Human-readable guide: [docs/MCP.md](../../../docs/MCP.md)
 | List expenses / spending history | `sam_list_transactions` (`kind: "expense"`) |
 | Spending totals / breakdown | `sam_get_spending_summary` (`groupBy`: category/day/month) |
 | Income vs expense | `sam_get_cashflow` |
-| Add / edit / delete expense | `sam_add_expense`, `sam_update_expense`, `sam_delete_expense` |
+| Add / edit / delete expense | `sam_add_expense` (optional `occurredAt`: `YYYY-MM-DD` or ISO with Z/offset; omit → now), `sam_update_expense`, `sam_delete_expense` |
 | Accounts / balances / net worth | `sam_list_accounts`, `sam_get_net_worth` |
 | Budget categories / caps | `sam_list_categories`, `sam_get_budget_status` |
 | Create / update category | `sam_create_category`, `sam_update_category`, `sam_update_category_cap` |
 | Transfer money | `sam_list_accounts` → `sam_transfer_between_accounts` (`confirm: true`) |
 | Goals | `sam_list_goals`, `sam_create_goal`, `sam_update_goal`, `sam_set_goal_saved` |
-| One-time income | `sam_add_income` |
+| One-time income | `sam_add_income` (optional `occurredAt`: `YYYY-MM-DD` or ISO with Z/offset; omit → now) |
 | Recurring income/expenses | `sam_list_recurring_rules`, `sam_create_recurring_rule`, `sam_update_recurring_rule`, `sam_pause_recurring_rule`, `sam_resume_recurring_rule`, `sam_list_recurring_occurrences`, `sam_retry_recurring_occurrence` |
 | Legacy income sources | `sam_list_income_sources` (deprecated read-only compatibility view) |
 | Savings buckets | `sam_list_savings_buckets`, `sam_set_bucket_balance` |

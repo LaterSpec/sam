@@ -31,7 +31,6 @@ export type DesktopSectionProps = {
   state: AppState;
   section: DesktopSection;
   currency: Currency;
-  query: string;
   onSelect: (selection: DesktopSelection) => void;
   onAction: (action: DesktopAction) => void;
 };

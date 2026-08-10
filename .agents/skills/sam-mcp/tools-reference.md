@@ -107,6 +107,9 @@ Scope: `sam:expenses.write`
 | `name` | string (1–120) | required |
 | `category` | string | optional; defaults to the user's miscellaneous category and otherwise must match `sam_list_categories` |
 | `accountId` | uuid | optional (uses default account) |
+| `occurredAt` | `YYYY-MM-DD` or ISO datetime with `Z`/offset | optional; **omit to use now**. Date-only is stored at noon UTC so the expense lands in that calendar day/month budget. No-offset local datetimes (`…T09:30`) are rejected. |
+
+When the user names a date ("gasto del 3 de agosto"), pass `occurredAt`. When they do not, omit the field.
 
 ### `sam_update_expense`
 
@@ -260,7 +263,7 @@ Scope: `sam:income.write`
 | `name` | string (1–120) | yes |
 | `amount` | positive number | yes |
 | `accountId` | uuid | yes |
-| `occurredAt` | ISO datetime | optional |
+| `occurredAt` | `YYYY-MM-DD` or ISO datetime with `Z`/offset | optional; **omit to use now**. Date-only → noon UTC. |
 
 This always creates one income transaction. Use recurring tools for schedules.
 

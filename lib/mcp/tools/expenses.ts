@@ -5,6 +5,7 @@ import * as expenses from "@/lib/domain/expenses";
 import * as categories from "@/lib/domain/categories";
 import { SCOPES } from "../scopes";
 import { presentTransaction } from "../presenters";
+import { occurredAtSchema } from "../occurred-at";
 import { defineTool } from "./helpers";
 
 export function registerExpenseTools(server: McpServer, ctx: ActorContext) {
@@ -36,14 +37,14 @@ export function registerExpenseTools(server: McpServer, ctx: ActorContext) {
   defineTool(server, ctx, {
     name: "sam_add_expense",
     description:
-      "Add an expense using the category's user-facing name. Call sam_list_categories when the name is unknown. Resolves the account by id or default priority and updates its balance. Optional occurredAt (ISO datetime) assigns the expense to that month's category budget; defaults to now.",
+      "Add an expense using the category's user-facing name. Call sam_list_categories when the name is unknown. Resolves the account by id or default priority and updates its balance. Optional occurredAt (YYYY-MM-DD or ISO datetime with Z/offset) assigns the expense to that date/month's category budget; if omitted, uses the current time.",
     scope: SCOPES.expensesWrite,
     inputSchema: {
       amount: z.number().positive(),
       name: z.string().min(1).max(120),
       category: z.string().min(1).max(120).optional(),
       accountId: z.string().uuid().optional(),
-      occurredAt: z.string().datetime().optional(),
+      occurredAt: occurredAtSchema.optional(),
     },
     handler: async (ctx, args) => {
       const catKey =

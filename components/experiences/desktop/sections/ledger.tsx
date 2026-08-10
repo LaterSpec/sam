@@ -6,15 +6,58 @@ import { accountName, allTransactions, formatMoney, transactionCurrency } from "
 import type { DesktopCopy } from "../desktop-copy";
 import type { DesktopSectionProps } from "../types";
 
-export function LedgerSection({ state, section, currency, query, onSelect, onAction, copy, locale }: DesktopSectionProps & { copy: DesktopCopy; locale: string }) {
+type Period = "all" | "week" | "month" | "quarter" | "custom";
+
+function startOfDay(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+}
+
+function daysAgo(days: number) {
+  const date = new Date();
+  date.setHours(0, 0, 0, 0);
+  date.setDate(date.getDate() - days);
+  return date.getTime();
+}
+
+export function LedgerSection({ state, section, currency, onSelect, onAction, copy, locale }: DesktopSectionProps & { copy: DesktopCopy; locale: string }) {
   const [limit, setLimit] = useState(30);
   const [account, setAccount] = useState("all");
-  const rows = useMemo(() => allTransactions(state)
-    .filter((tx) => section === "income" ? tx.kind === "income" : section === "expenses" ? tx.kind === "expense" : true)
-    .filter((tx) => transactionCurrency(state, tx) === currency)
-    .filter((tx) => account === "all" || tx.accountId === account)
-    .filter((tx) => `${tx.name} ${tx.category} ${tx.source ?? ""}`.toLowerCase().includes(query.toLowerCase())), [account, currency, query, section, state]);
-  const title = section === "income" ? copy.income : section === "expenses" ? copy.expenses : section === "activity" ? copy.activity : copy.transactions;
+  const [category, setCategory] = useState("all");
+  const [period, setPeriod] = useState<Period>("all");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+
+  const categories = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const tx of allTransactions(state, currency)) {
+      if (tx.category) map.set(tx.catKey || tx.category, tx.category);
+    }
+    for (const budget of state.budgets) map.set(budget.key, budget.name);
+    return [...map.entries()].sort((a, b) => a[1].localeCompare(b[1]));
+  }, [currency, state]);
+
+  const rows = useMemo(() => {
+    let from = 0;
+    let to = Number.POSITIVE_INFINITY;
+    if (period === "week") from = daysAgo(7);
+    else if (period === "month") from = daysAgo(30);
+    else if (period === "quarter") from = daysAgo(90);
+    else if (period === "custom") {
+      from = fromDate ? startOfDay(new Date(`${fromDate}T00:00:00`)) : 0;
+      to = toDate ? startOfDay(new Date(`${toDate}T00:00:00`)) + 86_400_000 - 1 : Number.POSITIVE_INFINITY;
+    }
+
+    return allTransactions(state)
+      .filter((tx) => transactionCurrency(state, tx) === currency)
+      .filter((tx) => account === "all" || tx.accountId === account)
+      .filter((tx) => category === "all" || tx.catKey === category || tx.category === category)
+      .filter((tx) => {
+        const stamp = new Date(tx.occurred_at).getTime();
+        return stamp >= from && stamp <= to;
+      });
+  }, [account, category, currency, fromDate, period, state, toDate]);
+
+  const title = section === "activity" ? copy.activity : copy.transactions;
 
   return (
     <div className="desk-section">
@@ -27,7 +70,21 @@ export function LedgerSection({ state, section, currency, query, onSelect, onAct
       </div>
       <div className="desk-filter-line">
         <Filter size={14} aria-hidden="true" />
-        <label>Account <select value={account} onChange={(event) => setAccount(event.target.value)}><option value="all">All accounts</option>{state.accounts.filter((item) => item.currency === currency).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
+        <label>{copy.account} <select value={account} onChange={(event) => setAccount(event.target.value)}><option value="all">{copy.allAccounts}</option>{state.accounts.filter((item) => item.currency === currency).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
+        <label>{copy.category} <select value={category} onChange={(event) => setCategory(event.target.value)}><option value="all">{copy.allCategories}</option>{categories.map(([key, name]) => <option key={key} value={key}>{name}</option>)}</select></label>
+        <label>{copy.period} <select value={period} onChange={(event) => setPeriod(event.target.value as Period)}>
+          <option value="all">{copy.periodAll}</option>
+          <option value="week">{copy.periodWeek}</option>
+          <option value="month">{copy.periodMonth}</option>
+          <option value="quarter">{copy.periodQuarter}</option>
+          <option value="custom">{copy.periodCustom}</option>
+        </select></label>
+        {period === "custom" ? (
+          <>
+            <label>{copy.dateFrom} <input type="date" value={fromDate} onChange={(event) => setFromDate(event.target.value)} /></label>
+            <label>{copy.dateTo} <input type="date" value={toDate} onChange={(event) => setToDate(event.target.value)} /></label>
+          </>
+        ) : null}
         <span>{rows.length} entries · {currency}</span>
       </div>
       <section className="desk-panel desk-ledger-panel" aria-label={title}>

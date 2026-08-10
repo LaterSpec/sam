@@ -3,8 +3,8 @@ import { formatMoney } from "../desktop-data";
 import type { DesktopCopy } from "../desktop-copy";
 import type { DesktopSectionProps } from "../types";
 
-export function AccountsSection({ state, currency, query, onSelect, onAction, copy, locale }: DesktopSectionProps & { copy: DesktopCopy; locale: string }) {
-  const accounts = state.accounts.filter((item) => item.currency === currency && item.name.toLowerCase().includes(query.toLowerCase()));
+export function AccountsSection({ state, currency, onSelect, onAction, copy, locale }: DesktopSectionProps & { copy: DesktopCopy; locale: string }) {
+  const accounts = state.accounts.filter((item) => item.currency === currency);
   const liquid = accounts.filter((item) => item.type !== "card");
   const cards = accounts.filter((item) => item.type === "card");
   const total = liquid.reduce((sum, item) => sum + item.balance, 0);

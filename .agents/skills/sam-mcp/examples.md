@@ -64,11 +64,12 @@ curl -s -X POST "$APP_URL/api/mcp" \
 ### Add expense
 
 ```bash
+# Omit occurredAt → now. Pass YYYY-MM-DD (or ISO with Z/offset) when the user names a date.
 curl -s -X POST "$APP_URL/api/mcp" \
   -H "Content-Type: application/json" \
   -H "Accept: application/json, text/event-stream" \
   -H "Authorization: Bearer $SAM_MCP_TOKEN" \
-  -d '{"jsonrpc":"2.0","id":6,"method":"tools/call","params":{"name":"sam_add_expense","arguments":{"amount":24,"name":"Uber","category":"Transport"}}}'
+  -d '{"jsonrpc":"2.0","id":6,"method":"tools/call","params":{"name":"sam_add_expense","arguments":{"amount":24,"name":"Uber","category":"Transport","occurredAt":"2026-08-03"}}}'
 ```
 
 ### Pretty-print JSON result (jq)
