@@ -23,6 +23,7 @@ import {
   StatsScreen,
   HelpScreen,
   AjustesScreen,
+  IntegrationsScreen,
   type ClientAppState,
   type SheetPayload,
 } from "@/components/experiences/mobile/screens";
@@ -82,6 +83,7 @@ function resolveScreen(tab: string, subTab: string) {
     if (subTab === "stats") return StatsScreen;
     if (subTab === "help") return HelpScreen;
     if (subTab === "settings") return AjustesScreen;
+    if (subTab === "integrations") return IntegrationsScreen;
     return ProfileScreen;
   }
   return HomeScreen;

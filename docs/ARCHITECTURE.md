@@ -194,4 +194,6 @@ recurring rules can still be created and managed in the app.
 - PWA: `docs/PWA.md`
 - Investment removal: `docs/migrations/investments-removal.md`
 - MCP design: `docs/MCP-ARCHITECTURE.md`
+- Integrations marketplace: `docs/INTEGRATIONS.md`
+- Developer docs site: `/developers` (SAM for Developers)
 - Supabase migration history: `docs/database/supabase-migration-notes.md`

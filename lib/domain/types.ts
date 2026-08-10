@@ -4,7 +4,7 @@
  * Domain services are session-agnostic: both Server Actions (browser session)
  * and MCP tools (bearer token) build an ActorContext and call the same logic.
  */
-export type AuthMethod = "session" | "mcp_token" | "oauth";
+export type AuthMethod = "session" | "mcp_token" | "oauth" | "integration";
 
 export type ActorContext = {
   userId: string;

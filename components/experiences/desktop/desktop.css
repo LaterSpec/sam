@@ -274,6 +274,19 @@
 .desk-mcp-banner > svg { color: var(--desk-info); }
 .desk-mcp-banner h2 { margin: 0; font-size: 13px; }
 .desk-mcp-banner p { margin: 2px 0 0; color: var(--desk-muted); font-size: 10px; }
+.desk-mcp-banner .desk-heading-actions { flex-wrap: wrap; justify-content: flex-end; }
+.desk-integrations-tabs { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 0 0 14px; border-bottom: 1px solid var(--desk-line-soft); margin-bottom: 14px; }
+.desk-integrations-tabs button { min-height: 30px; padding: 0 10px; color: var(--desk-muted); border: 1px solid transparent; background: transparent; cursor: pointer; font-size: 11px; }
+.desk-integrations-tabs button.is-active { color: var(--desk-ink); border-color: var(--desk-line); background: var(--desk-active); }
+.desk-integration-list { display: flex; flex-direction: column; gap: 10px; }
+.desk-integration-card { padding: 12px; border: 1px solid var(--desk-line-soft); background: color-mix(in srgb, var(--desk-surface) 70%, transparent); }
+.desk-integration-card header { display: flex; flex-direction: column; gap: 2px; margin-bottom: 6px; }
+.desk-integration-card strong { font-size: 13px; }
+.desk-integration-card small, .desk-muted-line { color: var(--desk-muted); font: 9px var(--font-jetbrains), monospace; }
+.desk-integration-card p { margin: 0 0 10px; font-size: 11px; color: var(--desk-muted); }
+.desk-inline-input { height: 30px; min-width: 140px; padding: 0 8px; color: var(--desk-ink); border: 1px solid var(--desk-line); background: var(--desk-canvas); font-size: 11px; }
+.desk-form-note { color: var(--desk-positive); font-size: 11px; }
+.desk-integrations-panel textarea { width: 100%; min-height: 220px; padding: 10px; color: var(--desk-ink); border: 1px solid var(--desk-line); background: var(--desk-canvas); font: 11px var(--font-jetbrains), monospace; }
 
 .desk-inspector { grid-column: 3; grid-row: 2; min-width: 0; overflow: hidden; border-left: 0 solid var(--desk-line); background: var(--desk-inspector); opacity: 0; transform: translateX(12px); transition: opacity 180ms ease, transform 220ms ease; }
 .desk-inspector.is-open { border-left-width: 1px; opacity: 1; transform: translateX(0); }

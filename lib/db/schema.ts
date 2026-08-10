@@ -353,6 +353,152 @@ export const mcpAuditLogs = pgTable(
   (t) => [index("mcp_audit_logs_user_idx").on(t.userId, t.createdAt)]
 );
 
+// ── Integrations marketplace ────────────────────────────────
+
+export const integrationAuthors = pgTable(
+  "integration_authors",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    displayName: text("display_name").notNull(),
+    bio: text("bio"),
+    website: text("website"),
+    verifiedAt: timestamp("verified_at"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("integration_authors_user_id_idx").on(t.userId),
+  ]
+);
+
+export const integrations = pgTable(
+  "integrations",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    slug: text("slug").notNull(),
+    name: text("name").notNull(),
+    summary: text("summary").notNull().default(""),
+    authorId: uuid("author_id")
+      .notNull()
+      .references(() => integrationAuthors.id, { onDelete: "cascade" }),
+    status: text("status").notNull().default("draft"),
+    runtime: text("runtime").notNull().default("connector"),
+    currentVersion: text("current_version"),
+    iconKey: text("icon_key"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("integrations_slug_idx").on(t.slug),
+    index("integrations_status_idx").on(t.status),
+    index("integrations_author_id_idx").on(t.authorId),
+  ]
+);
+
+export const integrationVersions = pgTable(
+  "integration_versions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    integrationId: uuid("integration_id")
+      .notNull()
+      .references(() => integrations.id, { onDelete: "cascade" }),
+    version: text("version").notNull(),
+    manifestJson: jsonb("manifest_json").notNull(),
+    manifestR2Key: text("manifest_r2_key"),
+    changelog: text("changelog"),
+    status: text("status").notNull().default("pending_review"),
+    submittedAt: timestamp("submitted_at").notNull().defaultNow(),
+    reviewedAt: timestamp("reviewed_at"),
+    reviewerNote: text("reviewer_note"),
+  },
+  (t) => [
+    uniqueIndex("integration_versions_integration_version_idx").on(t.integrationId, t.version),
+    index("integration_versions_status_idx").on(t.status),
+  ]
+);
+
+export const integrationReviews = pgTable(
+  "integration_reviews",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    versionId: uuid("version_id")
+      .notNull()
+      .references(() => integrationVersions.id, { onDelete: "cascade" }),
+    reviewerUserId: text("reviewer_user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    decision: text("decision").notNull(),
+    notes: text("notes"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [index("integration_reviews_version_id_idx").on(t.versionId)]
+);
+
+export const userIntegrationInstalls = pgTable(
+  "user_integration_installs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    integrationId: uuid("integration_id")
+      .notNull()
+      .references(() => integrations.id, { onDelete: "cascade" }),
+    version: text("version").notNull(),
+    status: text("status").notNull().default("installed"),
+    configJson: jsonb("config_json").notNull().default({}),
+    scopesGranted: text("scopes_granted").array().notNull().default([]),
+    webhookTokenHash: text("webhook_token_hash"),
+    syncCursor: jsonb("sync_cursor"),
+    connectedAt: timestamp("connected_at"),
+    lastSyncAt: timestamp("last_sync_at"),
+    lastError: text("last_error"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("user_integration_installs_user_integration_idx").on(t.userId, t.integrationId),
+    index("user_integration_installs_user_id_idx").on(t.userId),
+    index("user_integration_installs_status_idx").on(t.status),
+  ]
+);
+
+export const userIntegrationSecrets = pgTable(
+  "user_integration_secrets",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    installId: uuid("install_id")
+      .notNull()
+      .references(() => userIntegrationInstalls.id, { onDelete: "cascade" }),
+    ciphertext: text("ciphertext").notNull(),
+    iv: text("iv").notNull(),
+    keyVersion: integer("key_version").notNull().default(1),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("user_integration_secrets_install_id_idx").on(t.installId)]
+);
+
+export const integrationAuditLogs = pgTable(
+  "integration_audit_logs",
+  {
+    id: bigint("id", { mode: "number" }).primaryKey().generatedAlwaysAsIdentity(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    installId: uuid("install_id").references(() => userIntegrationInstalls.id, { onDelete: "set null" }),
+    action: text("action").notNull(),
+    meta: jsonb("meta"),
+    resultStatus: text("result_status").notNull().default("ok"),
+    errorMessage: text("error_message"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [index("integration_audit_logs_user_idx").on(t.userId, t.createdAt)]
+);
+
 export type UserPrefs = {
   theme:
     | "solarized-cream"

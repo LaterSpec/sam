@@ -18,7 +18,8 @@ export type DesktopCreateAction =
   | "goal"
   | "budget"
   | "recurring"
-  | "mcp";
+  | "mcp"
+  | "integrations";
 
 export type DesktopEditAction = {
   edit: "budget" | "account" | "goal" | "recurring";

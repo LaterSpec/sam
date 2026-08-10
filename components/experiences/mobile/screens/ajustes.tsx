@@ -96,6 +96,59 @@ export function AjustesScreen({ state, setState }: ScreenProps) {
         </div>
 
         <div style={{ marginTop: 20 }}>
+          <div style={{ fontSize: 13, color: sam.cyan, fontWeight: 600 }}>▸ {t("Integrations")}</div>
+          <div style={{ marginTop: 10, border: `1px solid ${sam.border}`, background: sam.surface }}>
+            <button
+              type="button"
+              onClick={() => setState((s) => ({ ...s, profileTab: "integrations" }))}
+              style={{
+                width: "100%",
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                padding: "12px 12px",
+                border: 0,
+                borderBottom: `1px solid ${sam.border}`,
+                background: "transparent",
+                color: sam.text,
+                fontFamily: sam.font,
+                cursor: "pointer",
+                textAlign: "left",
+              }}
+            >
+              <Mono c={sam.green} b>
+                [+]
+              </Mono>
+              <span style={{ flex: 1 }}>{t("Open marketplace")}</span>
+              <Mono c={sam.comment}>→</Mono>
+            </button>
+            <a
+              href="/developers"
+              target="_blank"
+              rel="noreferrer"
+              style={{
+                width: "100%",
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                padding: "12px 12px",
+                border: 0,
+                background: "transparent",
+                color: sam.text,
+                fontFamily: sam.font,
+                textDecoration: "none",
+              }}
+            >
+              <Mono c={sam.cyan} b>
+                [?]
+              </Mono>
+              <span style={{ flex: 1 }}>{t("SAM for Developers")}</span>
+              <Mono c={sam.comment}>↗</Mono>
+            </a>
+          </div>
+        </div>
+
+        <div style={{ marginTop: 20 }}>
           <div style={{ fontSize: 13, color: sam.cyan, fontWeight: 600 }}>▸ {t("Active theme")}</div>
           <div style={{ marginTop: 8, padding: "10px 12px", border: `1px solid ${sam.border}`, background: sam.overlay, fontSize: 12 }}>
             <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>

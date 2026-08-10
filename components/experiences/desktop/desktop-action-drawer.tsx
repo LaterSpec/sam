@@ -26,16 +26,19 @@ import { expenseCategoryOptions } from "./desktop-data";
 import type { DesktopCopy } from "./desktop-copy";
 import type { DesktopAction, DesktopCreateAction, DesktopEditAction } from "./types";
 import { McpPanel } from "./mcp-panel";
+import { IntegrationsPanel } from "./integrations-panel";
 
 function actionKey(action: Exclude<DesktopAction, null>) {
   return typeof action === "string" ? action : `${action.edit}:${action.id}`;
 }
 
-function isEdit(action: Exclude<DesktopAction, "mcp" | null>): action is DesktopEditAction {
+function isEdit(action: Exclude<DesktopAction, "mcp" | "integrations" | null>): action is DesktopEditAction {
   return typeof action === "object" && "edit" in action;
 }
 
-function createKind(action: Exclude<DesktopAction, "mcp" | null>): Exclude<DesktopCreateAction, "mcp"> | DesktopEditAction["edit"] {
+function createKind(
+  action: Exclude<DesktopAction, "mcp" | "integrations" | null>
+): Exclude<DesktopCreateAction, "mcp" | "integrations"> | DesktopEditAction["edit"] {
   return isEdit(action) ? action.edit : action;
 }
 
@@ -65,6 +68,8 @@ export function DesktopActionDrawer({
         <div className="desk-action-scroll">
           {action === "mcp" ? (
             <McpPanel />
+          ) : action === "integrations" ? (
+            <IntegrationsPanel />
           ) : action ? (
             <ActionForm key={actionKey(action)} action={action} state={state} currency={currency} copy={copy} onDone={onDone} onClose={onClose} />
           ) : null}
@@ -82,7 +87,7 @@ function ActionForm({
   onDone,
   onClose,
 }: {
-  action: Exclude<DesktopAction, "mcp" | null>;
+  action: Exclude<DesktopAction, "mcp" | "integrations" | null>;
   state: AppState;
   currency: Currency;
   copy: DesktopCopy;

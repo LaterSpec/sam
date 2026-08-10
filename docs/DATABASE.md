@@ -97,6 +97,15 @@ Stores token prefix and hash, scopes, expiry, revocation and last-used metadata.
 
 Append-only record of scoped MCP calls and safe outcomes.
 
+## Integrations marketplace tables
+
+See `docs/INTEGRATIONS.md` and migration `drizzle/migrations/integrations_tables.sql`.
+
+- `integration_authors`, `integrations`, `integration_versions`, `integration_reviews`
+- `user_integration_installs`, `user_integration_secrets`, `integration_audit_logs`
+
+Canonical sync: `npm run db:push`.
+
 ## User bootstrap
 
 `lib/auth/onboarding-bootstrap.ts` creates:

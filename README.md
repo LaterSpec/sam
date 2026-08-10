@@ -47,6 +47,9 @@ Agents and MCP clients should use the **production MCP URL** when not running SA
 | `/~offline` | PWA offline fallback |
 | `/api/auth/[...all]` | Better Auth route handler |
 | `/api/mcp` | MCP Streamable HTTP endpoint (personal finance tools for AI agents) |
+| `/developers` | SAM for Developers — integration marketplace docs |
+| `/api/integrations/hooks/[installId]` | Integration webhook ingress |
+| `/api/integrations/cron/sync` | Integration sync cron (Bearer `CRON_SECRET`) |
 
 ## Scripts
 

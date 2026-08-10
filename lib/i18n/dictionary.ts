@@ -336,4 +336,17 @@ export const ES: Record<string, string> = {
   less: "menos",
   more: "más",
 
+  // ── Integrations ────────────────────────────────────────────
+  Integrations: "Integraciones",
+  "Open marketplace": "Abrir marketplace",
+  "SAM for Developers": "SAM para desarrolladores",
+  Connected: "Conectadas",
+  Explore: "Explorar",
+  Create: "Crear",
+  "Create integration": "Crear integración",
+  "marketplace connectors · author name shown on every listing":
+    "conectores del marketplace · el autor aparece en cada ficha",
+  "no integrations installed yet": "aún no hay integraciones instaladas",
+  "read docs before publishing": "lee la documentación antes de publicar",
+
 };

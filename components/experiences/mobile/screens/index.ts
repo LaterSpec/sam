@@ -12,3 +12,4 @@ export { ProfileScreen } from "./profile";
 export { StatsScreen } from "./stats";
 export { HelpScreen } from "./help";
 export { AjustesScreen } from "./ajustes";
+export { IntegrationsScreen } from "./integrations";

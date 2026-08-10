@@ -30,5 +30,5 @@ export function DesktopSectionContent(props: Props) {
   if (props.section === "goals") return <GoalsSection {...props} />;
   if (props.section === "recurring") return <RecurringSection {...props} />;
   if (props.section === "reports") return <ReportsSection {...props} />;
-  return <SettingsSection state={props.state} theme={props.theme} language={props.language} currency={props.currency} copy={props.copy} onTheme={props.onTheme} onLanguage={props.onLanguage} onCurrency={props.onCurrency} onMcp={() => props.onAction("mcp")} />;
+  return <SettingsSection state={props.state} theme={props.theme} language={props.language} currency={props.currency} copy={props.copy} onTheme={props.onTheme} onLanguage={props.onLanguage} onCurrency={props.onCurrency} onMcp={() => props.onAction("mcp")} onIntegrations={() => props.onAction("integrations")} />;
 }
