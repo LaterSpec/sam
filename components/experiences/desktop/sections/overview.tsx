@@ -1,4 +1,4 @@
-import { ArrowUpRight, CalendarClock, CircleDollarSign } from "lucide-react";
+import { ArrowUpRight, CalendarClock, CircleDollarSign, Eye, EyeOff } from "lucide-react";
 import { CashFlowBraid } from "../charts/cash-flow-braid";
 import { BudgetPressure } from "../charts/budget-pressure";
 import { allTransactions, desktopSummary, formatMoney } from "../desktop-data";
@@ -12,7 +12,9 @@ export function OverviewSection({
   onAction,
   copy,
   locale,
-}: DesktopSectionProps & { copy: DesktopCopy; locale: string }) {
+  hideSummary,
+  onToggleSummary,
+}: DesktopSectionProps & { copy: DesktopCopy; locale: string; hideSummary: boolean; onToggleSummary: () => void }) {
   const summary = desktopSummary(state, currency);
   const tx = allTransactions(state, currency).slice(0, 8);
   const obligations = state.recurringRules
@@ -22,6 +24,8 @@ export function OverviewSection({
     .filter((rule) => rule.status === "active" && rule.accountCurrency === currency)
     .sort((a, b) => a.nextOccurrenceDate.localeCompare(b.nextOccurrenceDate))
     .slice(0, 5);
+  const privateValue = "••••••";
+  const summaryValue = (value: string) => hideSummary ? privateValue : value;
 
   return (
     <div className="desk-section desk-overview">
@@ -29,20 +33,33 @@ export function OverviewSection({
         <div className="desk-section-heading">
           <div>
             <span className="desk-eyebrow">SAM / {currency} / {new Date().toLocaleDateString(locale, { month: "long" })}</span>
-            <h1 id="position-heading">{copy.overview}</h1>
+            <div className="desk-overview-heading-line">
+              <h1 id="position-heading">{copy.overview}</h1>
+              <button
+                type="button"
+                className="desk-privacy-button"
+                aria-label={hideSummary ? copy.showSummary : copy.hideSummary}
+                aria-pressed={hideSummary}
+                title={hideSummary ? copy.showSummary : copy.hideSummary}
+                onClick={onToggleSummary}
+              >
+                {hideSummary ? <EyeOff size={14} /> : <Eye size={14} />}
+                <span>{hideSummary ? copy.showSummary : copy.hideSummary}</span>
+              </button>
+            </div>
           </div>
         </div>
 
         <div className="desk-position-grid">
           <div className="desk-position-primary">
             <span>{copy.availableBalance}</span>
-            <strong>{formatMoney(summary.balance, currency, locale)}</strong>
-            <small>{copy.projectedClose}: <b>{formatMoney(summary.projected, currency, locale)}</b></small>
+            <strong className={hideSummary ? "is-private" : undefined}>{summaryValue(formatMoney(summary.balance, currency, locale))}</strong>
+            <small>{copy.projectedClose}: <b className={hideSummary ? "is-private" : undefined}>{summaryValue(formatMoney(summary.projected, currency, locale))}</b></small>
           </div>
           <dl className="desk-kpis">
-            <div><dt>{copy.monthIncome}</dt><dd className="is-positive">+{formatMoney(summary.income, currency, locale)}</dd></div>
-            <div><dt>{copy.monthExpenses}</dt><dd className="is-negative">−{formatMoney(summary.expenses, currency, locale)}</dd></div>
-            <div><dt>{copy.monthSavings}</dt><dd>{formatMoney(summary.saved, currency, locale)}</dd></div>
+            <div><dt>{copy.monthIncome}</dt><dd className={hideSummary ? "is-private" : "is-positive"}>{summaryValue(`+${formatMoney(summary.income, currency, locale)}`)}</dd></div>
+            <div><dt>{copy.monthExpenses}</dt><dd className={hideSummary ? "is-private" : "is-negative"}>{summaryValue(`−${formatMoney(summary.expenses, currency, locale)}`)}</dd></div>
+            <div><dt>{copy.monthSavings}</dt><dd className={hideSummary ? "is-private" : undefined}>{summaryValue(formatMoney(summary.saved, currency, locale))}</dd></div>
           </dl>
         </div>
       </section>
