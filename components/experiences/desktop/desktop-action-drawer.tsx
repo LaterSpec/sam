@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { ArrowLeftRight, CalendarPlus, CircleDollarSign, Flag, Landmark, LoaderCircle, Pencil, Plus, ReceiptText, X } from "lucide-react";
+import { AlertTriangle, ArrowLeftRight, CalendarPlus, CircleDollarSign, Flag, Landmark, LoaderCircle, Pencil, Plus, ReceiptText, Trash2, X } from "lucide-react";
 import type { AppState } from "@/lib/db/queries/load-user-data";
 import type { Currency } from "@/lib/finance/currency";
 import {
@@ -10,10 +10,12 @@ import {
   addExpenseAction,
   addGoalAction,
   addIncomeAction,
+  deleteExpenseAction,
   setGoalSavedAction,
   transferAction,
   updateAccountAction,
   updateBudgetAction,
+  updateExpenseAction,
   updateGoalAction,
 } from "@/lib/actions/data-actions";
 import {
@@ -49,6 +51,7 @@ export function DesktopActionDrawer({
   copy,
   onClose,
   onDone,
+  onDeleted,
 }: {
   action: DesktopAction;
   state: AppState;
@@ -56,6 +59,7 @@ export function DesktopActionDrawer({
   copy: DesktopCopy;
   onClose: () => void;
   onDone: () => Promise<void>;
+  onDeleted: () => Promise<void>;
 }) {
   return (
     <div className={`desk-action-layer ${action ? "is-open" : ""}`} aria-hidden={!action}>
@@ -71,7 +75,7 @@ export function DesktopActionDrawer({
           ) : action === "integrations" ? (
             <IntegrationsPanel />
           ) : action ? (
-            <ActionForm key={actionKey(action)} action={action} state={state} currency={currency} copy={copy} onDone={onDone} onClose={onClose} />
+            <ActionForm key={actionKey(action)} action={action} state={state} currency={currency} copy={copy} onDone={onDone} onDeleted={onDeleted} onClose={onClose} />
           ) : null}
         </div>
       </aside>
@@ -85,6 +89,7 @@ function ActionForm({
   currency,
   copy,
   onDone,
+  onDeleted,
   onClose,
 }: {
   action: Exclude<DesktopAction, "mcp" | "integrations" | null>;
@@ -92,11 +97,13 @@ function ActionForm({
   currency: Currency;
   copy: DesktopCopy;
   onDone: () => Promise<void>;
+  onDeleted: () => Promise<void>;
   onClose: () => void;
 }) {
   const editing = isEdit(action);
   const kind = createKind(action);
   const editId = editing ? action.id : null;
+  const expense = editId && kind === "expense" ? state.expenses.find((item) => item.id === editId) : null;
   const budget = editId && kind === "budget" ? state.budgets.find((item) => item.id === editId) : null;
   const account = editId && kind === "account" ? state.accounts.find((item) => item.id === editId) : null;
   const goal = editId && kind === "goal" ? state.goals.find((item) => item.id === editId) : null;
@@ -104,13 +111,16 @@ function ActionForm({
 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [flowKind, setFlowKind] = useState<"expense" | "income">(rule?.kind ?? "expense");
   const [accountType, setAccountType] = useState(account?.type ?? "checking");
   const tomorrow = new Date(Date.now() + 864e5).toISOString().slice(0, 10);
-  const accounts = state.accounts.filter((item) => item.currency === currency);
-  const budgets = expenseCategoryOptions(state, currency);
+  const actionCurrency = expense?.currency ?? currency;
+  const accounts = state.accounts.filter((item) => item.currency === actionCurrency);
+  const budgets = expenseCategoryOptions(state, actionCurrency);
   const meta = ACTION_META[kind];
-  const nowLocal = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+  const nowLocal = toLocalDateTime(new Date());
+  const expenseDate = expense ? toLocalDateTime(new Date(expense.occurred_at)) : nowLocal;
 
   const submit = async (form: FormData) => {
     setBusy(true);
@@ -122,9 +132,20 @@ function ActionForm({
           amount: numberValue(form, "amount"),
           catKey: textValue(form, "category"),
           accountId: textValue(form, "account"),
-          occurredAt: textValue(form, "date"),
+          occurredAt: localDateTimeValue(form, "date"),
           budgets: state.budgets,
           accounts: state.accounts,
+        });
+      }
+      if (editing && kind === "expense" && editId) {
+        await updateExpenseAction({
+          id: editId,
+          name: textValue(form, "name"),
+          amount: numberValue(form, "amount"),
+          catKey: textValue(form, "category"),
+          accountId: textValue(form, "account"),
+          occurredAt: localDateTimeValue(form, "date"),
+          budgets: state.budgets,
         });
       }
       if (!editing && kind === "income") {
@@ -132,7 +153,7 @@ function ActionForm({
           name: textValue(form, "name"),
           amt: numberValue(form, "amount"),
           accountId: textValue(form, "account"),
-          occurredAt: textValue(form, "date"),
+          occurredAt: localDateTimeValue(form, "date"),
         });
       }
       if (!editing && kind === "account") {
@@ -238,6 +259,21 @@ function ActionForm({
     }
   };
 
+  const deleteSelectedExpense = async () => {
+    if (!expense) return;
+    setBusy(true);
+    setError("");
+    try {
+      await deleteExpenseAction(expense.id);
+      await onDeleted();
+      onClose();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "The expense could not be deleted.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const toggleRecurring = async () => {
     if (!rule) return;
     setBusy(true);
@@ -255,7 +291,8 @@ function ActionForm({
   };
 
   const title =
-    editing && kind === "budget" ? copy.editBudget
+    editing && kind === "expense" ? copy.editExpense
+    : editing && kind === "budget" ? copy.editBudget
     : editing && kind === "account" ? copy.editAccount
     : editing && kind === "goal" ? copy.editGoal
     : editing && kind === "recurring" ? copy.editRecurring
@@ -287,7 +324,7 @@ function ActionForm({
               name="name"
               required
               maxLength={120}
-              defaultValue={budget?.name ?? account?.name ?? goal?.name ?? rule?.name ?? ""}
+              defaultValue={expense?.name ?? budget?.name ?? account?.name ?? goal?.name ?? rule?.name ?? ""}
               placeholder={kind === "account" ? "Everyday checking" : kind === "goal" ? "Emergency runway" : "What is this?"}
             />
           </Field>
@@ -313,7 +350,7 @@ function ActionForm({
         {!["account"].includes(kind) && (
           <Field label={kind === "budget" ? "Monthly cap" : kind === "goal" ? "Target" : copy.amount}>
             <div className="desk-money-input">
-              <span>{currency}</span>
+              <span>{actionCurrency}</span>
               <input
                 name="amount"
                 type="number"
@@ -322,7 +359,7 @@ function ActionForm({
                 required
                 placeholder="0.00"
                 inputMode="decimal"
-                defaultValue={budget?.cap ?? goal?.target ?? rule?.amount ?? ""}
+                defaultValue={expense?.amount ?? budget?.cap ?? goal?.target ?? rule?.amount ?? ""}
               />
             </div>
           </Field>
@@ -337,14 +374,14 @@ function ActionForm({
         )}
         {kind === "expense" && (
           <>
-            <Field label={copy.account}><AccountSelect name="account" accounts={accounts} /></Field>
+            <Field label={copy.account}><AccountSelect name="account" accounts={accounts} defaultValue={expense?.accountId} /></Field>
             <Field label={copy.category}>
-              <select name="category" required defaultValue={budgets[0]?.key}>
+              <select name="category" required defaultValue={expense?.catKey ?? budgets[0]?.key}>
                 {budgets.map((item) => <option key={item.id} value={item.key}>{item.icon} {item.name}</option>)}
               </select>
             </Field>
             <Field label={copy.date}>
-              <input name="date" type="datetime-local" defaultValue={nowLocal} required />
+              <input name="date" type="datetime-local" defaultValue={expenseDate} required />
             </Field>
           </>
         )}
@@ -406,23 +443,46 @@ function ActionForm({
           </>
         )}
         {accounts.length === 0 && ["expense", "income", "transfer", "recurring"].includes(kind) && (
-          <p className="desk-form-error">Create a {currency} account before using this action.</p>
+          <p className="desk-form-error">Create a {actionCurrency} account before using this action.</p>
         )}
-        {kind === "transfer" && accounts.length === 1 && <p className="desk-form-error">A transfer needs two {currency} accounts.</p>}
-        {kind === "expense" && budgets.length === 0 && <p className="desk-form-error">Create a {currency} budget category first.</p>}
+        {kind === "transfer" && accounts.length === 1 && <p className="desk-form-error">A transfer needs two {actionCurrency} accounts.</p>}
+        {kind === "expense" && budgets.length === 0 && <p className="desk-form-error">Create a {actionCurrency} budget category first.</p>}
         {error && <p className="desk-form-error" role="alert">{error}</p>}
+        {confirmingDelete && expense && (
+          <div className="desk-delete-confirm" role="alertdialog" aria-labelledby="desk-delete-title" aria-describedby="desk-delete-hint">
+            <AlertTriangle size={18} />
+            <div>
+              <strong id="desk-delete-title">{copy.deleteExpenseTitle}</strong>
+              <p id="desk-delete-hint">{copy.deleteExpenseHint}</p>
+            </div>
+            <div>
+              <button type="button" className="desk-secondary-button" disabled={busy} onClick={() => setConfirmingDelete(false)}>{copy.keepExpense}</button>
+              <button type="button" className="desk-danger-button" disabled={busy} onClick={() => void deleteSelectedExpense()}>
+                {busy ? <LoaderCircle className="desk-spin" size={15} /> : <Trash2 size={15} />}
+                {busy ? copy.deleting : copy.deleteExpense}
+              </button>
+            </div>
+          </div>
+        )}
         <div className="desk-form-footer">
+          {editing && kind === "expense" && !confirmingDelete && (
+            <button type="button" className="desk-danger-button" disabled={busy} onClick={() => setConfirmingDelete(true)}>
+              <Trash2 size={15} /> {copy.deleteExpense}
+            </button>
+          )}
           {editing && kind === "recurring" && rule && rule.status !== "archived" && (
             <button type="button" className="desk-secondary-button" disabled={busy} onClick={toggleRecurring}>
               {rule.status === "paused" ? copy.resume : copy.pause}
             </button>
           )}
+          <span className="desk-form-footer-spacer" />
           <button type="button" className="desk-secondary-button" onClick={onClose}>{copy.cancel}</button>
           <button
             type="submit"
             className="desk-primary-button"
             disabled={
               busy
+              || confirmingDelete
               || (["expense", "income", "transfer", "recurring"].includes(kind) && accounts.length === 0)
               || (kind === "transfer" && accounts.length < 2)
               || (kind === "expense" && budgets.length === 0)
@@ -472,6 +532,18 @@ function nullableText(form: FormData, key: string) {
 function nullableNumber(form: FormData, key: string) {
   const value = textValue(form, key);
   return value ? Number(value) : null;
+}
+
+function localDateTimeValue(form: FormData, key: string) {
+  const date = new Date(textValue(form, key));
+  if (Number.isNaN(date.getTime())) throw new Error("Invalid date");
+  return date.toISOString();
+}
+
+function toLocalDateTime(date: Date) {
+  if (Number.isNaN(date.getTime())) return "";
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0, 16);
 }
 
 const ACTION_META = {

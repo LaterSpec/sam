@@ -366,6 +366,7 @@ export async function updateExpenseAction(input: {
   catKey?: string;
   accountId?: string;
   notes?: string;
+  occurredAt?: string;
   budgets: Array<{ id: string; key: string; icon: string; c: string }>;
 }) {
   const session = await requireSession();
@@ -390,6 +391,8 @@ export async function updateExpenseAction(input: {
   const nextAccountId = input.accountId !== undefined && input.accountId ? uuidSchema.parse(input.accountId) : null;
   const accountWasProvided = input.accountId !== undefined;
   const notes = input.notes !== undefined ? longTextSchema.parse(input.notes) ?? "" : null;
+  const nextOccurredAt = input.occurredAt !== undefined ? new Date(input.occurredAt) : null;
+  if (nextOccurredAt && Number.isNaN(nextOccurredAt.getTime())) throw new Error("invalid occurredAt date");
   const sql = getSql();
 
   const rows = (await sql.query(
@@ -405,7 +408,8 @@ export async function updateExpenseAction(input: {
         existing.*,
         coalesce($3::numeric, existing.amount) as next_amount,
         coalesce($4::text, existing.name) as next_name,
-        case when $7::boolean then $6::uuid else existing.account_id end as next_account_id
+        case when $7::boolean then $6::uuid else existing.account_id end as next_account_id,
+        coalesce($9::timestamptz, existing.occurred_at) as next_occurred_at
       from existing
     ),
     selected_category as (
@@ -456,6 +460,7 @@ export async function updateExpenseAction(input: {
         amount = guard.next_amount,
         name = guard.next_name,
         account_id = guard.next_account_id,
+        occurred_at = guard.next_occurred_at,
         category_id = case when $5::text is null then t.category_id else selected_category.id end,
         icon = case when $5::text is null then t.icon else coalesce(selected_category.icon, '●') end,
         notes = case when $8::text is null then t.notes else nullif($8::text, '') end
@@ -497,7 +502,7 @@ export async function updateExpenseAction(input: {
     left join changed_accounts on true
     group by updated_tx.id, updated_tx.name, updated_tx.amount, updated_tx.kind, updated_tx.account_id, updated_tx.notes, updated_tx.occurred_at, selected_category.name, selected_category.key, selected_category.color, updated_tx.icon, selected_category.icon
     `,
-    [uid, txId, nextAmount, nextName, nextCatKey, nextAccountId, accountWasProvided, notes]
+    [uid, txId, nextAmount, nextName, nextCatKey, nextAccountId, accountWasProvided, notes, nextOccurredAt]
   )) as UpdateExpenseSqlRow[];
 
   const row = rows[0];

@@ -20,6 +20,8 @@ type Props = DesktopSectionProps & {
   onTheme: (theme: SamTheme) => void;
   onLanguage: (language: Lang) => void;
   onCurrency: (currency: Currency) => void;
+  hideSummary: boolean;
+  onToggleSummary: () => void;
 };
 
 export function DesktopSectionContent(props: Props) {

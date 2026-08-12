@@ -40,6 +40,10 @@ export function DesktopApp({ initialData, section }: { initialData: AppState; se
   const changeLanguage = useCallback((next: Lang) => { setActiveLanguage(next); void persistPrefs({ language: next }); }, [persistPrefs]);
   const changeCurrency = useCallback((next: Currency) => { setCurrency(next); setSelection(null); void persistPrefs({ defaultCurrency: next }); }, [persistPrefs]);
   const openAction = useCallback((next: DesktopAction) => setAction(next), []);
+  const hydrateAndCloseSelection = useCallback(async () => { await hydrate(); setSelection(null); }, [hydrate]);
+  const toggleSummaryPrivacy = useCallback(() => {
+    void persistPrefs({ hideBalance: !state.prefs.hideBalance });
+  }, [persistPrefs, state.prefs.hideBalance]);
   const vars = useMemo(() => desktopThemeVars(theme), [theme]);
 
   return <SamThemeProvider theme={theme}><div className="sam-desktop" style={vars} data-theme={theme}>
@@ -57,9 +61,9 @@ export function DesktopApp({ initialData, section }: { initialData: AppState; se
       onAction={openAction}
       onSelect={setSelection}
       inspector={<DesktopInspector state={state} selection={selection} currency={currency} locale={locale} copy={copy} onClose={() => setSelection(null)} onAction={openAction}/>}
-      actionDrawer={<DesktopActionDrawer action={action} state={state} currency={currency} copy={copy} onClose={() => setAction(null)} onDone={hydrate}/>}
+      actionDrawer={<DesktopActionDrawer action={action} state={state} currency={currency} copy={copy} onClose={() => setAction(null)} onDone={hydrate} onDeleted={hydrateAndCloseSelection}/>}
     >
-      <DesktopSectionContent state={state} section={section} currency={currency} onSelect={setSelection} onAction={openAction} copy={copy} locale={locale} theme={theme} language={activeLanguage} onTheme={changeTheme} onLanguage={changeLanguage} onCurrency={changeCurrency}/>
+      <DesktopSectionContent state={state} section={section} currency={currency} onSelect={setSelection} onAction={openAction} copy={copy} locale={locale} theme={theme} language={activeLanguage} onTheme={changeTheme} onLanguage={changeLanguage} onCurrency={changeCurrency} hideSummary={Boolean(state.prefs.hideBalance)} onToggleSummary={toggleSummaryPrivacy}/>
     </DesktopShell>
   </div></SamThemeProvider>;
 }

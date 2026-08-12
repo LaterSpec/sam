@@ -22,7 +22,7 @@ export type DesktopCreateAction =
   | "integrations";
 
 export type DesktopEditAction = {
-  edit: "budget" | "account" | "goal" | "recurring";
+  edit: "expense" | "budget" | "account" | "goal" | "recurring";
   id: string;
 };
 

@@ -28,6 +28,7 @@ export function DesktopInspector({
   if (selection?.kind === "transaction") {
     const tx = allTransactions(state).find((item) => item.id === selection.id);
     if (tx) {
+      if (tx.kind === "expense") editAction = { edit: "expense", id: tx.id };
       content = (
         <>
           <InspectorHead icon={<span style={{ color: tx.catColor }}>{tx.icon}</span>} eyebrow="ledger entry" title={tx.name} />
