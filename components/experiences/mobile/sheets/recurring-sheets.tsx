@@ -49,11 +49,17 @@ export function RecurringSheet({ sheet, state, setState, onClose }: Props) {
   );
   const [unit, setUnit] = useState<RecurrenceUnit>(existing?.frequencyUnit ?? "month");
   const [interval, setIntervalValue] = useState(existing?.frequencyInterval ?? 1);
+  const [timezone, setTimezone] = useState(existing?.timezone ?? "America/Lima");
+  const today = todayInTimeZone(timezone);
+  const tomorrow = (() => {
+    const date = new Date(`${today}T00:00:00`);
+    date.setDate(date.getDate() + 1);
+    return date.toISOString().slice(0, 10);
+  })();
   const [startDate, setStartDate] = useState(
-    existing?.startDate ?? todayInTimeZone("America/Lima")
+    existing?.startDate ?? tomorrow
   );
   const [endDate, setEndDate] = useState(existing?.endDate ?? "");
-  const [timezone, setTimezone] = useState(existing?.timezone ?? "America/Lima");
   const [confirmCatchUp, setConfirmCatchUp] = useState(false);
   const [confirmArchive, setConfirmArchive] = useState(false);
   const [busy, setBusy] = useState("");
@@ -72,7 +78,6 @@ export function RecurringSheet({ sheet, state, setState, onClose }: Props) {
       return [];
     }
   }, [endDate, interval, startDate, unit]);
-  const today = todayInTimeZone(timezone);
   const catchUpCount = useMemo(() => {
     if (existing) return 0;
     try {
@@ -311,7 +316,13 @@ export function RecurringSheet({ sheet, state, setState, onClose }: Props) {
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 12 }}>
         <label>
           <Comment>{t("start date")}</Comment>
-          <input type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} style={fieldStyle} />
+          <input
+            type="date"
+            value={startDate}
+            min={existing ? undefined : tomorrow}
+            onChange={(event) => setStartDate(event.target.value)}
+            style={fieldStyle}
+          />
         </label>
         <label>
           <Comment>{t("end date (optional)")}</Comment>

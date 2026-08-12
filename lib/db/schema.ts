@@ -83,6 +83,7 @@ export const profiles = pgTable("profiles", {
       language: "es",
       defaultCurrency: "USD",
       timezone: "America/Lima",
+      hideBalance: false,
     }),
   memberSince: date("member_since").notNull().defaultNow(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -514,4 +515,5 @@ export type UserPrefs = {
   language?: "en" | "es";
   defaultCurrency?: "USD" | "PEN";
   timezone?: string;
+  hideBalance?: boolean;
 };

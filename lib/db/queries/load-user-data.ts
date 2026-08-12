@@ -160,6 +160,7 @@ export async function loadUserData(userId: string, email: string): Promise<AppSt
     language: "es",
     defaultCurrency: "USD",
     timezone: "America/Lima",
+    hideBalance: false,
   };
 
   return {

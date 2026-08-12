@@ -37,6 +37,7 @@ export const prefsSchema = z
     language: z.enum(["en", "es"]).optional(),
     defaultCurrency: z.enum(["USD", "PEN"]).optional(),
     timezone: z.string().min(1).max(80).default("America/Lima"),
+    hideBalance: z.boolean().default(false),
   })
   .strip();
 

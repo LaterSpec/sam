@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { ArrowRight, Check, Eye, EyeOff, LoaderCircle, LockKeyhole, ShieldCheck } from "lucide-react";
 import { signIn, signUp } from "@/lib/auth/client";
 import { signInWithGoogle } from "@/lib/auth/client";
+import { useSam } from "@/lib/theme/sam-theme";
+import { SamBrandIcon } from "@/components/ui/sam-brand-icon";
 
 const FEATURES = [
   { command: "flow.inspect --month=current", title: "Entiende el movimiento, no solo el saldo.", copy: "SAM enlaza ingresos, compromisos, gasto flexible y ahorro en una lectura continua.", view: "flow" },
@@ -15,6 +17,7 @@ const FEATURES = [
 export function DesktopOnboarding({ authSuccess, userName }: { authSuccess: boolean; userName: string }) {
   const [feature, setFeature] = useState(0);
   const [paused, setPaused] = useState(false);
+  const { sam } = useSam();
   useEffect(() => {
     if (authSuccess) { const timer = window.setTimeout(() => window.location.assign("/app"), 900); return () => window.clearTimeout(timer); }
   }, [authSuccess]);
@@ -28,7 +31,11 @@ export function DesktopOnboarding({ authSuccess, userName }: { authSuccess: bool
 
   return <main className="sam-desktop-auth" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)} onFocusCapture={() => setPaused(true)} onBlurCapture={() => setPaused(false)}>
     <section className="desk-auth-story" aria-live="polite">
-      <div className="desk-auth-brand"><span>S</span><strong>SAM</strong><small>living ledger</small></div>
+      <div className="desk-auth-brand">
+        <SamBrandIcon size={30} color={sam.text} />
+        <strong>SAM</strong>
+        <small>living ledger</small>
+      </div>
       <div className="desk-auth-feature" key={feature}>
         <span className="desk-command">$ {FEATURES[feature].command}</span>
         <h1>{FEATURES[feature].title}</h1>
@@ -65,7 +72,32 @@ function DesktopAuthForm() {
   return <div className="desk-auth-form-wrap">
     <span className="desk-command">sam://auth/session</span><h2>{mode === "login" ? "Vuelve a tu libro" : "Crea tu espacio financiero"}</h2><p>{mode === "login" ? "Accede a tu contexto completo desde el navegador." : "Configura tu bóveda personal en menos de un minuto."}</p>
     <div className="desk-auth-tabs" role="tablist"><button type="button" role="tab" aria-selected={mode === "login"} onClick={() => { setMode("login"); setError(""); }}>Iniciar sesión</button><button type="button" role="tab" aria-selected={mode === "signup"} onClick={() => { setMode("signup"); setError(""); }}>Crear cuenta</button></div>
-    <button type="button" className="desk-google-button" onClick={() => void google()} disabled={busy}><b>G</b> Continuar con Google</button>
+    <button
+      type="button"
+      className="desk-google-button"
+      onClick={() => void google()}
+      disabled={busy}
+      style={{ display: "inline-flex", alignItems: "center", gap: 10 }}
+    >
+      <span
+        style={{
+          width: 18,
+          height: 18,
+          borderRadius: 4,
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          color: "#174ea6",
+          border: "1px solid #dadce0",
+          background: "#fff",
+          fontWeight: 800,
+          fontSize: 13,
+        }}
+      >
+        G
+      </span>
+      Continuar con Google
+    </button>
     <div className="desk-auth-separator"><span>o usa tu correo</span></div>
     <form action={submit} className="desk-auth-form">
       {mode === "signup" && <label><span>Nombre</span><input name="name" autoComplete="name" required minLength={2} placeholder="Tu nombre"/></label>}

@@ -32,7 +32,7 @@
 
 .desk-index { grid-column: 1; grid-row: 1 / -1; min-width: 0; overflow: hidden; border-right: 1px solid var(--desk-line); background: var(--desk-index); display: flex; flex-direction: column; }
 .desk-brand { height: var(--desk-top); flex: 0 0 var(--desk-top); display: grid; grid-template-columns: 28px 1fr; grid-template-rows: 1fr 1fr; column-gap: 9px; align-content: center; padding: 0 16px; color: var(--desk-ink); text-decoration: none; border-bottom: 1px solid var(--desk-line); }
-.desk-brand > span { grid-row: 1 / 3; align-self: center; display: grid; width: 27px; height: 27px; place-items: center; color: var(--desk-canvas); background: var(--desk-positive); font: 800 14px var(--font-jetbrains), monospace; }
+.desk-brand .sam-brand-icon { grid-row: 1 / 3; align-self: center; }
 .desk-brand strong { align-self: end; font-size: 13px; line-height: 1.1; letter-spacing: .08em; }
 .desk-brand small { align-self: start; color: var(--desk-muted); font: 9px var(--font-jetbrains), monospace; letter-spacing: .04em; }
 .desk-index nav { flex: 1; overflow-y: auto; padding: 10px 9px 16px; }
@@ -48,6 +48,7 @@
 .desk-index-footer { padding: 10px 9px; border-top: 1px solid var(--desk-line); }
 
 .desk-topbar { grid-column: 2 / -1; grid-row: 1; min-width: 0; display: flex; align-items: center; gap: 13px; padding: 0 15px; border-bottom: 1px solid var(--desk-line); background: var(--desk-canvas); }
+.desk-top-actions { margin-left: auto; display: flex; align-items: center; gap: 10px; }
 .desk-menu-button { display: none; border: 0; color: var(--desk-muted); background: transparent; }
 .desk-search-wrap { position: relative; width: min(520px, 48vw); }
 .desk-search { display: flex; align-items: center; gap: 8px; width: 100%; height: 32px; padding: 0 10px; color: var(--desk-muted); border: 1px solid var(--desk-line-soft); background: var(--desk-index); }
@@ -392,7 +393,7 @@
 .desk-auth-story { position: relative; min-height: 100dvh; overflow: hidden; display: flex; flex-direction: column; justify-content: center; padding: clamp(40px, 7vw, 104px); border-right: 1px solid var(--desk-line); background: var(--desk-index); }
 .desk-auth-brand, .desk-auth-feature, .desk-auth-pager, .desk-auth-security { position: relative; z-index: 1; }
 .desk-auth-brand { position: absolute; top: 34px; left: clamp(40px, 7vw, 104px); display: grid; grid-template-columns: 30px auto; grid-template-rows: 1fr 1fr; column-gap: 10px; }
-.desk-auth-brand > span { grid-row: 1 / 3; display: grid; place-items: center; width: 30px; height: 30px; color: var(--desk-canvas); background: var(--desk-positive); font: 800 14px var(--font-jetbrains), monospace; }
+.desk-auth-brand .sam-brand-icon { grid-row: 1 / 3; display: grid; place-items: center; }
 .desk-auth-brand strong { align-self: end; font-size: 13px; letter-spacing: .12em; }
 .desk-auth-brand small { color: var(--desk-muted); font: 8px var(--font-jetbrains), monospace; }
 .desk-auth-feature { width: min(610px, 100%); animation: desk-auth-feature 350ms cubic-bezier(.2,.8,.2,1) both; }

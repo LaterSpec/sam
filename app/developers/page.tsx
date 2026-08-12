@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { DEVELOPER_DOCS } from "@/lib/docs/developer-docs";
+import { SamBrandIcon } from "@/components/ui/sam-brand-icon";
 import "./developers.css";
 
 export const metadata = {
@@ -12,7 +13,7 @@ export default function DevelopersIndexPage() {
     <div className="dev-shell">
       <header className="dev-top">
         <Link href="/" className="dev-brand">
-          <span>S</span>
+          <SamBrandIcon size={28} color="#a8e63b" />
           <strong>SAM for Developers</strong>
         </Link>
         <nav>

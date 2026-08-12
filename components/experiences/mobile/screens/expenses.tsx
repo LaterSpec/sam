@@ -29,6 +29,7 @@ export function ExpensesScreen({ state, setState, openSheet }: ScreenProps) {
   );
   const [categoriesExpanded, setCategoriesExpanded] = useState(false);
   const [txExpanded, setTxExpanded] = useState(false);
+  const [expandedTxId, setExpandedTxId] = useState<string | null>(null);
 
   const cats = (state.budgets || []).filter((b) => b.currency === displayCurrency).map((b) => ({
     key: b.key,
@@ -155,24 +156,69 @@ export function ExpensesScreen({ state, setState, openSheet }: ScreenProps) {
           )}
           {visibleTx.map((e, i) => {
             const isLast = i === visibleTx.length - 1;
+            const isExpanded = expandedTxId === e.id;
+            const accountName = state.accounts.find((account) => account.id === e.accountId)?.name ?? "—";
             return (
-              <div
-                key={e.id}
-                onClick={() => openSheet({ kind: "tx", tx: e })}
-                style={{ marginTop: 10, fontSize: 13, cursor: "pointer", padding: "4px 6px", marginLeft: -6, marginRight: -6 }}
-              >
-                <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
-                  <Mono c={sam.comment}>{isLast ? "└─" : "├─"}</Mono>
-                  <Mono c={e.catColor}>{e.icon}</Mono>
-                  <Mono c={sam.text} b>
-                    {e.name}
-                  </Mono>
+              <div key={e.id} style={{ marginTop: 10 }}>
+                <div
+                  onClick={() => setExpandedTxId((value) => (value === e.id ? null : e.id))}
+                  style={{ marginTop: 10, fontSize: 13, cursor: "pointer", padding: "4px 6px", marginLeft: -6, marginRight: -6 }}
+                >
+                  <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
+                    <Mono c={sam.comment}>{isLast ? "└─" : "├─"}</Mono>
+                    <Mono c={e.catColor}>{e.icon}</Mono>
+                    <Mono c={sam.text} b>
+                      {e.name}
+                    </Mono>
                   <span style={{ flex: 1 }} />
                   <Mono c={sam.red} b>
                     -{currencySymbol(acctCurrency(e.accountId))}{e.amount.toFixed(2)}
                   </Mono>
                 </div>
                 <div style={{ paddingLeft: 26, color: sam.comment, fontSize: 11 }}>{`// ${e.category} · ${e.time}`}</div>
+              </div>
+                {isExpanded && (
+                  <div
+                    style={{
+                      marginTop: 6,
+                      padding: "10px",
+                      border: `1px solid ${sam.border}`,
+                      background: sam.surface,
+                      marginLeft: 8,
+                      marginRight: 8,
+                      fontSize: 11,
+                    }}
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <Mono c={sam.comment}>
+                        <b>{e.time}</b> · {e.category}
+                      </Mono>
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        openSheet({ kind: "tx", tx: e });
+                      }}
+                      style={{
+                        border: `1px solid ${sam.cyan}`,
+                        color: sam.cyan,
+                        background: "transparent",
+                          fontFamily: sam.font,
+                          fontSize: 10,
+                          padding: "2px 6px",
+                          cursor: "pointer",
+                      }}
+                    >
+                        {t("tap for detail")}
+                      </button>
+                    </div>
+                    <div style={{ marginTop: 6, display: "grid", gap: 4 }}>
+                      <Mono c={sam.text}>· {accountName}</Mono>
+                      <Mono c={sam.text}>· {e.time}</Mono>
+                      <Mono c={sam.red}>· -{currencySymbol(acctCurrency(e.accountId))}{e.amount.toFixed(2)}</Mono>
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })}

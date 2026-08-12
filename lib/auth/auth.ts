@@ -46,6 +46,15 @@ export const auth = betterAuth({
       },
     },
   },
+  account: {
+    accountLinking: {
+      enabled: true,
+      disableImplicitLinking: false,
+      trustedProviders: ["google"],
+      allowDifferentEmails: false,
+      requireLocalEmailVerified: false,
+    },
+  },
   trustedOrigins: [
     baseURL,
     process.env.NEXT_PUBLIC_APP_URL || baseURL,

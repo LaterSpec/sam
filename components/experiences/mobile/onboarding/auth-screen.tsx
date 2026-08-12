@@ -239,9 +239,34 @@ function AuthPicker({
               border: `1px solid ${sam.border}`,
               letterSpacing: 0.3,
               opacity: busy ? 0.7 : 1,
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
             }}
           >
-            {busy ? "[ redirecting to google... ]" : "[ log in with google ▸ ]"}
+            {busy ? (
+              <span>[ redirecting to google... ]</span>
+            ) : (
+              <>
+                <span
+                  style={{
+                    width: 18,
+                    height: 18,
+                    borderRadius: 4,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "#174ea6",
+                    border: "1px solid #dadce0",
+                    background: "#ffffff",
+                    fontWeight: 800,
+                  }}
+                >
+                  G
+                </span>
+                <span>Continuar con Google</span>
+              </>
+            )}
           </button>
         </div>
 

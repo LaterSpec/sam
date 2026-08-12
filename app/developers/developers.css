@@ -29,14 +29,10 @@
   text-decoration: none;
 }
 
-.dev-brand span {
-  display: grid;
+.dev-brand .sam-brand-icon {
+  display: inline-grid;
   place-items: center;
-  width: 28px;
-  height: 28px;
-  background: #a8e63b;
-  color: #07131c;
-  font-weight: 800;
+  color: #a8e63b;
 }
 
 .dev-top nav {

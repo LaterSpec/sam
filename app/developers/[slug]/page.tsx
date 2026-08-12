@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { SamBrandIcon } from "@/components/ui/sam-brand-icon";
 import {
   DEVELOPER_DOCS,
   isDeveloperDocSlug,
@@ -32,7 +33,7 @@ export default async function DeveloperDocPage({ params }: { params: Promise<{ s
     <div className="dev-shell">
       <header className="dev-top">
         <Link href="/developers" className="dev-brand">
-          <span>S</span>
+          <SamBrandIcon size={28} color="#a8e63b" />
           <strong>SAM for Developers</strong>
         </Link>
         <nav>

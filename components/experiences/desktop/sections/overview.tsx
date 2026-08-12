@@ -31,7 +31,6 @@ export function OverviewSection({
             <span className="desk-eyebrow">SAM / {currency} / {new Date().toLocaleDateString(locale, { month: "long" })}</span>
             <h1 id="position-heading">{copy.overview}</h1>
           </div>
-          <span className="desk-sync"><i /> {copy.syncReady}</span>
         </div>
 
         <div className="desk-position-grid">

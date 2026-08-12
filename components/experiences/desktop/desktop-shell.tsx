@@ -4,9 +4,11 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Activity, ArrowDownLeft, ArrowLeftRight, ArrowUpRight, CalendarClock, ChartNoAxesCombined, ChevronDown, Flag, Landmark, LayoutDashboard, LogOut, Menu, ReceiptText, Search, Settings, Tags, UserRound } from "lucide-react";
 import { signOutAction } from "@/lib/actions/data-actions";
+import { useSam } from "@/lib/theme/sam-theme";
 import type { Currency } from "@/lib/finance/currency";
 import type { DesktopSection } from "@/lib/presentation/experience";
 import { allTransactions, formatMoney, transactionCurrency } from "./desktop-data";
+import { SamBrandIcon } from "@/components/ui/sam-brand-icon";
 import type { DesktopCopy } from "./desktop-copy";
 import type { DesktopAction, DesktopSelection } from "./types";
 import type { AppState } from "@/lib/db/queries/load-user-data";
@@ -61,6 +63,7 @@ export function DesktopShell({
   onAction: (action: DesktopAction) => void;
   onSelect: (selection: DesktopSelection) => void;
 }) {
+  const { sam } = useSam();
   const searchRef = useRef<HTMLInputElement>(null);
   const searchWrapRef = useRef<HTMLDivElement>(null);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -104,7 +107,11 @@ export function DesktopShell({
   return <div className={`desk-shell ${hasInspector ? "has-inspector" : ""}`}>
     <a href="#desk-main" className="desk-skip">Skip to content</a>
     <aside className="desk-index">
-      <Link href="/app" className="desk-brand" aria-label="SAM home"><span>S</span><strong>SAM</strong><small>living ledger</small></Link>
+      <Link href="/app" className="desk-brand" aria-label="SAM home">
+        <SamBrandIcon size={27} color={sam.text} />
+        <strong>SAM</strong>
+        <small>living ledger</small>
+      </Link>
       <nav aria-label="Primary">{NAV.map((group) => <div key={group.label} className="desk-nav-group"><span>{group.label}</span>{group.items.map((item) => <Link key={item.section} href={item.section === "overview" ? "/app" : `/app/${item.section}`} className={section === item.section ? "is-active" : ""} aria-current={section === item.section ? "page" : undefined}>{item.icon}<b>{copy[item.key]}</b><i/></Link>)}</div>)}</nav>
       <div className="desk-index-footer"><Link href="/app/settings" className={section === "settings" ? "is-active" : ""}><Settings size={15}/><b>{copy.settings}</b></Link><button type="button" onClick={async () => { await signOutAction(); window.location.assign("/onboarding"); }}><LogOut size={15}/><b>Sign out</b></button></div>
     </aside>
@@ -160,9 +167,10 @@ export function DesktopShell({
           )
         ) : null}
       </div>
-      <span className="desk-top-status"><i/> {copy.syncReady}</span>
-      <label className="desk-currency"><span className="sr-only">{copy.currency}</span><select value={currency} onChange={(event) => onCurrency(event.target.value as Currency)}><option value="USD">USD</option><option value="PEN">PEN</option></select><ChevronDown size={12}/></label>
-      <Link href="/app/settings" className="desk-user"><span><UserRound size={14}/></span><b>{userName}</b></Link>
+      <div className="desk-top-actions">
+        <label className="desk-currency"><span className="sr-only">{copy.currency}</span><select value={currency} onChange={(event) => onCurrency(event.target.value as Currency)}><option value="USD">USD</option><option value="PEN">PEN</option></select><ChevronDown size={12}/></label>
+        <Link href="/app/settings" className="desk-user"><span><UserRound size={14}/></span><b>{userName}</b></Link>
+      </div>
     </header>
 
     <main id="desk-main" className="desk-main">{children}</main>

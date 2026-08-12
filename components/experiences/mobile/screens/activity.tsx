@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useSam } from "@/lib/theme/sam-theme";
 import { Mono, Comment, Prompt, TabBar, ScreenHeader, userHandleFromState } from "@/components/ui/sam-primitives";
 import { useT, useI18n } from "@/lib/i18n/i18n-context";
@@ -9,12 +9,18 @@ import type { ScreenProps } from "./types";
 import { SCREEN_PAD } from "./types";
 
 export function ActivityScreen({ state, setState, openSheet }: ScreenProps) {
+  const PAGE_SIZE = 15;
   const { sam } = useSam();
   const t = useT();
   const { lang } = useI18n();
   const [filter, setFilter] = useState("all");
   const [query, setQuery] = useState("");
   const [expandedDays, setExpandedDays] = useState<Record<string, boolean>>({});
+  const [page, setPage] = useState(0);
+  const formatDayKey = (day: string | number | Date) => {
+    const date = new Date(day);
+    return Number.isNaN(date.getTime()) ? "Unknown" : date.toISOString().slice(0, 10);
+  };
 
   const income = (state.incomeTx || []).map((e) => ({
     id: e.id,
@@ -25,6 +31,7 @@ export function ActivityScreen({ state, setState, openSheet }: ScreenProps) {
     c: sam.green,
     tag: "income",
     day: e.occurred_at,
+    dayKey: formatDayKey(e.occurred_at),
     currency: normalizeCurrency(
       e.currency ?? state.accounts.find((account) => account.id === e.accountId)?.currency
     ),
@@ -38,6 +45,7 @@ export function ActivityScreen({ state, setState, openSheet }: ScreenProps) {
     c: e.catColor,
     tag: e.category,
     day: e.occurred_at,
+    dayKey: formatDayKey(e.occurred_at),
     currency: normalizeCurrency(
       e.currency ?? state.accounts.find((account) => account.id === e.accountId)?.currency
     ),
@@ -46,6 +54,26 @@ export function ActivityScreen({ state, setState, openSheet }: ScreenProps) {
   if (filter !== "all") all = all.filter((r) => r.type === filter.slice(0, -1));
   if (query) all = all.filter((r) => r.name.toLowerCase().includes(query.toLowerCase()));
   all.sort((a, b) => new Date(b.day).getTime() - new Date(a.day).getTime());
+  const totalRows = all.length;
+  const totalPages = Math.max(1, Math.ceil(totalRows / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages - 1);
+  const pageStart = safePage * PAGE_SIZE;
+  const pageRows = all.slice(pageStart, pageStart + PAGE_SIZE);
+  const hasPages = totalRows > PAGE_SIZE;
+
+  useEffect(() => {
+    setPage((value) => Math.min(value, totalPages - 1));
+  }, [totalPages, filter, query]);
+
+  const setFilterAndResetPage = (next: string) => {
+    setFilter(next);
+    setPage(0);
+  };
+
+  const setQueryAndResetPage = (next: string) => {
+    setQuery(next);
+    setPage(0);
+  };
 
   const counts = {
     all: income.length + expenses.length,
@@ -54,9 +82,8 @@ export function ActivityScreen({ state, setState, openSheet }: ScreenProps) {
   };
 
   const groups: Record<string, typeof all> = {};
-  all.forEach((r) => {
-    const d = new Date(r.day);
-    const key = Number.isNaN(d.getTime()) ? "Unknown" : d.toISOString().slice(0, 10);
+  pageRows.forEach((r) => {
+    const key = formatDayKey(r.day);
     (groups[key] = groups[key] || []).push(r);
   });
   const orderedDays = Object.keys(groups).sort((a, b) => b.localeCompare(a));
@@ -79,7 +106,7 @@ export function ActivityScreen({ state, setState, openSheet }: ScreenProps) {
         <Comment>{t("{n} tx · filter live · tap to view", { n: counts.all })}</Comment>
         <div style={{ marginTop: 14, display: "flex", gap: 8, fontSize: 12, flexWrap: "wrap" }}>
           {(["all", "income", "expenses"] as const).map((f) => (
-            <span key={f} onClick={() => setFilter(f)} style={{ cursor: "pointer" }}>
+            <span key={f} onClick={() => setFilterAndResetPage(f)} style={{ cursor: "pointer" }}>
               <Mono c={filter === f ? sam.yellow : sam.comment} b={filter === f}>
                 [{t(f)}]
               </Mono>
@@ -104,7 +131,7 @@ export function ActivityScreen({ state, setState, openSheet }: ScreenProps) {
           <Mono c={sam.green}>→</Mono>
           <input
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => setQueryAndResetPage(e.target.value)}
             placeholder={t("grep tx ...")}
             style={{
               flex: 1,
@@ -117,11 +144,60 @@ export function ActivityScreen({ state, setState, openSheet }: ScreenProps) {
             }}
           />
           {query && (
-            <span onClick={() => setQuery("")} style={{ cursor: "pointer", color: sam.comment }}>
+            <span onClick={() => setQueryAndResetPage("")} style={{ cursor: "pointer", color: sam.comment }}>
               ×
             </span>
           )}
         </div>
+        {orderedDays.length > 0 && hasPages ? (
+          <div
+            style={{
+              marginTop: 14,
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              gap: 10,
+            }}
+          >
+            <Mono c={sam.comment} style={{ fontSize: 11 }}>
+              {`[${pageStart + 1}-${Math.min(pageStart + PAGE_SIZE, totalRows)} / ${totalRows}]`}
+            </Mono>
+            <div style={{ display: "flex", gap: 6 }}>
+              <button
+                type="button"
+                disabled={safePage === 0}
+                onClick={() => setPage((current) => Math.max(0, current - 1))}
+                style={{
+                  border: `1px solid ${sam.border}`,
+                  background: "transparent",
+                  color: safePage === 0 ? sam.comment : sam.cyan,
+                  fontFamily: sam.font,
+                  fontSize: 11,
+                  padding: "2px 7px",
+                  cursor: safePage === 0 ? "not-allowed" : "pointer",
+                }}
+              >
+                ‹
+              </button>
+              <button
+                type="button"
+                disabled={safePage >= totalPages - 1}
+                onClick={() => setPage((current) => Math.min(totalPages - 1, current + 1))}
+                style={{
+                  border: `1px solid ${sam.border}`,
+                  background: "transparent",
+                  color: safePage >= totalPages - 1 ? sam.comment : sam.cyan,
+                  fontFamily: sam.font,
+                  fontSize: 11,
+                  padding: "2px 7px",
+                  cursor: safePage >= totalPages - 1 ? "not-allowed" : "pointer",
+                }}
+              >
+                ›
+              </button>
+            </div>
+          </div>
+        ) : null}
         {orderedDays.length === 0 && (
           <div style={{ marginTop: 24, fontSize: 12, color: sam.comment, textAlign: "center" }}>
             {`// ${t('no matches for "{q}"', { q: query })}`}

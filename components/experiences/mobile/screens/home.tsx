@@ -4,6 +4,8 @@ import { useSam } from "@/lib/theme/sam-theme";
 import { Mono, Comment, Prompt, BlockBar, TabBar, ScreenHeader, userHandleFromState } from "@/components/ui/sam-primitives";
 import { useI18n, useT } from "@/lib/i18n/i18n-context";
 import { currencySymbol, formatGroupedTotals, normalizeCurrency } from "@/lib/finance/currency";
+import { Eye, EyeOff } from "lucide-react";
+import { updatePrefsAction } from "@/lib/actions/data-actions";
 import { formatDateLong, formatMonthYear } from "@/lib/utils";
 import {
   hasTrendHistory,
@@ -53,6 +55,21 @@ export function HomeScreen({ state, setState, openSheet }: ScreenProps) {
     ],
     { decimals: 0 }
   );
+  const hideBalance = Boolean(state.prefs?.hideBalance);
+  const maskedValue = "••••••";
+  const displayMoney = (value: string) => (hideBalance ? maskedValue : value);
+  const netSign = net < 0 ? "-" : "";
+  const absoluteBalance = Math.abs(balance);
+  const absIntegerBalance = Math.floor(absoluteBalance);
+  const absoluteCents = (Math.round((absoluteBalance - absIntegerBalance) * 100) + "").padStart(2, "0");
+  const displayPrimaryBalance = hideBalance
+    ? maskedValue
+    : `${balance < 0 ? "-" : ""}${currencySymbol(primaryCurrency)}${absIntegerBalance.toLocaleString()}`;
+  const balanceMaskStyle = hideBalance ? { filter: "blur(6px)" } : undefined;
+  const summaryMoneyStyle = {
+    filter: "blur(6px)",
+    color: sam.textDim,
+  };
   const recent = [...state.expenses]
     .sort((a, b) => new Date(b.occurred_at).getTime() - new Date(a.occurred_at).getTime())
     .slice(0, 3);
@@ -102,8 +119,39 @@ export function HomeScreen({ state, setState, openSheet }: ScreenProps) {
             background: sam.overlay,
           }}
         >
-          <div style={{ color: sam.comment, fontSize: 11, marginBottom: 2 }}>
-            <Mono c={sam.yellow}>$</Mono> total_balance <Mono c={sam.comment}>--all</Mono>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, marginBottom: 2 }}>
+            <div style={{ color: sam.comment, fontSize: 11 }}>
+              <Mono c={sam.yellow}>$</Mono> total_balance <Mono c={sam.comment}>--all</Mono>
+            </div>
+            <button
+              type="button"
+              aria-label={hideBalance ? "mostrar saldo" : "ocultar saldo"}
+              title={hideBalance ? "mostrar saldo" : "ocultar saldo"}
+              onClick={() => {
+                setState((current) => {
+                  const nextPrefs = {
+                    ...(current.prefs ?? {}),
+                    hideBalance: !current.prefs?.hideBalance,
+                  };
+                  void updatePrefsAction(nextPrefs);
+                  return { ...current, prefs: nextPrefs };
+                });
+              }}
+              style={{
+                width: 28,
+                height: 28,
+                borderRadius: 999,
+                border: `1px solid ${sam.border}`,
+                background: sam.surface,
+                color: sam.text,
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: "pointer",
+              }}
+            >
+              {hideBalance ? <EyeOff size={14} /> : <Eye size={14} />}
+            </button>
           </div>
           {mixedCurrency ? (
             <div
@@ -115,11 +163,14 @@ export function HomeScreen({ state, setState, openSheet }: ScreenProps) {
                 lineHeight: 1.2,
                 marginTop: 4,
                 fontVariantNumeric: "tabular-nums",
+                ...(hideBalance ? summaryMoneyStyle : {}),
               }}
             >
-              {formatGroupedTotals(
-                (state.accounts || []).map((a) => ({ amount: a.balance, currency: a.currency })),
-                { decimals: 0 }
+              {displayMoney(
+                formatGroupedTotals(
+                  (state.accounts || []).map((a) => ({ amount: a.balance, currency: a.currency })),
+                  { decimals: 0 }
+                )
               )}
             </div>
           ) : (
@@ -132,13 +183,15 @@ export function HomeScreen({ state, setState, openSheet }: ScreenProps) {
                 lineHeight: 1.1,
                 marginTop: 4,
                 fontVariantNumeric: "tabular-nums",
+                ...(hideBalance ? summaryMoneyStyle : {}),
               }}
             >
-              {currencySymbol(primaryCurrency)}
-              {Math.floor(balance).toLocaleString()}
-              <span style={{ color: sam.comment, fontSize: 22 }}>
-                .{(balance % 1).toFixed(2).slice(2)}
-              </span>
+              <span>{displayPrimaryBalance}</span>
+              {!hideBalance && (
+                <span style={{ color: sam.comment, fontSize: 22 }}>
+                  .{absoluteCents}
+                </span>
+              )}
             </div>
           )}
           <div style={{ fontSize: 11, color: sam.comment, marginTop: 4 }}>
@@ -172,14 +225,28 @@ export function HomeScreen({ state, setState, openSheet }: ScreenProps) {
         </div>
         <div style={{ marginTop: 16, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
           {[
-            { l: "income", v: mixedCurrency ? groupedIncome : `+${money(totalIncome)}`, c: sam.green },
-            { l: "expenses", v: mixedCurrency ? groupedExpenses : `-${money(totalExpenses)}`, c: sam.red },
-            { l: "savings", v: mixedCurrency ? groupedNet : money(net), c: net >= 0 ? sam.cyan : sam.red },
+            { l: "income", v: mixedCurrency ? displayMoney(groupedIncome) : displayMoney(`+${money(totalIncome)}`), c: sam.green },
+            { l: "expenses", v: mixedCurrency ? displayMoney(groupedExpenses) : displayMoney(`-${money(totalExpenses)}`), c: sam.red },
+            {
+              l: "savings",
+              v: mixedCurrency
+                ? displayMoney(groupedNet)
+                : displayMoney(`${netSign}${money(net).replace("-", "")}`),
+              c: net >= 0 ? sam.cyan : sam.red,
+            },
             { l: "accounts", v: `${state.accounts.length}`, c: sam.yellow },
           ].map((s, i) => (
             <div key={i} style={{ border: `1px solid ${sam.border}`, padding: "8px 10px", background: sam.surface }}>
               <div style={{ fontSize: 10, color: sam.comment }}>{`// ${t(s.l)}`}</div>
-              <div style={{ fontSize: 16, color: s.c, fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{s.v}</div>
+              <div style={{
+                fontSize: 16,
+                color: s.c,
+                fontWeight: 600,
+                fontVariantNumeric: "tabular-nums",
+                ...(hideBalance && s.l !== "accounts" ? balanceMaskStyle : undefined),
+              }}>
+                {s.v}
+              </div>
             </div>
           ))}
         </div>
