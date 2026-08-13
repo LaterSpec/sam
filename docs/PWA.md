@@ -27,9 +27,9 @@ SAM is built as an installable Progressive Web App for Android and iOS.
 | `app/~offline/page.tsx` | Offline fallback page |
 | `components/pwa/pwa-provider.tsx` | Android install prompt and iOS guidance |
 | `components/pwa/service-worker-registration.tsx` | Production service worker registration |
-| `public/icons/sam-app.svg` | Main vector icon |
-| `public/icons/sam-icon.png` | Main raster icon |
-| `public/icons/icon-*.png` | Generated PWA icon sizes |
+| `public/icons/sam_iconv2.png` | Master app, browser, and PWA icon with background |
+| `public/icons/sam_logov2.png` | Transparent in-app logo, colored by the active theme |
+| `public/icons/sam_iconv2-*.png` | Generated 192px and 512px PWA variants |
 | `scripts/generate-pwa-icons.mjs` | Icon generation script |
 
 ## Regenerate Icons

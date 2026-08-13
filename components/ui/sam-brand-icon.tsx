@@ -7,7 +7,7 @@ type SamBrandIconProps = {
   style?: CSSProperties;
 };
 
-const SAM_BRAND_MASK_SRC = "/icons/sam_logo.png";
+const SAM_BRAND_MASK_SRC = "/icons/sam_logov2.png";
 
 export function SamBrandIcon({
   color = "currentColor",
