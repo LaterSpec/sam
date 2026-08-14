@@ -1,4 +1,5 @@
 import { authenticate } from "@/lib/mcp/auth";
+import { isMcpKeepaliveMethod, jsonRpcMethod } from "@/lib/mcp/rpc-method";
 import { buildMcpServer } from "@/lib/mcp/server";
 import { JsonRpcTransport } from "@/lib/mcp/json-rpc-transport";
 
@@ -68,15 +69,6 @@ async function handlePost(request: Request): Promise<Response> {
     return jsonRpcError(415, -32000, "Unsupported Media Type: Content-Type must be application/json");
   }
 
-  let auth;
-  try {
-    auth = await authenticate(request.headers.get("authorization"), clientIp(request));
-  } catch (e) {
-    const message = e instanceof Error ? e.message : "authentication_failed";
-    return jsonRpcError(500, -32603, `auth_error: ${message}`);
-  }
-  if (!auth.ok) return unauthorized(auth.error);
-
   let body: unknown;
   try {
     body = await request.json();
@@ -87,6 +79,20 @@ async function handlePost(request: Request): Promise<Response> {
   if (Array.isArray(body)) {
     return jsonRpcError(400, -32600, "Invalid Request: batch JSON-RPC is not supported");
   }
+
+  const keepalive = isMcpKeepaliveMethod(jsonRpcMethod(body));
+
+  let auth;
+  try {
+    auth = await authenticate(request.headers.get("authorization"), clientIp(request), {
+      useCache: keepalive,
+      touchLastUsed: !keepalive,
+    });
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "authentication_failed";
+    return jsonRpcError(500, -32603, `auth_error: ${message}`);
+  }
+  if (!auth.ok) return unauthorized(auth.error);
 
   const transport = new JsonRpcTransport();
   const server = buildMcpServer(auth.ctx);
