@@ -11,7 +11,7 @@ The first build is implemented inside the existing Cloudflare Worker (Option A).
 
 - Transport: official `@modelcontextprotocol/sdk` `WebStandardStreamableHTTPServerTransport`, stateless mode (`sessionIdGenerator: undefined`, `enableJsonResponse: true`). Runs natively on `workerd` with Web `Request`/`Response`.
 - Endpoint: `app/api/mcp/route.ts` (`runtime = "nodejs"`), POST only (GET/DELETE → 405; no hanging SSE on Workers).
-- Auth: personal bearer tokens (`sam_mcp_<public_prefix>_<secret>`). Only a salted SHA-256 hash is stored (Web Crypto). Verified in `lib/mcp/auth.ts`.
+- Auth: personal bearer tokens (`sam_mcp_<public_prefix>_<secret>`). Only a salted SHA-256 hash is stored (Web Crypto). Verified in `lib/mcp/auth.ts`. Keep-alives (`initialize`, `ping`, `tools/list`, `notifications/*`) reuse a 15-minute in-memory / Cache API result and do not write `last_used_at`, so a connected MCP host cannot pin Neon compute awake. `tools/call` still hits Postgres. Revoked tokens are cached negatively for 30 minutes. `/` and `/onboarding` skip `getSession()` when no Better Auth cookie is present.
 - Domain layer: reusable, session-agnostic services in `lib/domain/*` consumed by both Server Actions and MCP tools via an `ActorContext`.
 - Tables: `mcp_tokens`, `mcp_audit_logs` (see below). Focused SQL migration in `drizzle/migrations/mcp_tables.sql`; canonical sync is `npm run db:push`.
 - Token management UI: a "connect mcp" entry at the bottom of the Profile screen opens a sheet to generate/copy/revoke tokens and pick scopes.

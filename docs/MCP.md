@@ -76,6 +76,7 @@ SAM MCP is **stateless** JSON-RPC over HTTP (OpenNext / Cloudflare Workers):
 - One HTTP `POST` per JSON-RPC message (no session id).
 - Responses are plain `application/json` via an in-memory transport (avoids SDK `enableJsonResponse` hangs on Workers).
 - `GET` / `DELETE` return **405** (no server-initiated SSE — those streams hang and get the Worker killed).
+- Keep-alives (`initialize`, `ping`, `tools/list`, `notifications/*`) cache auth for 15 minutes and do not write `last_used_at`, so a connected client cannot keep Neon compute awake. Tool calls still hit Postgres.
 
 ### Required headers
 
