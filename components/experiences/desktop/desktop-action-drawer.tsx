@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import { useMutationLock } from "@/lib/hooks/use-mutation-lock";
 import { AlertTriangle, ArrowLeftRight, CalendarPlus, CircleDollarSign, Flag, Landmark, LoaderCircle, Pencil, Plus, ReceiptText, Trash2, X } from "lucide-react";
 import type { AppState } from "@/lib/db/queries/load-user-data";
 import type { Currency } from "@/lib/finance/currency";
@@ -109,7 +110,7 @@ function ActionForm({
   const goal = editId && kind === "goal" ? state.goals.find((item) => item.id === editId) : null;
   const rule = editId && kind === "recurring" ? state.recurringRules.find((item) => item.id === editId) : null;
 
-  const [busy, setBusy] = useState(false);
+  const { busy, run } = useMutationLock();
   const [error, setError] = useState("");
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [flowKind, setFlowKind] = useState<"expense" | "income">(rule?.kind ?? "expense");
@@ -123,7 +124,7 @@ function ActionForm({
   const expenseDate = expense ? toLocalDateTime(new Date(expense.occurred_at)) : nowLocal;
 
   const submit = async (form: FormData) => {
-    setBusy(true);
+    await run(async () => {
     setError("");
     try {
       if (!editing && kind === "expense") {
@@ -254,14 +255,13 @@ function ActionForm({
       onClose();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "The action could not be completed.");
-    } finally {
-      setBusy(false);
     }
+    });
   };
 
   const deleteSelectedExpense = async () => {
     if (!expense) return;
-    setBusy(true);
+    await run(async () => {
     setError("");
     try {
       await deleteExpenseAction(expense.id);
@@ -269,14 +269,13 @@ function ActionForm({
       onClose();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "The expense could not be deleted.");
-    } finally {
-      setBusy(false);
     }
+    });
   };
 
   const toggleRecurring = async () => {
     if (!rule) return;
-    setBusy(true);
+    await run(async () => {
     setError("");
     try {
       if (rule.status === "paused") await resumeRecurringRuleAction(rule.id);
@@ -285,9 +284,8 @@ function ActionForm({
       onClose();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "The action could not be completed.");
-    } finally {
-      setBusy(false);
     }
+    });
   };
 
   const title =
@@ -480,6 +478,7 @@ function ActionForm({
           <button
             type="submit"
             className="desk-primary-button"
+            aria-busy={busy}
             disabled={
               busy
               || confirmingDelete

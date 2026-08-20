@@ -38,6 +38,8 @@ import {
 import { BUDGET_ICON_PRESETS, GOAL_ICON_PRESETS, type FinanceIconPreset } from "@/lib/finance/icon-presets";
 import { TxSheet } from "@/components/experiences/mobile/sheets/tx-sheet";
 import { RecurringSheet } from "@/components/experiences/mobile/sheets/recurring-sheets";
+import { SheetSaveControl } from "@/components/experiences/mobile/sheets/sheet-save-control";
+import { useMutationLock } from "@/lib/hooks/use-mutation-lock";
 
 type SheetContentProps = {
   sheet: SheetPayload;
@@ -240,6 +242,7 @@ function GoalSheet({
   onClose: () => void;
 }) {
   const { sam } = useSam();
+  const t = useT();
   const g = sheet.goal;
   const pct = Math.min(100, Math.round((g.saved / Math.max(1, g.target)) * 100));
   const [mode, setMode] = useState<"view" | "edit">("view");
@@ -249,34 +252,39 @@ function GoalSheet({
   const [iconPreset, setIconPreset] = useState(presetFromStored(GOAL_ICON_PRESETS, g.icon, g.c));
   const parsedAmount = parseFloat(amount) || 0;
   const remaining = Math.max(0, g.target - g.saved);
+  const { busy, run } = useMutationLock();
 
   const applyContribution = async (dir: 1 | -1) => {
     if (!(parsedAmount > 0)) return;
-    const newSaved = Math.max(0, Math.min(g.target, g.saved + dir * parsedAmount));
-    const done = newSaved >= g.target;
-    setState((s) => ({
-      ...s,
-      goals: s.goals.map((gg) => (gg.id === g.id ? { ...gg, saved: newSaved, done } : gg)),
-    }));
-    await setGoalSavedAction(g.id, newSaved, done);
-    onClose();
+    await run(async () => {
+      const newSaved = Math.max(0, Math.min(g.target, g.saved + dir * parsedAmount));
+      const done = newSaved >= g.target;
+      setState((s) => ({
+        ...s,
+        goals: s.goals.map((gg) => (gg.id === g.id ? { ...gg, saved: newSaved, done } : gg)),
+      }));
+      await setGoalSavedAction(g.id, newSaved, done);
+      onClose();
+    }, dir > 0 ? "add" : "subtract");
   };
 
   const saveEdit = async () => {
     const parsedTarget = parseFloat(target);
     if (!name.trim() || !Number.isFinite(parsedTarget) || parsedTarget < 0) return;
-    const row = await updateGoalAction({
-      id: g.id,
-      name,
-      target: parsedTarget,
-      icon: iconPreset.icon,
-      color: iconPreset.color,
+    await run(async () => {
+      const row = await updateGoalAction({
+        id: g.id,
+        name,
+        target: parsedTarget,
+        icon: iconPreset.icon,
+        color: iconPreset.color,
+      });
+      setState((s) => ({
+        ...s,
+        goals: s.goals.map((gg) => (gg.id === g.id ? row : gg)),
+      }));
+      onClose();
     });
-    setState((s) => ({
-      ...s,
-      goals: s.goals.map((gg) => (gg.id === g.id ? row : gg)),
-    }));
-    onClose();
   };
 
   return (
@@ -289,9 +297,11 @@ function GoalSheet({
           {mode === "edit" ? "$ goal --edit" : "$ goal --view"}
         </Mono>
         {mode === "edit" ? (
-          <span onClick={saveEdit} style={{ color: sam.green, cursor: "pointer", fontWeight: 600 }}>
-            [save]
-          </span>
+          <SheetSaveControl
+            enabled={!!(name.trim() && Number.isFinite(parseFloat(target)) && parseFloat(target) >= 0)}
+            busy={busy}
+            onSave={saveEdit}
+          />
         ) : (
           <span onClick={() => setMode("edit")} style={{ color: sam.yellow, cursor: "pointer" }}>
             [edit]
@@ -411,12 +421,13 @@ function GoalSheet({
             background: sam.green,
             color: sam.bg,
             fontWeight: 700,
-            cursor: parsedAmount > 0 ? "pointer" : "default",
-            opacity: parsedAmount > 0 ? 1 : 0.45,
+            cursor: parsedAmount > 0 && !busy ? "pointer" : "default",
+            opacity: parsedAmount > 0 && !busy ? 1 : 0.45,
             fontSize: 13,
+            pointerEvents: parsedAmount > 0 && !busy ? "auto" : "none",
           }}
         >
-          [add]
+          {busy ? t("[saving...]") : "[add]"}
         </div>
         <div
           onClick={() => applyContribution(-1)}
@@ -427,12 +438,13 @@ function GoalSheet({
             background: sam.red,
             color: sam.bg,
             fontWeight: 700,
-            cursor: parsedAmount > 0 ? "pointer" : "default",
-            opacity: parsedAmount > 0 ? 1 : 0.45,
+            cursor: parsedAmount > 0 && !busy ? "pointer" : "default",
+            opacity: parsedAmount > 0 && !busy ? 1 : 0.45,
             fontSize: 13,
+            pointerEvents: parsedAmount > 0 && !busy ? "auto" : "none",
           }}
         >
-          [subtract]
+          {busy ? t("[saving...]") : "[subtract]"}
         </div>
       </div>
     </div>
@@ -466,23 +478,26 @@ function NewExpenseSheet({
   }));
   const selectedAccount = state.accounts.find((a) => a.id === accountId);
   const canSave = !!(amount && name && !isNaN(parseFloat(amount)) && accountId);
+  const { busy, run } = useMutationLock();
 
   const save = async () => {
     if (!canSave) return;
-    const res = await addExpenseAction({
-      amount: parseFloat(amount),
-      name,
-      catKey,
-      accountId,
-      budgets: state.budgets,
-      accounts: state.accounts,
+    await run(async () => {
+      const res = await addExpenseAction({
+        amount: parseFloat(amount),
+        name,
+        catKey,
+        accountId,
+        budgets: state.budgets,
+        accounts: state.accounts,
+      });
+      setState((s) => ({
+        ...s,
+        expenses: [...s.expenses, res.tx],
+        accounts: s.accounts.map((a) => res.accounts.find((x) => x.id === a.id) ?? a),
+      }));
+      onClose();
     });
-    setState((s) => ({
-      ...s,
-      expenses: [...s.expenses, res.tx],
-      accounts: s.accounts.map((a) => res.accounts.find((x) => x.id === a.id) ?? a),
-    }));
-    onClose();
   };
 
   return (
@@ -494,16 +509,7 @@ function NewExpenseSheet({
         <Mono c={sam.cyan} b>
           $ expense --new
         </Mono>
-        <span
-          onClick={canSave ? save : undefined}
-          style={{
-            cursor: canSave ? "pointer" : "default",
-            color: canSave ? sam.green : sam.comment,
-            fontWeight: 600,
-          }}
-        >
-          {t("[save]")}
-        </span>
+        <SheetSaveControl enabled={canSave} busy={busy} onSave={save} />
       </div>
       <div style={{ marginTop: 10 }}>
         <div style={{ fontSize: 13, fontWeight: 600 }}>
@@ -668,17 +674,20 @@ function NewGoalSheet({
   const [iconPreset, setIconPreset] = useState(GOAL_ICON_PRESETS[0]);
   const parsedTarget = parseFloat(target);
   const canSave = !!(name.trim() && target && !isNaN(parsedTarget) && parsedTarget >= 0);
+  const { busy, run } = useMutationLock();
 
   const save = async () => {
     if (!canSave) return;
-    const row = await addGoalAction({
-      name,
-      target: parsedTarget,
-      icon: iconPreset.icon,
-      color: iconPreset.color,
+    await run(async () => {
+      const row = await addGoalAction({
+        name,
+        target: parsedTarget,
+        icon: iconPreset.icon,
+        color: iconPreset.color,
+      });
+      setState((s) => ({ ...s, goals: [...s.goals, row] }));
+      onClose();
     });
-    setState((s) => ({ ...s, goals: [...s.goals, row] }));
-    onClose();
   };
 
   return (
@@ -690,16 +699,7 @@ function NewGoalSheet({
         <Mono c={sam.cyan} b>
           $ goal --new
         </Mono>
-        <span
-          onClick={canSave ? save : undefined}
-          style={{
-            cursor: canSave ? "pointer" : "default",
-            color: canSave ? sam.green : sam.comment,
-            fontWeight: 600,
-          }}
-        >
-          [save]
-        </span>
+        <SheetSaveControl enabled={canSave} busy={busy} onSave={save} />
       </div>
       <div style={{ marginTop: 10 }}>
         <div style={{ fontSize: 13, fontWeight: 600 }}>
@@ -790,18 +790,21 @@ function NewBudgetSheet({
   const [iconPreset, setIconPreset] = useState(BUDGET_ICON_PRESETS[0]);
   const parsedAmount = parseFloat(amount);
   const canSave = !!(name.trim() && Number.isFinite(parsedAmount) && parsedAmount >= 0);
+  const { busy, run } = useMutationLock();
 
   const save = async () => {
     if (!canSave) return;
-    const row = await addBudgetAction({
-      name,
-      amount: parsedAmount,
-      icon: iconPreset.icon,
-      color: iconPreset.color,
-      currency: state.prefs.defaultCurrency,
+    await run(async () => {
+      const row = await addBudgetAction({
+        name,
+        amount: parsedAmount,
+        icon: iconPreset.icon,
+        color: iconPreset.color,
+        currency: state.prefs.defaultCurrency,
+      });
+      setState((s) => ({ ...s, budgets: [...s.budgets, row] }));
+      onClose();
     });
-    setState((s) => ({ ...s, budgets: [...s.budgets, row] }));
-    onClose();
   };
 
   return (
@@ -813,12 +816,7 @@ function NewBudgetSheet({
         <Mono c={sam.cyan} b>
           $ envelope --new
         </Mono>
-        <span
-          onClick={canSave ? save : undefined}
-          style={{ cursor: canSave ? "pointer" : "default", color: canSave ? sam.green : sam.comment, fontWeight: 600 }}
-        >
-          [save]
-        </span>
+        <SheetSaveControl enabled={canSave} busy={busy} onSave={save} />
       </div>
       <Comment>create budget envelope</Comment>
       <div style={{ marginTop: 12 }}>
@@ -864,26 +862,29 @@ function EditBudgetSheet({
   const [iconPreset, setIconPreset] = useState(presetFromStored(BUDGET_ICON_PRESETS, b.icon, b.c));
   const parsedCap = parseFloat(cap);
   const canSave = !!(name.trim() && Number.isFinite(parsedCap) && parsedCap >= 0);
+  const { busy, run } = useMutationLock();
 
   const save = async () => {
     if (!canSave || !b.id) return;
-    const row = await updateBudgetAction({
-      id: b.id,
-      name,
-      amount: parsedCap,
-      icon: iconPreset.icon,
-      color: iconPreset.color,
+    await run(async () => {
+      const row = await updateBudgetAction({
+        id: b.id,
+        name,
+        amount: parsedCap,
+        icon: iconPreset.icon,
+        color: iconPreset.color,
+      });
+      setState((s) => ({
+        ...s,
+        budgets: s.budgets.map((x) => (x.key === b.key ? row : x)),
+        expenses: s.expenses.map((e) =>
+          e.catKey === b.key
+            ? { ...e, category: row.name, catKey: row.key, catColor: row.c, icon: row.icon }
+            : e
+        ),
+      }));
+      onClose();
     });
-    setState((s) => ({
-      ...s,
-      budgets: s.budgets.map((x) => (x.key === b.key ? row : x)),
-      expenses: s.expenses.map((e) =>
-        e.catKey === b.key
-          ? { ...e, category: row.name, catKey: row.key, catColor: row.c, icon: row.icon }
-          : e
-      ),
-    }));
-    onClose();
   };
 
   return (
@@ -899,12 +900,7 @@ function EditBudgetSheet({
         >
           $ budget --edit {name || b.name}
         </Mono>
-        <span
-          onClick={canSave ? save : undefined}
-          style={{ cursor: canSave ? "pointer" : "default", color: canSave ? sam.green : sam.comment, fontWeight: 600 }}
-        >
-          [save]
-        </span>
+        <SheetSaveControl enabled={canSave} busy={busy} onSave={save} />
       </div>
       <div style={{ textAlign: "center", marginTop: 10, marginBottom: 18 }}>
         <div style={{ fontSize: 34, color: iconPreset.color }}>{iconPreset.icon}</div>
@@ -1016,51 +1012,51 @@ function IncomeSrcSheet({
   const [amount, setAmount] = useState(String(amt || ""));
   const defaultAccountId = depositAccountId ?? state.accounts[0]?.id ?? "";
   const [accountId, setAccountId] = useState(defaultAccountId);
-  const [busy, setBusy] = useState(false);
+  const { busy, run } = useMutationLock();
   const [error, setError] = useState("");
 
-  const canSave = !!(name.trim() && amount && !isNaN(parseFloat(amount)) && accountId && !busy);
+  const canSave = !!(name.trim() && amount && !isNaN(parseFloat(amount)) && accountId);
 
   const save = async () => {
     if (!canSave || !s.id) return;
-    setBusy(true);
-    setError("");
-    try {
-      const res = await updateIncomeAction({
-        id: s.id,
-        name: name.trim(),
-        amt: parseFloat(amount),
-        accountId,
-        prevAccountId: depositAccountId ?? null,
-        prevAmount: linkedTx?.amount ?? 0,
-        txId: linkedTx?.id ?? null,
-      });
-      setState((st) => {
-        const balById = new Map(res.accounts.map((a) => [a.id, a.balance]));
-        let incomeTx = st.incomeTx;
-        if (res.incomeTx) {
-          const exists = incomeTx.some((tx) => tx.id === res.incomeTx!.id);
-          incomeTx = exists
-            ? incomeTx.map((tx) => (tx.id === res.incomeTx!.id ? res.incomeTx! : tx))
-            : [...incomeTx, res.incomeTx!];
-        }
-        return {
-          ...st,
-          incomeSources: st.incomeSources.map((src) =>
-            src.id === res.source.id ? { ...src, ...res.source } : src
-          ),
-          incomeTx,
-          accounts: st.accounts.map((a) =>
-            balById.has(a.id) ? { ...a, balance: balById.get(a.id)! } : a
-          ),
-        };
-      });
-      onClose();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "could not save");
-    } finally {
-      setBusy(false);
-    }
+    const sourceId = s.id;
+    await run(async () => {
+      setError("");
+      try {
+        const res = await updateIncomeAction({
+          id: sourceId,
+          name: name.trim(),
+          amt: parseFloat(amount),
+          accountId,
+          prevAccountId: depositAccountId ?? null,
+          prevAmount: linkedTx?.amount ?? 0,
+          txId: linkedTx?.id ?? null,
+        });
+        setState((st) => {
+          const balById = new Map(res.accounts.map((a) => [a.id, a.balance]));
+          let incomeTx = st.incomeTx;
+          if (res.incomeTx) {
+            const exists = incomeTx.some((tx) => tx.id === res.incomeTx!.id);
+            incomeTx = exists
+              ? incomeTx.map((tx) => (tx.id === res.incomeTx!.id ? res.incomeTx! : tx))
+              : [...incomeTx, res.incomeTx!];
+          }
+          return {
+            ...st,
+            incomeSources: st.incomeSources.map((src) =>
+              src.id === res.source.id ? { ...src, ...res.source } : src
+            ),
+            incomeTx,
+            accounts: st.accounts.map((a) =>
+              balById.has(a.id) ? { ...a, balance: balById.get(a.id)! } : a
+            ),
+          };
+        });
+        onClose();
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "could not save");
+      }
+    });
   };
 
   if (editing) {
@@ -1073,12 +1069,7 @@ function IncomeSrcSheet({
           <Mono c={sam.cyan} b>
             $ income --edit
           </Mono>
-          <span
-            onClick={canSave ? save : undefined}
-            style={{ cursor: canSave ? "pointer" : "default", color: canSave ? sam.green : sam.comment, fontWeight: 600 }}
-          >
-            {busy ? t("[saving...]") : t("[save]")}
-          </span>
+          <SheetSaveControl enabled={canSave} busy={busy} onSave={save} />
         </div>
         <div style={{ marginTop: 10, fontSize: 13, fontWeight: 600 }}>
           <Mono c={sam.green}>✎</Mono>{" "}
@@ -1229,20 +1220,23 @@ function NewIncomeSheet({
   const [accountId, setAccountId] = useState(defaultAccount?.id ?? "");
   const selectedAccount = state.accounts.find((a) => a.id === accountId);
   const canSave = !!(name && amt && !isNaN(parseFloat(amt)) && accountId);
+  const { busy, run } = useMutationLock();
 
   const save = async () => {
     if (!canSave) return;
-    const row = await addIncomeAction({
-      name,
-      amt: parseFloat(amt),
-      accountId,
+    await run(async () => {
+      const row = await addIncomeAction({
+        name,
+        amt: parseFloat(amt),
+        accountId,
+      });
+      setState((st) => ({
+        ...st,
+        incomeTx: [...st.incomeTx, row.tx],
+        accounts: st.accounts.map((a) => (a.id === row.account.id ? row.account : a)),
+      }));
+      onClose();
     });
-    setState((st) => ({
-      ...st,
-      incomeTx: [...st.incomeTx, row.tx],
-      accounts: st.accounts.map((a) => (a.id === row.account.id ? row.account : a)),
-    }));
-    onClose();
   };
 
   return (
@@ -1254,16 +1248,7 @@ function NewIncomeSheet({
         <Mono c={sam.cyan} b>
           $ income --new
         </Mono>
-        <span
-          onClick={canSave ? save : undefined}
-          style={{
-            cursor: canSave ? "pointer" : "default",
-            color: canSave ? sam.green : sam.comment,
-            fontWeight: 600,
-          }}
-        >
-          [save]
-        </span>
+        <SheetSaveControl enabled={canSave} busy={busy} onSave={save} />
       </div>
       <div style={{ marginTop: 10, fontSize: 13, fontWeight: 600 }}>
         <Mono c={sam.green}>✎</Mono>{" "}
@@ -1605,17 +1590,20 @@ function CreateAccountSheet({
   const [currency, setCurrency] = useState<Currency>("USD");
   const [error, setError] = useState("");
   const canSave = name.trim().length >= 1;
+  const { busy, run } = useMutationLock();
 
   const save = async () => {
     if (!canSave) return;
-    setError("");
-    try {
-      const row = await addAccountAction({ name: name.trim(), type, icon, currency });
-      setState((s) => ({ ...s, accounts: [...s.accounts, row] }));
-      onClose();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "failed to create account");
-    }
+    await run(async () => {
+      setError("");
+      try {
+        const row = await addAccountAction({ name: name.trim(), type, icon, currency });
+        setState((s) => ({ ...s, accounts: [...s.accounts, row] }));
+        onClose();
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "failed to create account");
+      }
+    });
   };
 
   return (
@@ -1627,16 +1615,7 @@ function CreateAccountSheet({
         <Mono c={sam.cyan} b>
           $ account --new
         </Mono>
-        <span
-          onClick={canSave ? save : undefined}
-          style={{
-            cursor: canSave ? "pointer" : "default",
-            color: canSave ? sam.green : sam.comment,
-            fontWeight: 600,
-          }}
-        >
-          {t("[save]")}
-        </span>
+        <SheetSaveControl enabled={canSave} busy={busy} onSave={save} />
       </div>
       <AccountFormFields type={type} setType={setType} name={name} setName={setName} icon={icon} setIcon={setIcon} currency={currency} setCurrency={setCurrency} />
       {error && <div style={{ marginTop: 12, fontSize: 11, color: sam.red }}>{error}</div>}
@@ -1666,28 +1645,31 @@ function EditAccountSheet({
   const [currency, setCurrency] = useState<Currency>(normalizeCurrency(existing?.currency));
   const [error, setError] = useState("");
   const canSave = name.trim().length >= 1 && !!existing;
+  const { busy, run } = useMutationLock();
 
   const cancel = () => openSheet({ kind: "account", accountId: sheet.accountId });
 
   const save = async () => {
     if (!canSave || !existing) return;
-    setError("");
-    try {
-      const row = await updateAccountAction({
-        id: existing.id,
-        name: name.trim(),
-        type,
-        icon,
-        currency,
-      });
-      setState((s) => ({
-        ...s,
-        accounts: s.accounts.map((a) => (a.id === row.id ? row : a)),
-      }));
-      openSheet({ kind: "account", accountId: row.id });
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "failed to update account");
-    }
+    await run(async () => {
+      setError("");
+      try {
+        const row = await updateAccountAction({
+          id: existing.id,
+          name: name.trim(),
+          type,
+          icon,
+          currency,
+        });
+        setState((s) => ({
+          ...s,
+          accounts: s.accounts.map((a) => (a.id === row.id ? row : a)),
+        }));
+        openSheet({ kind: "account", accountId: row.id });
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "failed to update account");
+      }
+    });
   };
 
   if (!existing) {
@@ -1710,16 +1692,7 @@ function EditAccountSheet({
         <Mono c={sam.cyan} b>
           $ account --edit
         </Mono>
-        <span
-          onClick={canSave ? save : undefined}
-          style={{
-            cursor: canSave ? "pointer" : "default",
-            color: canSave ? sam.green : sam.comment,
-            fontWeight: 600,
-          }}
-        >
-          {t("[save]")}
-        </span>
+        <SheetSaveControl enabled={canSave} busy={busy} onSave={save} />
       </div>
       <AccountFormFields type={type} setType={setType} name={name} setName={setName} icon={icon} setIcon={setIcon} currency={currency} setCurrency={setCurrency} />
       {error && <div style={{ marginTop: 12, fontSize: 11, color: sam.red }}>{error}</div>}
@@ -1752,24 +1725,27 @@ function TransferSheet({
   const [error, setError] = useState("");
   const amt = parseFloat(amount);
   const canSave = !!(fromId && toId && fromId !== toId && amt > 0);
+  const { busy, run } = useMutationLock();
 
   const save = async () => {
     if (!canSave) return;
-    setError("");
-    try {
-      const res = await transferAction({ fromId, toId, amount: amt });
-      setState((s) => ({
-        ...s,
-        accounts: s.accounts.map((a) => {
-          if (a.id === res.from.id) return { ...a, balance: res.from.balance };
-          if (a.id === res.to.id) return { ...a, balance: res.to.balance };
-          return a;
-        }),
-      }));
-      onClose();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "transfer failed");
-    }
+    await run(async () => {
+      setError("");
+      try {
+        const res = await transferAction({ fromId, toId, amount: amt });
+        setState((s) => ({
+          ...s,
+          accounts: s.accounts.map((a) => {
+            if (a.id === res.from.id) return { ...a, balance: res.from.balance };
+            if (a.id === res.to.id) return { ...a, balance: res.to.balance };
+            return a;
+          }),
+        }));
+        onClose();
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "transfer failed");
+      }
+    });
   };
 
   return (
@@ -1781,16 +1757,7 @@ function TransferSheet({
         <Mono c={sam.cyan} b>
           $ transfer
         </Mono>
-        <span
-          onClick={canSave ? save : undefined}
-          style={{
-            cursor: canSave ? "pointer" : "default",
-            color: canSave ? sam.green : sam.comment,
-            fontWeight: 600,
-          }}
-        >
-          [save]
-        </span>
+        <SheetSaveControl enabled={canSave} busy={busy} onSave={save} />
       </div>
       <div style={{ marginTop: 10 }}>
         <div style={{ fontSize: 13, fontWeight: 600 }}>
@@ -1927,24 +1894,23 @@ function ChangeCredentialsSheet({ onClose }: { onClose: () => void }) {
   const [pw1, setPw1] = useState("");
   const [pw2, setPw2] = useState("");
   const [show, setShow] = useState(false);
-  const [busy, setBusy] = useState(false);
+  const { busy, run } = useMutationLock();
   const [error, setError] = useState("");
   const [done, setDone] = useState(false);
   const match = pw1 === pw2 && pw1.length >= 8;
-  const canSave = match && !busy;
+  const canSave = match;
 
   const save = async () => {
     if (!canSave) return;
-    setBusy(true);
-    setError("");
-    try {
-      await setCredentialsAction(pw1);
-      setDone(true);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "failed to update credentials");
-    } finally {
-      setBusy(false);
-    }
+    await run(async () => {
+      setError("");
+      try {
+        await setCredentialsAction(pw1);
+        setDone(true);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "failed to update credentials");
+      }
+    });
   };
 
   const inputStyle: React.CSSProperties = {
@@ -1992,16 +1958,7 @@ function ChangeCredentialsSheet({ onClose }: { onClose: () => void }) {
         <Mono c={sam.cyan} b>
           $ credentials --set
         </Mono>
-        <span
-          onClick={canSave ? save : undefined}
-          style={{
-            cursor: canSave ? "pointer" : "default",
-            color: canSave ? sam.green : sam.comment,
-            fontWeight: 600,
-          }}
-        >
-          {busy ? "..." : "[save]"}
-        </span>
+        <SheetSaveControl enabled={canSave} busy={busy} onSave={save} />
       </div>
       <div style={{ fontSize: 11, color: sam.comment, marginBottom: 12 }}>
         {`// set or update your email + password login`}
@@ -2053,10 +2010,11 @@ function ChangeCredentialsSheet({ onClose }: { onClose: () => void }) {
 
 function McpConnectSheet({ onClose }: { onClose: () => void }) {
   const { sam } = useSam();
+  const t = useT();
   const [tokens, setTokens] = useState<McpTokenSummary[] | null>(null);
   const [name, setName] = useState("My assistant");
   const [scopes, setScopes] = useState<Scope[]>([...DEFAULT_SCOPES]);
-  const [busy, setBusy] = useState(false);
+  const { busy, run } = useMutationLock();
   const [error, setError] = useState("");
   const [newToken, setNewToken] = useState<string | null>(null);
   const [copied, setCopied] = useState<"token" | "url" | null>(null);
@@ -2092,28 +2050,24 @@ function McpConnectSheet({ onClose }: { onClose: () => void }) {
   };
 
   const generate = async () => {
-    if (!name.trim() || busy) return;
-    setBusy(true);
-    setError("");
-    try {
-      const res = await createMcpTokenAction({ name: name.trim(), scopes });
-      setNewToken(res.token);
-      await refresh();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "could not create token");
-    } finally {
-      setBusy(false);
-    }
+    if (!name.trim() || scopes.length === 0) return;
+    await run(async () => {
+      setError("");
+      try {
+        const res = await createMcpTokenAction({ name: name.trim(), scopes });
+        setNewToken(res.token);
+        await refresh();
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "could not create token");
+      }
+    }, "connect");
   };
 
   const revoke = async (id: string) => {
-    setBusy(true);
-    try {
+    await run(async () => {
       await revokeMcpTokenAction(id);
       await refresh();
-    } finally {
-      setBusy(false);
-    }
+    }, "revoke");
   };
 
   const inputStyle: React.CSSProperties = {
@@ -2285,10 +2239,11 @@ function McpConnectSheet({ onClose }: { onClose: () => void }) {
               color: name.trim() && scopes.length > 0 && !busy ? sam.bg : sam.comment,
               fontWeight: 700,
               cursor: name.trim() && scopes.length > 0 && !busy ? "pointer" : "default",
+              pointerEvents: name.trim() && scopes.length > 0 && !busy ? "auto" : "none",
               fontSize: 14,
             }}
           >
-            {busy ? "..." : "[connect mcp]"}
+            {busy ? t("[saving...]") : "[connect mcp]"}
           </div>
         </div>
       )}
@@ -2355,18 +2310,22 @@ function BucketSheet({
   onClose: () => void;
 }) {
   const { sam } = useSam();
+  const t = useT();
   const b = sheet.bucket;
   const [amount, setAmount] = useState(50);
   const pct = Math.min(100, Math.round((b.balance / b.target) * 100));
+  const { busy, run } = useMutationLock();
 
   const add = async (delta: number) => {
-    const newBal = Math.max(0, b.balance + delta);
-    setState((s) => ({
-      ...s,
-      buckets: s.buckets.map((x) => (x.id === b.id ? { ...x, balance: newBal } : x)),
-    }));
-    await setBucketBalanceAction(b.id, newBal);
-    onClose();
+    await run(async () => {
+      const newBal = Math.max(0, b.balance + delta);
+      setState((s) => ({
+        ...s,
+        buckets: s.buckets.map((x) => (x.id === b.id ? { ...x, balance: newBal } : x)),
+      }));
+      await setBucketBalanceAction(b.id, newBal);
+      onClose();
+    }, delta >= 0 ? "deposit" : "withdraw");
   };
 
   return (
@@ -2443,10 +2402,12 @@ function BucketSheet({
               background: sam.red,
               color: sam.bg,
               fontWeight: 700,
-              cursor: "pointer",
+              cursor: busy ? "default" : "pointer",
+              pointerEvents: busy ? "none" : "auto",
+              opacity: busy ? 0.45 : 1,
             }}
           >
-            [withdraw ${amount}]
+            {busy ? t("[saving...]") : `[withdraw $${amount}]`}
           </div>
           <div
             onClick={() => add(amount)}
@@ -2457,10 +2418,12 @@ function BucketSheet({
               background: sam.green,
               color: sam.bg,
               fontWeight: 700,
-              cursor: "pointer",
+              cursor: busy ? "default" : "pointer",
+              pointerEvents: busy ? "none" : "auto",
+              opacity: busy ? 0.45 : 1,
             }}
           >
-            [deposit ${amount}]
+            {busy ? t("[saving...]") : `[deposit $${amount}]`}
           </div>
         </div>
       </div>

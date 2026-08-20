@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useMutationLock } from "@/lib/hooks/use-mutation-lock";
 import {
   Check,
   Link2,
@@ -34,7 +35,7 @@ type InstallItem = Awaited<ReturnType<typeof listMyIntegrationInstallsAction>>[n
 
 export function IntegrationsPanel() {
   const [tab, setTab] = useState<Tab>("connected");
-  const [busy, setBusy] = useState(false);
+  const { busy, run } = useMutationLock();
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [catalog, setCatalog] = useState<CatalogItem[]>([]);
@@ -66,48 +67,57 @@ export function IntegrationsPanel() {
   );
   const [authorName, setAuthorName] = useState("");
 
+  const load = useCallback(async () => {
+    const [nextCatalog, nextInstalls, nextSubmitted, nextPending] = await Promise.all([
+      listIntegrationCatalogAction(),
+      listMyIntegrationInstallsAction(),
+      listMySubmittedIntegrationsAction(),
+      listPendingIntegrationReviewsAction(),
+    ]);
+    setCatalog(nextCatalog);
+    setInstalls(nextInstalls);
+    setSubmitted(nextSubmitted);
+    setPending(nextPending);
+  }, []);
+
   const refresh = useCallback(async () => {
-    setBusy(true);
     setError("");
     try {
-      const [nextCatalog, nextInstalls, nextSubmitted, nextPending] = await Promise.all([
-        listIntegrationCatalogAction(),
-        listMyIntegrationInstallsAction(),
-        listMySubmittedIntegrationsAction(),
-        listPendingIntegrationReviewsAction(),
-      ]);
-      setCatalog(nextCatalog);
-      setInstalls(nextInstalls);
-      setSubmitted(nextSubmitted);
-      setPending(nextPending);
+      await load();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Failed to load integrations");
-    } finally {
-      setBusy(false);
     }
-  }, []);
+  }, [load]);
 
   useEffect(() => {
     void refresh();
   }, [refresh]);
 
   const install = async (integrationId: string) => {
-    setBusy(true);
-    setError("");
-    setNotice("");
-    try {
+    await run(async () => {
+      setError("");
+      setNotice("");
       const result = await installIntegrationAction({ integrationId });
       if (result.webhookToken) {
         setRevealedWebhook({ path: result.webhookPath, token: result.webhookToken });
       }
       setNotice(`Installed (${result.status})`);
       setTab("connected");
-      await refresh();
-    } catch (cause) {
+      await load();
+    }).catch((cause) => {
       setError(cause instanceof Error ? cause.message : "Install failed");
-    } finally {
-      setBusy(false);
-    }
+    });
+  };
+
+  const mutate = (task: () => Promise<unknown>, failed: string) => {
+    void run(async () => {
+      setError("");
+      setNotice("");
+      await task();
+      await load();
+    }).catch((cause) => {
+      setError(cause instanceof Error ? cause.message : failed);
+    });
   };
 
   return (
@@ -149,7 +159,7 @@ export function IntegrationsPanel() {
             {label}
           </button>
         ))}
-        <button type="button" className="desk-text-button" onClick={() => void refresh()} disabled={busy}>
+        <button type="button" className="desk-text-button" onClick={() => void run(refresh)} disabled={busy}>
           <RefreshCw size={14} /> Refresh
         </button>
       </div>
@@ -201,10 +211,13 @@ export function IntegrationsPanel() {
                       className="desk-secondary-button"
                       disabled={busy}
                       onClick={() =>
-                        void connectIntegrationAction({
-                          installId: item.id,
-                          apiKey: apiKeyDraft[item.id],
-                        }).then(refresh)
+                        mutate(
+                          () => connectIntegrationAction({
+                            installId: item.id,
+                            apiKey: apiKeyDraft[item.id],
+                          }),
+                          "Connect failed"
+                        )
                       }
                     >
                       <Link2 size={14} /> Connect
@@ -222,7 +235,7 @@ export function IntegrationsPanel() {
                       type="button"
                       className="desk-secondary-button"
                       disabled={busy}
-                      onClick={() => void syncIntegrationAction(item.id).then(refresh)}
+                      onClick={() => mutate(() => syncIntegrationAction(item.id), "Sync failed")}
                     >
                       <RefreshCw size={14} /> Sync
                     </button>
@@ -230,7 +243,7 @@ export function IntegrationsPanel() {
                       type="button"
                       className="desk-secondary-button"
                       disabled={busy}
-                      onClick={() => void disconnectIntegrationAction(item.id).then(refresh)}
+                      onClick={() => mutate(() => disconnectIntegrationAction(item.id), "Disconnect failed")}
                     >
                       Disconnect
                     </button>
@@ -240,7 +253,7 @@ export function IntegrationsPanel() {
                   type="button"
                   className="desk-secondary-button"
                   disabled={busy}
-                  onClick={() => void uninstallIntegrationAction(item.id).then(refresh)}
+                  onClick={() => mutate(() => uninstallIntegrationAction(item.id), "Uninstall failed")}
                 >
                   <Trash2 size={14} /> Uninstall
                 </button>
@@ -261,9 +274,13 @@ export function IntegrationsPanel() {
               className="desk-secondary-button"
               disabled={busy}
               onClick={() =>
-                void bootstrapFirstPartyIntegrationsAction()
-                  .then(() => refresh())
-                  .then(() => setNotice("Webhook Echo is available in the catalog"))
+                mutate(
+                  async () => {
+                    await bootstrapFirstPartyIntegrationsAction();
+                    setNotice("Webhook Echo is available in the catalog");
+                  },
+                  "Bootstrap failed"
+                )
               }
             >
               <Plug size={14} /> Ensure webhook echo
@@ -308,23 +325,14 @@ export function IntegrationsPanel() {
           className="desk-action-form"
           onSubmit={(event) => {
             event.preventDefault();
-            void (async () => {
-              setBusy(true);
-              setError("");
-              try {
-                if (authorName.trim()) {
-                  await upsertIntegrationAuthorAction({ displayName: authorName.trim() });
-                }
-                const manifest = JSON.parse(manifestDraft) as unknown;
-                const result = await submitIntegrationAction({ manifest });
-                setNotice(`Submitted ${result.slug}@${result.version} for review`);
-                await refresh();
-              } catch (cause) {
-                setError(cause instanceof Error ? cause.message : "Submit failed");
-              } finally {
-                setBusy(false);
+            mutate(async () => {
+              if (authorName.trim()) {
+                await upsertIntegrationAuthorAction({ displayName: authorName.trim() });
               }
-            })();
+              const manifest = JSON.parse(manifestDraft) as unknown;
+              const result = await submitIntegrationAction({ manifest });
+              setNotice(`Submitted ${result.slug}@${result.version} for review`);
+            }, "Submit failed");
           }}
         >
           <p className="desk-muted-line">
@@ -346,7 +354,8 @@ export function IntegrationsPanel() {
             <textarea rows={16} value={manifestDraft} onChange={(event) => setManifestDraft(event.target.value)} />
           </label>
           <button type="submit" className="desk-primary-button" disabled={busy}>
-            <Upload size={14} /> Submit for review
+            {busy ? <LoaderCircle className="desk-spin" size={14} /> : <Upload size={14} />}
+            Submit for review
           </button>
           {!!submitted.length && (
             <div className="desk-integration-list">
@@ -382,7 +391,10 @@ export function IntegrationsPanel() {
                   className="desk-primary-button"
                   disabled={busy}
                   onClick={() =>
-                    void reviewIntegrationAction({ versionId: item.versionId, decision: "published" }).then(refresh)
+                    mutate(
+                      () => reviewIntegrationAction({ versionId: item.versionId, decision: "published" }),
+                      "Review failed"
+                    )
                   }
                 >
                   Approve
@@ -392,7 +404,10 @@ export function IntegrationsPanel() {
                   className="desk-secondary-button"
                   disabled={busy}
                   onClick={() =>
-                    void reviewIntegrationAction({ versionId: item.versionId, decision: "rejected" }).then(refresh)
+                    mutate(
+                      () => reviewIntegrationAction({ versionId: item.versionId, decision: "rejected" }),
+                      "Review failed"
+                    )
                   }
                 >
                   Reject

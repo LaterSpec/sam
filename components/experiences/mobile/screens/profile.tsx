@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useSam } from "@/lib/theme/sam-theme";
 import { Mono, Comment, Prompt, TabBar, ScreenHeader } from "@/components/ui/sam-primitives";
 import { signOutAction, deleteAccountAction, updatePrefsAction, updateUsernameAction } from "@/lib/actions/data-actions";
+import { useMutationLock } from "@/lib/hooks/use-mutation-lock";
 import { useI18n } from "@/lib/i18n/i18n-context";
 import { LanguageToggle } from "@/components/ui/language-toggle";
 import { SUPPORTED_CURRENCIES, normalizeCurrency, type Currency } from "@/lib/finance/currency";
@@ -22,7 +23,7 @@ export function ProfileScreen({ state, setState, openSheet }: ScreenProps) {
   const { t, lang, setLang } = useI18n();
   const router = useRouter();
   const [confirmDel, setConfirmDel] = useState(false);
-  const [busy, setBusy] = useState("");
+  const { busy, key, run } = useMutationLock();
   const [editingUsername, setEditingUsername] = useState(false);
   const [usernameDraft, setUsernameDraft] = useState(samUserHandle(state));
   const [usernameError, setUsernameError] = useState("");
@@ -56,17 +57,19 @@ export function ProfileScreen({ state, setState, openSheet }: ScreenProps) {
   const handle = samUserHandle(state);
 
   const signOut = async () => {
-    setBusy("out");
-    await signOutAction();
-    router.push("/");
-    router.refresh();
+    await run(async () => {
+      await signOutAction();
+      router.push("/");
+      router.refresh();
+    }, "out");
   };
 
   const deleteAccount = async () => {
-    setBusy("del");
-    await deleteAccountAction();
-    router.push("/");
-    router.refresh();
+    await run(async () => {
+      await deleteAccountAction();
+      router.push("/");
+      router.refresh();
+    }, "del");
   };
 
   const exportCsv = () => {
@@ -93,17 +96,16 @@ export function ProfileScreen({ state, setState, openSheet }: ScreenProps) {
       setUsernameError("username cannot contain spaces");
       return;
     }
-    setBusy("username");
-    setUsernameError("");
-    try {
-      const row = await updateUsernameAction(clean);
-      setState((s) => ({ ...s, user: { ...s.user, username: row.username } }));
-      setEditingUsername(false);
-    } catch (e) {
-      setUsernameError(e instanceof Error ? e.message : "could not save username");
-    } finally {
-      setBusy("");
-    }
+    await run(async () => {
+      setUsernameError("");
+      try {
+        const row = await updateUsernameAction(clean);
+        setState((s) => ({ ...s, user: { ...s.user, username: row.username } }));
+        setEditingUsername(false);
+      } catch (e) {
+        setUsernameError(e instanceof Error ? e.message : "could not save username");
+      }
+    }, "username");
   };
 
   const CurrencyToggle = () => (
@@ -247,8 +249,8 @@ export function ProfileScreen({ state, setState, openSheet }: ScreenProps) {
               <span onClick={() => setEditingUsername(false)} style={{ cursor: "pointer", color: sam.comment }}>
                 {t("[cancel]")}
               </span>
-              <span onClick={busy === "username" ? undefined : saveUsername} style={{ cursor: "pointer", color: sam.green, fontWeight: 600 }}>
-                {busy === "username" ? t("[saving...]") : t("[save]")}
+              <span onClick={busy ? undefined : saveUsername} style={{ cursor: busy ? "default" : "pointer", color: sam.green, fontWeight: 600, pointerEvents: busy ? "none" : "auto" }}>
+                {key === "username" ? t("[saving...]") : t("[save]")}
               </span>
             </div>
           </div>
@@ -330,7 +332,7 @@ export function ProfileScreen({ state, setState, openSheet }: ScreenProps) {
             <Mono c={sam.comment}>├─ </Mono>
             <Mono c={sam.text}>{t("sign out")}</Mono>
             <span style={{ flex: 1 }} />
-            <Mono c={sam.red}>{busy === "out" ? "..." : "→"}</Mono>
+            <Mono c={sam.red}>{key === "out" ? "..." : "→"}</Mono>
           </div>
           <div
             onClick={busy ? undefined : () => openSheet({ kind: "change-credentials" })}
@@ -382,7 +384,7 @@ export function ProfileScreen({ state, setState, openSheet }: ScreenProps) {
                     cursor: "pointer",
                   }}
                 >
-                  {busy === "del" ? t("[deleting...]") : t("[confirm delete]")}
+                  {key === "del" ? t("[deleting...]") : t("[confirm delete]")}
                 </div>
               </div>
             </div>

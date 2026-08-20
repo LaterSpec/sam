@@ -15,6 +15,8 @@ import {
   updateRecurringRuleAction,
 } from "@/lib/actions/recurring-actions";
 import { fetchUserDataAction } from "@/lib/actions/data-actions";
+import { useMutationLock } from "@/lib/hooks/use-mutation-lock";
+import { SheetSaveControl } from "@/components/experiences/mobile/sheets/sheet-save-control";
 import {
   countOccurrencesThrough,
   previewOccurrences,
@@ -62,7 +64,7 @@ export function RecurringSheet({ sheet, state, setState, onClose }: Props) {
   const [endDate, setEndDate] = useState(existing?.endDate ?? "");
   const [confirmCatchUp, setConfirmCatchUp] = useState(false);
   const [confirmArchive, setConfirmArchive] = useState(false);
-  const [busy, setBusy] = useState("");
+  const { busy, key, run } = useMutationLock();
   const [error, setError] = useState("");
 
   const previews = useMemo(() => {
@@ -114,65 +116,61 @@ export function RecurringSheet({ sheet, state, setState, onClose }: Props) {
   };
 
   const save = async () => {
-    if (!canSave || busy) return;
-    setBusy("save");
-    setError("");
-    try {
-      const payload = {
-        kind,
-        name: name.trim(),
-        amount: parsedAmount,
-        accountId,
-        categoryId: kind === "expense" ? categoryId : null,
-        frequencyUnit: unit,
-        frequencyInterval: interval,
-        startDate,
-        endDate: endDate || null,
-        timezone,
-      };
-      if (existing) {
-        await updateRecurringRuleAction({ id: existing.id, ...payload });
-      } else {
-        await createRecurringRuleAction({ ...payload, confirmCatchUp });
+    if (!canSave) return;
+    await run(async () => {
+      setError("");
+      try {
+        const payload = {
+          kind,
+          name: name.trim(),
+          amount: parsedAmount,
+          accountId,
+          categoryId: kind === "expense" ? categoryId : null,
+          frequencyUnit: unit,
+          frequencyInterval: interval,
+          startDate,
+          endDate: endDate || null,
+          timezone,
+        };
+        if (existing) {
+          await updateRecurringRuleAction({ id: existing.id, ...payload });
+        } else {
+          await createRecurringRuleAction({ ...payload, confirmCatchUp });
+        }
+        await refresh();
+        onClose();
+      } catch (caught) {
+        setError(caught instanceof Error ? caught.message : t("could not save"));
       }
-      await refresh();
-      onClose();
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : t("could not save"));
-    } finally {
-      setBusy("");
-    }
+    }, "save");
   };
 
   const changeStatus = async (action: "pause" | "resume" | "archive") => {
-    if (!existing || busy) return;
-    setBusy(action);
-    setError("");
-    try {
-      if (action === "pause") await pauseRecurringRuleAction(existing.id);
-      if (action === "resume") await resumeRecurringRuleAction(existing.id);
-      if (action === "archive") await archiveRecurringRuleAction(existing.id);
-      await refresh();
-      if (action === "archive") onClose();
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : t("could not save"));
-    } finally {
-      setBusy("");
-    }
+    if (!existing) return;
+    await run(async () => {
+      setError("");
+      try {
+        if (action === "pause") await pauseRecurringRuleAction(existing.id);
+        if (action === "resume") await resumeRecurringRuleAction(existing.id);
+        if (action === "archive") await archiveRecurringRuleAction(existing.id);
+        await refresh();
+        if (action === "archive") onClose();
+      } catch (caught) {
+        setError(caught instanceof Error ? caught.message : t("could not save"));
+      }
+    }, action);
   };
 
   const retry = async (id: string) => {
-    if (busy) return;
-    setBusy(id);
-    setError("");
-    try {
-      await retryRecurringOccurrenceAction(id);
-      await refresh();
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : t("retry failed"));
-    } finally {
-      setBusy("");
-    }
+    await run(async () => {
+      setError("");
+      try {
+        await retryRecurringOccurrenceAction(id);
+        await refresh();
+      } catch (caught) {
+        setError(caught instanceof Error ? caught.message : t("retry failed"));
+      }
+    }, id);
   };
 
   const fieldStyle = {
@@ -193,7 +191,6 @@ export function RecurringSheet({ sheet, state, setState, onClose }: Props) {
         <button
           type="button"
           onClick={onClose}
-          disabled={Boolean(busy)}
           style={{ border: 0, background: "transparent", color: sam.comment, fontFamily: sam.font }}
         >
           {t("[cancel]")}
@@ -201,20 +198,7 @@ export function RecurringSheet({ sheet, state, setState, onClose }: Props) {
         <Mono c={sam.cyan} b style={{ flex: 1, textAlign: "center" }}>
           {existing ? "$ recurring --edit" : "$ recurring --new"}
         </Mono>
-        <button
-          type="button"
-          onClick={save}
-          disabled={!canSave || Boolean(busy)}
-          style={{
-            border: 0,
-            background: "transparent",
-            color: canSave && !busy ? sam.green : sam.comment,
-            fontFamily: sam.font,
-            fontWeight: 700,
-          }}
-        >
-          {busy === "save" ? t("[saving...]") : t("[save]")}
-        </button>
+        <SheetSaveControl enabled={canSave} busy={busy} onSave={save} />
       </div>
 
       {existing && (
@@ -387,7 +371,7 @@ export function RecurringSheet({ sheet, state, setState, onClose }: Props) {
                 disabled={Boolean(busy)}
                 style={{ flex: 1, padding: 9, border: `1px solid ${sam.yellow}`, background: "transparent", color: sam.yellow, fontFamily: sam.font }}
               >
-                {busy === "pause" ? "..." : t("[pause]")}
+                {key === "pause" ? "..." : t("[pause]")}
               </button>
             ) : existing.status === "paused" && !existing.needsReview ? (
               <button
@@ -396,7 +380,7 @@ export function RecurringSheet({ sheet, state, setState, onClose }: Props) {
                 disabled={Boolean(busy)}
                 style={{ flex: 1, padding: 9, border: `1px solid ${sam.green}`, background: "transparent", color: sam.green, fontFamily: sam.font }}
               >
-                {busy === "resume" ? "..." : t("[resume]")}
+                {key === "resume" ? "..." : t("[resume]")}
               </button>
             ) : null}
             <button
@@ -407,7 +391,7 @@ export function RecurringSheet({ sheet, state, setState, onClose }: Props) {
               disabled={Boolean(busy)}
               style={{ flex: 1, padding: 9, border: `1px solid ${sam.red}`, background: confirmArchive ? sam.red : "transparent", color: confirmArchive ? sam.bg : sam.red, fontFamily: sam.font }}
             >
-              {busy === "archive"
+              {key === "archive"
                 ? "..."
                 : confirmArchive
                   ? t("[confirm archive]")
@@ -455,7 +439,7 @@ export function RecurringSheet({ sheet, state, setState, onClose }: Props) {
                       disabled={Boolean(busy)}
                       style={{ marginTop: 6, padding: 0, border: 0, background: "transparent", color: sam.green, fontFamily: sam.font, cursor: "pointer" }}
                     >
-                      {busy === occurrence.id ? t("[retrying...]") : t("[retry]")}
+                      {key === occurrence.id ? t("[retrying...]") : t("[retry]")}
                     </button>
                   )}
                 </div>

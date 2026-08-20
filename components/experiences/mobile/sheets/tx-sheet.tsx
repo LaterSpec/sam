@@ -6,6 +6,8 @@ import { Mono, Comment } from "@/components/ui/sam-primitives";
 import type { ClientAppState, SheetPayload } from "@/components/experiences/mobile/screens/types";
 import { deleteExpenseAction, updateExpenseAction } from "@/lib/actions/data-actions";
 import { useReducedMotion } from "@/lib/hooks/use-reduced-motion";
+import { useMutationLock } from "@/lib/hooks/use-mutation-lock";
+import { SheetSaveControl } from "@/components/experiences/mobile/sheets/sheet-save-control";
 import { currencySymbol } from "@/lib/finance/currency";
 
 type TxSheetProps = {
@@ -30,7 +32,7 @@ export function TxSheet({ sheet, state, setState, onClose }: TxSheetProps) {
   const [accountId, setAccountId] = useState(tx.accountId ?? state.accounts[0]?.id ?? "");
   const [notes] = useState("");
   const [logLines, setLogLines] = useState<Array<{ text: string; c: string }>>([]);
-  const [busy, setBusy] = useState(false);
+  const { busy, run } = useMutationLock();
   const [formError, setFormError] = useState("");
 
   const cats = (state.budgets || []).map((b) => ({
@@ -49,63 +51,86 @@ export function TxSheet({ sheet, state, setState, onClose }: TxSheetProps) {
   const saveEdit = async () => {
     const parsed = parseFloat(amount);
     if (!name.trim() || isNaN(parsed)) return;
-    setBusy(true);
-    setFormError("");
-    try {
-      const row = await updateExpenseAction({
-        id: tx.id,
-        amount: parsed,
-        name: name.trim(),
-        catKey,
-        accountId,
-        budgets: state.budgets,
-      });
-      if ("error" in row) return;
-      const accountUpdates = row.accounts as AccountStateRow[];
-      setState((s) => ({
-        ...s,
-        expenses: s.expenses.map((e) => (e.id === tx.id ? { ...e, ...row.tx } : e)),
-        accounts: s.accounts.map((a) => accountUpdates.find((x) => x.id === a.id) ?? a),
-      }));
-      onClose();
-    } catch (e) {
-      setFormError(e instanceof Error ? e.message : "save failed");
-    } finally {
-      setBusy(false);
-    }
+    await run(async () => {
+      setFormError("");
+      try {
+        const row = await updateExpenseAction({
+          id: tx.id,
+          amount: parsed,
+          name: name.trim(),
+          catKey,
+          accountId,
+          budgets: state.budgets,
+        });
+        if ("error" in row) return;
+        const accountUpdates = row.accounts as AccountStateRow[];
+        setState((s) => ({
+          ...s,
+          expenses: s.expenses.map((e) => (e.id === tx.id ? { ...e, ...row.tx } : e)),
+          accounts: s.accounts.map((a) => accountUpdates.find((x) => x.id === a.id) ?? a),
+        }));
+        onClose();
+      } catch (e) {
+        setFormError(e instanceof Error ? e.message : "save failed");
+      }
+    });
   };
 
   const saveRecategorize = async (key: string) => {
-    setBusy(true);
-    setFormError("");
-    try {
-      const row = await updateExpenseAction({
-        id: tx.id,
-        catKey: key,
-        budgets: state.budgets,
-      });
-      if ("error" in row) return;
-      const accountUpdates = row.accounts as AccountStateRow[];
-      setState((s) => ({
-        ...s,
-        expenses: s.expenses.map((e) => (e.id === tx.id ? { ...e, ...row.tx } : e)),
-        accounts: s.accounts.map((a) => accountUpdates.find((x) => x.id === a.id) ?? a),
-      }));
-      onClose();
-    } catch (e) {
-      setFormError(e instanceof Error ? e.message : "save failed");
-    } finally {
-      setBusy(false);
-    }
+    await run(async () => {
+      setFormError("");
+      try {
+        const row = await updateExpenseAction({
+          id: tx.id,
+          catKey: key,
+          budgets: state.budgets,
+        });
+        if ("error" in row) return;
+        const accountUpdates = row.accounts as AccountStateRow[];
+        setState((s) => ({
+          ...s,
+          expenses: s.expenses.map((e) => (e.id === tx.id ? { ...e, ...row.tx } : e)),
+          accounts: s.accounts.map((a) => accountUpdates.find((x) => x.id === a.id) ?? a),
+        }));
+        onClose();
+      } catch (e) {
+        setFormError(e instanceof Error ? e.message : "save failed");
+      }
+    }, "recategorize");
   };
 
   const runDelete = async () => {
-    setMode("deleting");
-    setLogLines([]);
+    await run(async () => {
+      setMode("deleting");
+      setLogLines([]);
 
-    const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+      const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-    if (reducedMotion) {
+      if (reducedMotion) {
+        try {
+          const res = await deleteExpenseAction(tx.id);
+          const accountUpdates = res.accounts as AccountStateRow[];
+          setState((s) => ({
+            ...s,
+            expenses: s.expenses.filter((e) => e.id !== tx.id),
+            accounts: s.accounts.map((a) => accountUpdates.find((x) => x.id === a.id) ?? a),
+          }));
+          pushLog("✓ deleted", sam.green);
+          setMode("deleted");
+          await wait(400);
+          onClose();
+        } catch {
+          pushLog("✗ delete failed", sam.red);
+          setMode("error");
+        }
+        return;
+      }
+
+      pushLog(`› rm tx --id=${shortId}`, sam.cyan);
+      await wait(280);
+      pushLog("› purging from ledger...", sam.comment);
+      await wait(400);
+
       try {
         const res = await deleteExpenseAction(tx.id);
         const accountUpdates = res.accounts as AccountStateRow[];
@@ -116,36 +141,13 @@ export function TxSheet({ sheet, state, setState, onClose }: TxSheetProps) {
         }));
         pushLog("✓ deleted", sam.green);
         setMode("deleted");
-        await wait(400);
+        await wait(700);
         onClose();
       } catch {
         pushLog("✗ delete failed", sam.red);
         setMode("error");
       }
-      return;
-    }
-
-    pushLog(`› rm tx --id=${shortId}`, sam.cyan);
-    await wait(280);
-    pushLog("› purging from ledger...", sam.comment);
-    await wait(400);
-
-    try {
-      const res = await deleteExpenseAction(tx.id);
-      const accountUpdates = res.accounts as AccountStateRow[];
-      setState((s) => ({
-        ...s,
-        expenses: s.expenses.filter((e) => e.id !== tx.id),
-        accounts: s.accounts.map((a) => accountUpdates.find((x) => x.id === a.id) ?? a),
-      }));
-      pushLog("✓ deleted", sam.green);
-      setMode("deleted");
-      await wait(700);
-      onClose();
-    } catch {
-      pushLog("✗ delete failed", sam.red);
-      setMode("error");
-    }
+    }, "delete");
   };
 
   useEffect(() => {
@@ -178,16 +180,11 @@ export function TxSheet({ sheet, state, setState, onClose }: TxSheetProps) {
           </span>
         )}
         {mode === "edit" && (
-          <span
-            onClick={busy ? undefined : saveEdit}
-            style={{
-              color: busy ? sam.comment : sam.green,
-              cursor: busy ? "default" : "pointer",
-              fontWeight: 600,
-            }}
-          >
-            [save]
-          </span>
+          <SheetSaveControl
+            enabled={!!(name.trim() && !isNaN(parseFloat(amount)))}
+            busy={busy}
+            onSave={saveEdit}
+          />
         )}
         {mode !== "view" && mode !== "edit" && <span style={{ width: 40 }} />}
       </div>
@@ -342,7 +339,10 @@ export function TxSheet({ sheet, state, setState, onClose }: TxSheetProps) {
             [recategorize]
           </span>
           <span style={{ flex: 1 }} />
-          <span onClick={runDelete} style={{ color: sam.red, cursor: "pointer" }}>
+          <span
+            onClick={busy ? undefined : runDelete}
+            style={{ color: busy ? sam.comment : sam.red, cursor: busy ? "default" : "pointer", pointerEvents: busy ? "none" : "auto" }}
+          >
             [delete]
           </span>
         </div>

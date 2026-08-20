@@ -542,6 +542,10 @@ input::placeholder {
   animation: sam-tx-delete 200ms ease-out forwards;
 }
 
+.sam-spin {
+  animation: sam-spin 700ms linear infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .sam-cursor,
   .sam-fade-in,
@@ -549,7 +553,8 @@ input::placeholder {
   .sam-pop,
   .sam-slide-in-r,
   .sam-slide-in-l,
-  .sam-tx-delete {
+  .sam-tx-delete,
+  .sam-spin {
     animation: none !important;
   }
 }
