@@ -6,10 +6,10 @@ import * as categories from "@/lib/domain/categories";
 import { SCOPES } from "../scopes";
 import { presentTransaction } from "../presenters";
 import { occurredAtSchema } from "../occurred-at";
-import { defineTool } from "./helpers";
+import { defineTool, type AnyToolDef } from "./helpers";
 
-export function registerExpenseTools(server: McpServer, ctx: ActorContext) {
-  defineTool(server, ctx, {
+export const expenseToolDefs: AnyToolDef[] = [
+  {
     name: "sam_list_transactions",
     description:
       "List transactions with optional filters: date range (from/to ISO), kind (expense|income), category display name, accountId, free-text search. Category inputs and outputs use user-facing text, never internal keys. Newest first, paginated.",
@@ -32,9 +32,8 @@ export function registerExpenseTools(server: McpServer, ctx: ActorContext) {
         transactions: result.transactions.map(presentTransaction),
       };
     },
-  });
-
-  defineTool(server, ctx, {
+  },
+  {
     name: "sam_add_expense",
     description:
       "Add an expense using the category's user-facing name. Call sam_list_categories when the name is unknown. Resolves the account by id or default priority and updates its balance. Optional occurredAt (YYYY-MM-DD or ISO datetime with Z/offset) assigns the expense to that date/month's category budget; if omitted, uses the current time.",
@@ -60,9 +59,8 @@ export function registerExpenseTools(server: McpServer, ctx: ActorContext) {
       });
       return { ...result, tx: presentTransaction(result.tx) };
     },
-  });
-
-  defineTool(server, ctx, {
+  },
+  {
     name: "sam_update_expense",
     description:
       "Update an expense's amount, name, category display name, account or notes. Category text must match a name returned by sam_list_categories.",
@@ -90,9 +88,8 @@ export function registerExpenseTools(server: McpServer, ctx: ActorContext) {
       });
       return { ...result, tx: presentTransaction(result.tx) };
     },
-  });
-
-  defineTool(server, ctx, {
+  },
+  {
     name: "sam_delete_expense",
     description: "Delete an expense by id and restore the affected account balance.",
     scope: SCOPES.expensesWrite,
@@ -101,5 +98,9 @@ export function registerExpenseTools(server: McpServer, ctx: ActorContext) {
       id: z.string().uuid(),
     },
     handler: (ctx, args) => expenses.deleteExpense(ctx, args.id),
-  });
+  },
+];
+
+export function registerExpenseTools(server: McpServer, ctx: ActorContext) {
+  for (const def of expenseToolDefs) defineTool(server, ctx, def);
 }

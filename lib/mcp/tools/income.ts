@@ -5,19 +5,18 @@ import * as income from "@/lib/domain/income";
 import { SCOPES } from "../scopes";
 import { presentTransaction } from "../presenters";
 import { occurredAtSchema } from "../occurred-at";
-import { defineTool } from "./helpers";
+import { defineTool, type AnyToolDef } from "./helpers";
 
-export function registerIncomeTools(server: McpServer, ctx: ActorContext) {
-  defineTool(server, ctx, {
+export const incomeToolDefs: AnyToolDef[] = [
+  {
     name: "sam_list_income_sources",
     description:
       "Deprecated compatibility view of legacy income sources. Use sam_list_recurring_rules for schedules.",
     scope: SCOPES.read,
     annotations: { readOnlyHint: true },
     handler: (ctx) => income.listIncomeSources(ctx),
-  });
-
-  defineTool(server, ctx, {
+  },
+  {
     name: "sam_add_income",
     description:
       "Record one income transaction and credit the selected account. Use sam_create_recurring_rule for recurring income. Optional occurredAt (YYYY-MM-DD or ISO datetime with Z/offset); if omitted, uses the current time.",
@@ -40,5 +39,9 @@ export function registerIncomeTools(server: McpServer, ctx: ActorContext) {
         tx: presentTransaction(result.tx),
       };
     },
-  });
+  },
+];
+
+export function registerIncomeTools(server: McpServer, ctx: ActorContext) {
+  for (const def of incomeToolDefs) defineTool(server, ctx, def);
 }

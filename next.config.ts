@@ -21,6 +21,8 @@ const nextConfig: NextConfig = {
     "@better-auth/core",
     "drizzle-orm",
     "@neondatabase/serverless",
+    "ai",
+    "@ai-sdk/openai",
   ],
   outputFileTracingIncludes: {
     "*": [

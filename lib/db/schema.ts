@@ -500,6 +500,67 @@ export const integrationAuditLogs = pgTable(
   (t) => [index("integration_audit_logs_user_idx").on(t.userId, t.createdAt)]
 );
 
+// ── Samy (in-app finance assistant) ─────────────────────────
+
+export type SamyMemoryKind = "preference" | "fact" | "instruction" | "insight";
+
+export type SamyMessageContent = {
+  text?: string;
+  toolsUsed?: string[];
+};
+
+export const samyConversations = pgTable(
+  "samy_conversations",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    title: text("title").notNull().default("New chat"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (t) => [index("samy_conversations_user_updated_idx").on(t.userId, t.updatedAt)]
+);
+
+export const samyMessages = pgTable(
+  "samy_messages",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    conversationId: uuid("conversation_id")
+      .notNull()
+      .references(() => samyConversations.id, { onDelete: "cascade" }),
+    role: text("role").notNull(),
+    content: jsonb("content").$type<SamyMessageContent>().notNull().default({}),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [index("samy_messages_conversation_created_idx").on(t.conversationId, t.createdAt)]
+);
+
+export const samyMemories = pgTable(
+  "samy_memories",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    kind: text("kind").notNull(),
+    key: text("key").notNull(),
+    content: text("content").notNull(),
+    importance: integer("importance").notNull().default(3),
+    sourceConversationId: uuid("source_conversation_id").references(() => samyConversations.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+    expiresAt: timestamp("expires_at"),
+  },
+  (t) => [
+    uniqueIndex("samy_memories_user_key_idx").on(t.userId, t.key),
+    index("samy_memories_user_importance_idx").on(t.userId, t.importance),
+  ]
+);
+
 export type UserPrefs = {
   theme:
     | "solarized-cream"

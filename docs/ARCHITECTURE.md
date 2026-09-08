@@ -63,6 +63,10 @@ wrangler secret put BETTER_AUTH_SECRET
 wrangler secret put GOOGLE_CLIENT_ID
 wrangler secret put GOOGLE_CLIENT_SECRET
 wrangler secret put CRON_SECRET
+wrangler secret put OPENAI_API_KEY
+wrangler secret put OPENAI_MODEL
+# optional compatible gateway:
+# wrangler secret put OPENAI_BASE_URL
 ```
 
 ## App Entry Points
@@ -76,6 +80,8 @@ wrangler secret put CRON_SECRET
 | `/canvas` | `app/canvas/page.tsx` | Visual/design reference |
 | `/~offline` | `app/~offline/page.tsx` | Offline PWA fallback |
 | `/api/auth/[...all]` | `app/api/auth/[...all]/route.ts` | Better Auth handler |
+| `/api/mcp` | `app/api/mcp/route.ts` | Remote MCP JSON-RPC |
+| `/api/samy/chat` | `app/api/samy/chat/route.ts` | Samy SSE chat (session cookie, server-side OpenAI) |
 
 ## Folder Map
 
@@ -83,6 +89,8 @@ wrangler secret put CRON_SECRET
 FinancialTerminal/
 ├── app/                         # Next.js App Router
 │   ├── api/auth/[...all]/        # Better Auth route handler
+│   ├── api/mcp/                  # Remote MCP
+│   ├── api/samy/chat/            # Samy SSE chat
 │   ├── app/                      # Main authenticated route
 │   ├── onboarding/               # Auth/onboarding route
 │   ├── canvas/                   # Visual reference route
@@ -98,6 +106,8 @@ FinancialTerminal/
 │   ├── auth/                     # Better Auth setup and session helpers
 │   ├── db/                       # Drizzle schema, db client, queries, seed helpers
 │   ├── finance/                  # Finance calculations
+│   ├── mcp/                      # MCP server, tools and auth
+│   ├── samy/                     # In-app assistant prompt, tools and persistence
 │   └── presentation/             # Request capability resolver
 ├── drizzle/                      # Seed scripts and generated migrations
 ├── docs/                         # Current docs and archived migration notes
@@ -135,6 +145,14 @@ Important user-scoped query path:
 Important mutation path:
 
 - `lib/actions/data-actions.ts`
+
+## Samy
+
+The desktop assistant streams from `POST /api/samy/chat` as a **finite** SSE response that ends when the model turn finishes. This is not a hanging GET keep-alive (those kill Cloudflare isolates; MCP stays POST JSON-only). The OpenAI key stays on the server. Tools execute the shared finance catalog in `lib/tools/catalog.ts` (the same handlers MCP registers) plus `samy_remember` / `samy_forget` / `samy_recall`. Finance data is queried only when the model calls a tool during a prompt.
+
+- `OPENAI_API_KEY`, `OPENAI_MODEL` and optional `OPENAI_BASE_URL` are server env vars. Never `NEXT_PUBLIC_*`.
+- Local: set them in `.env.local`. Production: `wrangler secret put`.
+- Apply `drizzle/migrations/samy_tables.sql` (or `npm run db:push`) before using Samy in a new database.
 
 ## Server Actions
 

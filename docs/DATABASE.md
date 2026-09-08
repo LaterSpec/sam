@@ -97,6 +97,22 @@ Stores token prefix and hash, scopes, expiry, revocation and last-used metadata.
 
 Append-only record of scoped MCP calls and safe outcomes.
 
+## Samy tables
+
+### `samy_conversations`
+
+One chat thread per user. Title is taken from the first user message.
+
+### `samy_messages`
+
+Ordered user/assistant turns. `content` is JSON (`text`, optional `toolsUsed`).
+
+### `samy_memories`
+
+Durable personalization (`preference`, `fact`, `instruction`, `insight`) keyed per user. Loaded on each prompt; not a ledger dump.
+
+Migration: `drizzle/migrations/samy_tables.sql`.
+
 ## Integrations marketplace tables
 
 See `docs/INTEGRATIONS.md` and migration `drizzle/migrations/integrations_tables.sql`.

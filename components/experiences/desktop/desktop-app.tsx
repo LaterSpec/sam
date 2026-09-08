@@ -12,12 +12,15 @@ import { DesktopShell } from "./desktop-shell";
 import { DesktopInspector } from "./desktop-inspector";
 import { DesktopActionDrawer } from "./desktop-action-drawer";
 import { DesktopSectionContent } from "./sections";
+import { SamyFab } from "./samy/samy-fab";
+import { SamyInspector } from "./samy/samy-inspector";
 import type { DesktopAction, DesktopSelection } from "./types";
 
 export function DesktopApp({ initialData, section }: { initialData: AppState; section: DesktopSection }) {
   const [state, setState] = useState(initialData);
   const [query, setQuery] = useState("");
   const [selection, setSelection] = useState<DesktopSelection>(null);
+  const [samyOpen, setSamyOpen] = useState(false);
   const [action, setAction] = useState<DesktopAction>(null);
   const [theme, setTheme] = useState<SamTheme>(resolveSamTheme(initialData.prefs.theme));
   const [currency, setCurrency] = useState<Currency>(normalizeCurrency(initialData.prefs.defaultCurrency));
@@ -40,6 +43,14 @@ export function DesktopApp({ initialData, section }: { initialData: AppState; se
   const changeLanguage = useCallback((next: Lang) => { setActiveLanguage(next); void persistPrefs({ language: next }); }, [persistPrefs]);
   const changeCurrency = useCallback((next: Currency) => { setCurrency(next); setSelection(null); void persistPrefs({ defaultCurrency: next }); }, [persistPrefs]);
   const openAction = useCallback((next: DesktopAction) => setAction(next), []);
+  const openSelection = useCallback((next: DesktopSelection) => {
+    setSamyOpen(false);
+    setSelection(next);
+  }, []);
+  const openSamy = useCallback(() => {
+    setSelection(null);
+    setSamyOpen(true);
+  }, []);
   const hydrateAndCloseSelection = useCallback(async () => { await hydrate(); setSelection(null); }, [hydrate]);
   const toggleSummaryPrivacy = useCallback(() => {
     void persistPrefs({ hideBalance: !state.prefs.hideBalance });
@@ -55,16 +66,19 @@ export function DesktopApp({ initialData, section }: { initialData: AppState; se
       locale={locale}
       state={state}
       userName={state.user.full_name}
-      hasInspector={Boolean(selection)}
+      hasInspector={Boolean(selection) || samyOpen}
       onQuery={setQuery}
       onCurrency={changeCurrency}
       onAction={openAction}
-      onSelect={setSelection}
-      inspector={<DesktopInspector state={state} selection={selection} currency={currency} locale={locale} copy={copy} onClose={() => setSelection(null)} onAction={openAction}/>}
+      onSelect={openSelection}
+      inspector={samyOpen
+        ? <SamyInspector userId={state.user.id} userName={state.user.full_name} timezone={state.prefs.timezone ?? "America/Lima"} copy={copy} onClose={() => setSamyOpen(false)} onMutated={() => void hydrate()}/>
+        : <DesktopInspector state={state} selection={selection} currency={currency} locale={locale} copy={copy} onClose={() => setSelection(null)} onAction={openAction}/>}
       actionDrawer={<DesktopActionDrawer action={action} state={state} currency={currency} copy={copy} onClose={() => setAction(null)} onDone={hydrate} onDeleted={hydrateAndCloseSelection}/>}
     >
-      <DesktopSectionContent state={state} section={section} currency={currency} onSelect={setSelection} onAction={openAction} copy={copy} locale={locale} theme={theme} language={activeLanguage} onTheme={changeTheme} onLanguage={changeLanguage} onCurrency={changeCurrency} hideSummary={Boolean(state.prefs.hideBalance)} onToggleSummary={toggleSummaryPrivacy}/>
+      <DesktopSectionContent state={state} section={section} currency={currency} onSelect={openSelection} onAction={openAction} copy={copy} locale={locale} theme={theme} language={activeLanguage} onTheme={changeTheme} onLanguage={changeLanguage} onCurrency={changeCurrency} hideSummary={Boolean(state.prefs.hideBalance)} onToggleSummary={toggleSummaryPrivacy}/>
     </DesktopShell>
+    <SamyFab hidden={samyOpen || Boolean(selection)} copy={copy} onOpen={openSamy} />
   </div></SamThemeProvider>;
 }
 

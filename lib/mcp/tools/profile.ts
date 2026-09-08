@@ -3,19 +3,18 @@ import { z } from "zod";
 import type { ActorContext } from "@/lib/domain/types";
 import * as profile from "@/lib/domain/profile";
 import { SCOPES } from "../scopes";
-import { defineTool } from "./helpers";
+import { defineTool, type AnyToolDef } from "./helpers";
 
-export function registerProfileTools(server: McpServer, ctx: ActorContext) {
-  defineTool(server, ctx, {
+export const profileToolDefs: AnyToolDef[] = [
+  {
     name: "sam_get_profile",
     description:
       "Get the user's configured profile, language, currency, timezone, theme and granted MCP capabilities.",
     scope: SCOPES.read,
     annotations: { readOnlyHint: true },
     handler: (ctx) => profile.getProfile(ctx),
-  });
-
-  defineTool(server, ctx, {
+  },
+  {
     name: "sam_update_username",
     description: "Update the user's username (no spaces).",
     scope: SCOPES.profileWrite,
@@ -23,9 +22,8 @@ export function registerProfileTools(server: McpServer, ctx: ActorContext) {
       username: z.string().min(1).max(60),
     },
     handler: (ctx, args) => profile.updateUsername(ctx, args.username),
-  });
-
-  defineTool(server, ctx, {
+  },
+  {
     name: "sam_update_prefs",
     description: "Update configured user preferences (theme, language, currency and timezone).",
     scope: SCOPES.profileWrite,
@@ -49,5 +47,9 @@ export function registerProfileTools(server: McpServer, ctx: ActorContext) {
       timezone: z.string().min(1).max(80).optional(),
     },
     handler: (ctx, args) => profile.updatePrefs(ctx, args),
-  });
+  },
+];
+
+export function registerProfileTools(server: McpServer, ctx: ActorContext) {
+  for (const def of profileToolDefs) defineTool(server, ctx, def);
 }

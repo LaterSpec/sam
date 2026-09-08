@@ -3,10 +3,10 @@ import { z } from "zod";
 import type { ActorContext } from "@/lib/domain/types";
 import * as summaries from "@/lib/domain/summaries";
 import { SCOPES } from "../scopes";
-import { defineTool } from "./helpers";
+import { defineTool, type AnyToolDef } from "./helpers";
 
-export function registerSummaryTools(server: McpServer, ctx: ActorContext) {
-  defineTool(server, ctx, {
+export const summaryToolDefs: AnyToolDef[] = [
+  {
     name: "sam_get_spending_summary",
     description:
       "Summarize expense totals over a date range, optionally filtered by category, grouped by category / day / month.",
@@ -19,9 +19,8 @@ export function registerSummaryTools(server: McpServer, ctx: ActorContext) {
       groupBy: z.enum(["category", "day", "month"]).optional(),
     },
     handler: (ctx, args) => summaries.spendingSummary(ctx, args),
-  });
-
-  defineTool(server, ctx, {
+  },
+  {
     name: "sam_get_cashflow",
     description: "Get income vs expense totals and net cashflow over a date range.",
     scope: SCOPES.read,
@@ -31,5 +30,9 @@ export function registerSummaryTools(server: McpServer, ctx: ActorContext) {
       to: z.string().optional(),
     },
     handler: (ctx, args) => summaries.cashflow(ctx, args),
-  });
+  },
+];
+
+export function registerSummaryTools(server: McpServer, ctx: ActorContext) {
+  for (const def of summaryToolDefs) defineTool(server, ctx, def);
 }

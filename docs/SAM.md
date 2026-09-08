@@ -18,7 +18,8 @@ Este documento describe el producto. Detalles técnicos: [ARCHITECTURE.md](./ARC
 | Presupuestos por categoría (envelopes mensuales) | Un ERP o software contable de empresa |
 | Metas y buckets de ahorro sobre el saldo que ya tienes | Un bróker o tracker de inversiones (ese módulo se retiró) |
 | Recurrentes de ingreso/gasto con historial de ejecuciones | Un scheduler de producción siempre activo (el cron de posting está desconectado) |
-| MCP remoto para que un agente lea y escriba tu ledger | Un chatbot embebido en la app |
+| MCP remoto para que un agente lea y escriba tu ledger | Un runtime que ejecuta código de terceros (eso es fase 2 del marketplace) |
+| Samy, asistente de finanzas embebido en Living Ledger (escritorio) | Un chatbot generalista o asesor fiscal |
 | Marketplace de conectores (fase 1: manifiestos + webhooks) | Un runtime que ejecuta código de terceros (eso es fase 2) |
 
 Público: una persona que quiere ver posición, flujo de caja y presupuesto en un solo sitio, y opcionalmente dejar que un agente registre gastos o consulte el mes.
@@ -44,6 +45,8 @@ El workspace de escritorio agrupa la navegación así:
 | Review | Reports, Activity |
 
 Settings, MCP e integraciones viven en perfil / ajustes, no en el nav principal.
+
+Samy vive en Living Ledger: un botón inferior derecho abre el mismo slot del inspector de Contexto. En esta versión no aparece en la PWA de teléfono.
 
 En teléfono las pantallas equivalentes son Home, Activity, Expenses, Income, Accounts/Cards, Budget, Goals, Savings, Recurring, Stats, Profile, Ajustes, Help e Integrations. Rutas legacy `/app/income` y `/app/expenses` siguen mapeando a esas pantallas.
 
@@ -71,6 +74,10 @@ Ledger de ingresos y gastos confirmados:
 - Activity reutiliza el mismo ledger (historial / feed)
 
 Cada transacción guarda cuenta, categoría, monto positivo, kind (`expense` / `income`), moneda, estado, origen, notas y fecha. No se suman USD y PEN: cada cifra se muestra en la moneda a la que pertenece, sin FX.
+
+### Samy
+
+Asistente de finanzas en escritorio. Usa las mismas herramientas de dominio que MCP (gastos, presupuestos, cuentas, metas, recurrentes, ahorros) solo cuando hay un prompt. No carga el ledger en idle. Las respuestas se quedan en el panel si lo cierras y lo vuelves a abrir; el historial se puede recuperar desde el encabezado del inspector.
 
 ### Cuentas
 

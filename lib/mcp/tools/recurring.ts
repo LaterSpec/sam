@@ -4,12 +4,12 @@ import type { ActorContext } from "@/lib/domain/types";
 import { DomainError, DomainErrorCodes } from "@/lib/domain/types";
 import * as recurring from "@/lib/domain/recurring";
 import { SCOPES } from "../scopes";
-import { defineTool } from "./helpers";
+import { defineTool, type AnyToolDef } from "./helpers";
 
 const idInput = { id: z.string().uuid() };
 
-export function registerRecurringTools(server: McpServer, ctx: ActorContext) {
-  defineTool(server, ctx, {
+export const recurringToolDefs: AnyToolDef[] = [
+  {
     name: "sam_list_recurring_rules",
     description:
       "List recurring income and expense rules, including schedule, account, category, state and next occurrence.",
@@ -21,9 +21,8 @@ export function registerRecurringTools(server: McpServer, ctx: ActorContext) {
       includeArchived: z.boolean().default(false),
     },
     handler: (actor, args) => recurring.listRecurringRules(actor, args),
-  });
-
-  defineTool(server, ctx, {
+  },
+  {
     name: "sam_create_recurring_rule",
     description:
       "Create a recurring income or expense. Expense requires categoryId; income must omit it. Past/current schedules require confirmCatchUp=true and may post up to 100 due transactions immediately.",
@@ -42,9 +41,8 @@ export function registerRecurringTools(server: McpServer, ctx: ActorContext) {
       confirmCatchUp: z.boolean().default(false),
     },
     handler: (actor, args) => recurring.createRecurringRule(actor, args),
-  });
-
-  defineTool(server, ctx, {
+  },
+  {
     name: "sam_update_recurring_rule",
     description:
       "Update a recurring rule. Changes affect future occurrences only and never rewrite posted transactions.",
@@ -63,26 +61,23 @@ export function registerRecurringTools(server: McpServer, ctx: ActorContext) {
       timezone: z.string().min(1).max(80).optional(),
     },
     handler: (actor, args) => recurring.updateRecurringRule(actor, args),
-  });
-
-  defineTool(server, ctx, {
+  },
+  {
     name: "sam_pause_recurring_rule",
     description:
       "Pause a recurring rule. Dates elapsed while paused are skipped when the rule resumes.",
     scope: SCOPES.recurringWrite,
     inputSchema: idInput,
     handler: (actor, args) => recurring.pauseRecurringRule(actor, args.id),
-  });
-
-  defineTool(server, ctx, {
+  },
+  {
     name: "sam_resume_recurring_rule",
     description: "Resume a paused recurring rule from its first future scheduled date.",
     scope: SCOPES.recurringWrite,
     inputSchema: idInput,
     handler: (actor, args) => recurring.resumeRecurringRule(actor, args.id),
-  });
-
-  defineTool(server, ctx, {
+  },
+  {
     name: "sam_archive_recurring_rule",
     description:
       "Archive a recurring rule. Posted transaction history is preserved. Requires confirm=true.",
@@ -98,9 +93,8 @@ export function registerRecurringTools(server: McpServer, ctx: ActorContext) {
       }
       return recurring.archiveRecurringRule(actor, args.id);
     },
-  });
-
-  defineTool(server, ctx, {
+  },
+  {
     name: "sam_delete_recurring_rule",
     description:
       "Compatibility alias for archiving a recurring rule; history is never physically deleted. Requires confirm=true.",
@@ -116,9 +110,8 @@ export function registerRecurringTools(server: McpServer, ctx: ActorContext) {
       }
       return recurring.archiveRecurringRule(actor, args.id);
     },
-  });
-
-  defineTool(server, ctx, {
+  },
+  {
     name: "sam_list_recurring_occurrences",
     description:
       "List posted, failed, skipped or processing occurrences for recurring rules, with transaction references and retry details.",
@@ -131,14 +124,17 @@ export function registerRecurringTools(server: McpServer, ctx: ActorContext) {
       offset: z.number().int().min(0).default(0),
     },
     handler: (actor, args) => recurring.listRecurringOccurrences(actor, args),
-  });
-
-  defineTool(server, ctx, {
+  },
+  {
     name: "sam_retry_recurring_occurrence",
     description:
       "Retry one failed occurrence. If funds are still insufficient it stays failed and no balance is changed.",
     scope: SCOPES.recurringWrite,
     inputSchema: idInput,
     handler: (actor, args) => recurring.retryRecurringOccurrence(actor, args.id),
-  });
+  },
+];
+
+export function registerRecurringTools(server: McpServer, ctx: ActorContext) {
+  for (const def of recurringToolDefs) defineTool(server, ctx, def);
 }

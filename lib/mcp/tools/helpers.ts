@@ -1,26 +1,27 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { z, type ZodRawShape } from "zod";
+import type { ZodRawShape } from "zod";
 import { DomainError, type ActorContext } from "@/lib/domain/types";
 import { requireScope, hasScope, type Scope } from "../scopes";
 import { writeAudit } from "../audit";
 
-type ToolArgs<Shape extends ZodRawShape> = z.infer<z.ZodObject<Shape>>;
-
-type ToolAnnotations = {
+export type ToolAnnotations = {
   readOnlyHint?: boolean;
   destructiveHint?: boolean;
   idempotentHint?: boolean;
 };
 
-export type ToolDef<Shape extends ZodRawShape> = {
+export type ToolDef<Shape extends ZodRawShape = ZodRawShape> = {
   name: string;
   title?: string;
   description: string;
   scope: Scope;
   inputSchema?: Shape;
   annotations?: ToolAnnotations;
-  handler: (ctx: ActorContext, args: ToolArgs<Shape>) => Promise<unknown>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  handler: (ctx: ActorContext, args: any) => Promise<unknown>;
 };
+
+export type AnyToolDef = ToolDef<ZodRawShape>;
 
 function jsonResult(data: unknown) {
   return {
@@ -47,11 +48,7 @@ function errorResult(code: string, message?: string) {
  *  - returns structured JSON content
  *  - writes an audit log for every outcome (ok / denied / error)
  */
-export function defineTool<Shape extends ZodRawShape>(
-  server: McpServer,
-  ctx: ActorContext,
-  def: ToolDef<Shape>
-): void {
+export function defineTool(server: McpServer, ctx: ActorContext, def: AnyToolDef): void {
   const config = {
     title: def.title,
     description: def.description,
@@ -77,7 +74,7 @@ export function defineTool<Shape extends ZodRawShape>(
 
     try {
       requireScope(ctx, def.scope);
-      const data = await def.handler(ctx, (args ?? {}) as ToolArgs<Shape>);
+      const data = await def.handler(ctx, (args ?? {}) as Record<string, unknown>);
       await writeAudit({ ctx, toolName: def.name, input: args, resultStatus: "ok", requestId });
       return jsonResult(data);
     } catch (e) {
@@ -105,4 +102,8 @@ export function defineTool<Shape extends ZodRawShape>(
   // boundary, so we register through a narrow cast.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (server.registerTool as any)(def.name, config, cb);
+}
+
+export function registerToolDefs(server: McpServer, ctx: ActorContext, defs: AnyToolDef[]): void {
+  for (const def of defs) defineTool(server, ctx, def);
 }

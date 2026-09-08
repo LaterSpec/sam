@@ -4,27 +4,25 @@ import type { ActorContext } from "@/lib/domain/types";
 import { DomainError, DomainErrorCodes } from "@/lib/domain/types";
 import * as accounts from "@/lib/domain/accounts";
 import { SCOPES } from "../scopes";
-import { defineTool } from "./helpers";
+import { defineTool, type AnyToolDef } from "./helpers";
 
-export function registerAccountTools(server: McpServer, ctx: ActorContext) {
-  defineTool(server, ctx, {
+export const accountToolDefs: AnyToolDef[] = [
+  {
     name: "sam_list_accounts",
     description: "List the user's accounts with balances, type and display metadata.",
     scope: SCOPES.read,
     annotations: { readOnlyHint: true },
     handler: (ctx) => accounts.listAccounts(ctx),
-  });
-
-  defineTool(server, ctx, {
+  },
+  {
     name: "sam_get_net_worth",
     description:
       "Get net worth grouped by currency. SAM never adds different currencies without an FX source.",
     scope: SCOPES.read,
     annotations: { readOnlyHint: true },
     handler: (ctx) => accounts.getNetWorth(ctx),
-  });
-
-  defineTool(server, ctx, {
+  },
+  {
     name: "sam_create_account",
     description: "Create a new account (cash, checking, savings or card).",
     scope: SCOPES.accountsWrite,
@@ -38,9 +36,8 @@ export function registerAccountTools(server: McpServer, ctx: ActorContext) {
       last4: z.string().regex(/^\d{4}$/).nullable().optional(),
     },
     handler: (ctx, args) => accounts.createAccount(ctx, args),
-  });
-
-  defineTool(server, ctx, {
+  },
+  {
     name: "sam_update_account",
     description: "Update an existing account's name, type or icon.",
     scope: SCOPES.accountsWrite,
@@ -55,9 +52,8 @@ export function registerAccountTools(server: McpServer, ctx: ActorContext) {
       last4: z.string().regex(/^\d{4}$/).nullable().optional(),
     },
     handler: (ctx, args) => accounts.updateAccount(ctx, args),
-  });
-
-  defineTool(server, ctx, {
+  },
+  {
     name: "sam_transfer_between_accounts",
     description:
       "Transfer balance between two of the user's accounts. High risk: requires confirm=true.",
@@ -82,5 +78,9 @@ export function registerAccountTools(server: McpServer, ctx: ActorContext) {
         amount: args.amount,
       });
     },
-  });
+  },
+];
+
+export function registerAccountTools(server: McpServer, ctx: ActorContext) {
+  for (const def of accountToolDefs) defineTool(server, ctx, def);
 }
