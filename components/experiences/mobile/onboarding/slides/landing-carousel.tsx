@@ -1,6 +1,7 @@
 "use client";
 
 import { memo, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useSam } from "@/lib/theme/sam-theme";
 import { Mono } from "@/components/ui/sam-primitives";
 import {
@@ -260,6 +261,19 @@ export function LandingCarousel({ onDone }: { onDone: () => void }) {
         >
           {`// ${t("swipe or tap dots to navigate")}`}
         </p>
+        <div style={{ marginTop: 8, textAlign: "center" }}>
+          <Link
+            href="/"
+            style={{
+              fontSize: 10,
+              color: sam.comment,
+              textDecoration: "none",
+              fontFamily: sam.font,
+            }}
+          >
+            ← Volver a la presentación
+          </Link>
+        </div>
       </footer>
     </div>
   );

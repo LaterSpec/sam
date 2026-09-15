@@ -11,11 +11,12 @@ export const dynamic = "force-dynamic";
 export default async function OnboardingPage({
   searchParams,
 }: {
-  searchParams: Promise<{ auth?: string }>;
+  searchParams: Promise<{ auth?: string; mode?: "login" | "signup" }>;
 }) {
   const headerList = await headers();
   const params = await searchParams;
   const authSuccess = params.auth === "success";
+  const initialMode = params.mode === "signup" ? "signup" : "login";
   const session = hasSessionCookie(headerList.get("cookie")) ? await getSession() : null;
 
   if (session?.user && !authSuccess) {
@@ -24,7 +25,13 @@ export default async function OnboardingPage({
 
   const experience = resolveSamExperience(headerList);
   if (experience === "desktop" && desktopExperienceEnabled()) {
-    return <DesktopOnboarding authSuccess={authSuccess} userName={session?.user?.name ?? session?.user?.email?.split("@")[0] ?? "there"} />;
+    return (
+      <DesktopOnboarding
+        authSuccess={authSuccess}
+        userName={session?.user?.name ?? session?.user?.email?.split("@")[0] ?? "there"}
+        initialMode={initialMode}
+      />
+    );
   }
 
   return (
@@ -32,6 +39,7 @@ export default async function OnboardingPage({
       authSuccess={authSuccess}
       userName={session?.user?.name ?? session?.user?.email?.split("@")[0] ?? "there"}
       userCreatedAt={session?.user?.createdAt}
+      initialMode={params.mode}
     />
   );
 }

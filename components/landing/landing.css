@@ -1,0 +1,383 @@
+/* SAM Living Ledger Landing Page Styles */
+
+.landing-shell {
+  --desk-info: #54d8e4;
+  --desk-positive: #a8e63b;
+  --desk-risk: #ff6b5e;
+  --desk-warn: #ffd580;
+  --desk-muted: #9cb0b8;
+  --desk-line-soft: #24404b;
+  --desk-line: #24404b;
+  --desk-canvas: #07131c;
+  --desk-ink: #e6f0f2;
+  --desk-hover: rgba(36, 64, 75, 0.4);
+  --font-jetbrains: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background-color: #07131c;
+  color: #e6f0f2;
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Base grid and ambient glows */
+.landing-grid-bg {
+  background-color: #07131c;
+  background-image:
+    radial-gradient(1200px 700px at 50% 120px, rgba(84, 216, 228, 0.09) 0%, rgba(168, 230, 59, 0.04) 38%, transparent 75%),
+    linear-gradient(to right, rgba(36, 64, 75, 0.22) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(36, 64, 75, 0.22) 1px, transparent 1px);
+  background-size: 100% 100%, 48px 48px, 48px 48px;
+}
+
+.landing-subtle-grid {
+  background-image:
+    linear-gradient(to right, rgba(36, 64, 75, 0.16) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(36, 64, 75, 0.16) 1px, transparent 1px);
+  background-size: 36px 36px;
+}
+
+/* Floating animation for AI agent squircle badges */
+@keyframes landing-float-1 {
+  0%, 100% {
+    transform: translateY(0px) rotate(var(--base-rot, 0deg));
+  }
+  50% {
+    transform: translateY(-9px) rotate(calc(var(--base-rot, 0deg) + 1.2deg));
+  }
+}
+
+@keyframes landing-float-2 {
+  0%, 100% {
+    transform: translateY(0px) rotate(var(--base-rot, 0deg));
+  }
+  50% {
+    transform: translateY(8px) rotate(calc(var(--base-rot, 0deg) - 1.4deg));
+  }
+}
+
+@keyframes landing-float-3 {
+  0%, 100% {
+    transform: translateY(0px) rotate(var(--base-rot, 0deg));
+  }
+  50% {
+    transform: translateY(-7px) rotate(calc(var(--base-rot, 0deg) - 1deg));
+  }
+}
+
+.animate-float-1 {
+  animation: landing-float-1 7.2s ease-in-out infinite;
+}
+
+.animate-float-2 {
+  animation: landing-float-2 8.5s ease-in-out infinite;
+}
+
+.animate-float-3 {
+  animation: landing-float-3 6.8s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-float-1,
+  .animate-float-2,
+  .animate-float-3 {
+    animation: none !important;
+  }
+}
+
+/* Floating Agent Squircle Badges (Reference Image Exact Match) */
+.agent-squircle {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  background: linear-gradient(150deg, rgba(22, 36, 48, 0.88) 0%, rgba(10, 18, 25, 0.96) 100%);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(56, 88, 102, 0.5);
+  border-radius: 20px;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow:
+    0 16px 36px rgba(4, 11, 16, 0.75),
+    inset 0 1px 1px rgba(255, 255, 255, 0.12);
+}
+
+@media (max-width: 640px) {
+  .agent-squircle {
+    width: 54px;
+    height: 54px;
+    border-radius: 16px;
+  }
+}
+
+.agent-squircle:hover {
+  transform: translateY(-6px) scale(1.08) !important;
+  border-color: var(--agent-accent, #54d8e4);
+  box-shadow:
+    0 0 24px var(--agent-glow, rgba(84, 216, 228, 0.35)),
+    0 20px 40px rgba(4, 11, 16, 0.85),
+    inset 0 1px 2px rgba(255, 255, 255, 0.2);
+}
+
+.agent-squircle.is-active {
+  border-color: var(--agent-accent, #a8e63b);
+  box-shadow:
+    0 0 0 1px var(--agent-accent, #a8e63b),
+    0 0 28px var(--agent-glow, rgba(168, 230, 59, 0.4)),
+    0 20px 42px rgba(4, 11, 16, 0.9);
+}
+
+/* Agent tooltip pill */
+.agent-pill-label {
+  position: absolute;
+  bottom: -28px;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  background: #0b1822;
+  border: 1px solid #24404b;
+  font-family: var(--font-jetbrains), monospace;
+  font-size: 10px;
+  font-weight: 600;
+  color: #e6f0f2;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.agent-squircle:hover .agent-pill-label,
+.agent-squircle.is-active .agent-pill-label {
+  opacity: 1;
+  transform: translateX(-50%) translateY(2px);
+}
+
+/* Minichat specific styling */
+.mock-chat-bubble {
+  padding: 14px 18px;
+  border-radius: 14px;
+  max-width: 95%;
+  font-size: 13.5px;
+  line-height: 1.55;
+  transition: opacity 0.2s ease;
+}
+
+.mock-chat-bubble.is-user {
+  margin-left: auto;
+  background: #102d3d;
+  color: #e6f0f2;
+  border: 1px solid rgba(84, 216, 228, 0.35);
+  border-bottom-right-radius: 4px;
+}
+
+.mock-chat-bubble.is-assistant {
+  margin-right: auto;
+  background: #0b1822;
+  color: #c9d1d9;
+  border: 1px solid #24404b;
+  border-bottom-left-radius: 4px;
+}
+
+/* Live Tool Execution Bar */
+.tool-execution-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  font-family: var(--font-jetbrains), monospace;
+  font-size: 11.5px;
+  background: rgba(84, 216, 228, 0.08);
+  border: 1px solid rgba(84, 216, 228, 0.3);
+  border-radius: 8px;
+  color: #54d8e4;
+  animation: tool-pulse 2s ease-in-out infinite;
+}
+
+@keyframes tool-pulse {
+  0%, 100% {
+    border-color: rgba(84, 216, 228, 0.3);
+    background: rgba(84, 216, 228, 0.06);
+  }
+  50% {
+    border-color: rgba(84, 216, 228, 0.65);
+    background: rgba(84, 216, 228, 0.16);
+  }
+}
+
+/* Markdown rendering inside chat */
+.samy-md {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #c9d1d9;
+}
+
+.samy-md p {
+  margin: 0 0 8px;
+}
+
+.samy-md p:last-child {
+  margin-bottom: 0;
+}
+
+.samy-md h3 {
+  font-size: 14px;
+  font-weight: 700;
+  color: #e6f0f2;
+  margin: 10px 0 6px;
+}
+
+.samy-md ul,
+.samy-md ol {
+  margin: 0 0 8px;
+  padding-left: 18px;
+}
+
+.samy-md li {
+  margin-bottom: 3px;
+}
+
+.samy-md code {
+  font-family: var(--font-jetbrains), monospace;
+  font-size: 11px;
+  background: #07131c;
+  border: 1px solid #24404b;
+  padding: 1.5px 5px;
+  border-radius: 4px;
+  color: #54d8e4;
+}
+
+.samy-table-wrap {
+  max-width: 100%;
+  overflow-x: auto;
+  margin: 10px 0;
+  border: 1px solid #24404b;
+  border-radius: 8px;
+  background: #07131c;
+}
+
+.samy-table-wrap table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-jetbrains), monospace;
+  font-size: 11.5px;
+}
+
+.samy-table-wrap th {
+  background: #10212d;
+  color: #e6f0f2;
+  padding: 7px 10px;
+  text-align: left;
+  border-bottom: 1px solid #24404b;
+  font-weight: 600;
+}
+
+.samy-table-wrap td {
+  padding: 6px 10px;
+  border-bottom: 1px solid rgba(36, 64, 75, 0.5);
+  color: #c9d1d9;
+}
+
+.samy-table-wrap tr:last-child td {
+  border-bottom: none;
+}
+
+.samy-pre {
+  max-width: 100%;
+  overflow-x: auto;
+  padding: 10px 12px;
+  margin: 10px 0;
+  border: 1px dashed #24404b;
+  border-radius: 8px;
+  background: #07131c;
+  font-family: var(--font-jetbrains), monospace;
+  font-size: 11.5px;
+  color: #a8e63b;
+  line-height: 1.5;
+}
+
+/* Samy Chart in chat */
+.samy-chart {
+  margin: 12px 0 8px;
+  padding: 10px 12px;
+  background: #07131c;
+  border: 1px solid #24404b;
+  border-radius: 8px;
+}
+
+.samy-chart figcaption {
+  margin-bottom: 8px;
+  color: #9cb0b8;
+  font-family: var(--font-jetbrains), monospace;
+  font-size: 10.5px;
+  font-weight: 600;
+}
+
+.samy-chart svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.samy-chart table {
+  width: 100%;
+  margin-top: 8px;
+  border-collapse: collapse;
+  font-family: var(--font-jetbrains), monospace;
+  font-size: 10.5px;
+}
+
+.samy-chart th {
+  color: #9cb0b8;
+  font-weight: 500;
+  text-align: left;
+  padding: 2px 0;
+}
+
+.samy-chart td {
+  text-align: right;
+  padding: 2px 0;
+  color: #54d8e4;
+  font-weight: 600;
+}
+
+.desk-chart-grid {
+  stroke: rgba(36, 64, 75, 0.45);
+  stroke-dasharray: 2 2;
+}
+
+.desk-chart-label {
+  fill: #9cb0b8;
+  font-size: 9px;
+  font-family: var(--font-jetbrains), monospace;
+}
+
+.desk-chart-value {
+  fill: #e6f0f2;
+  font-size: 14px;
+  font-weight: 700;
+  font-family: var(--font-jetbrains), monospace;
+}
+
+/* Scrollbars */
+.landing-shell ::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+.landing-shell ::-webkit-scrollbar-thumb {
+  background: #24404b;
+  border-radius: 4px;
+}
+
+.landing-shell ::-webkit-scrollbar-track {
+  background: transparent;
+}

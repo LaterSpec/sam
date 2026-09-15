@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { ArrowRight, Check, Eye, EyeOff, LoaderCircle, LockKeyhole, ShieldCheck } from "lucide-react";
 import { signIn, signUp } from "@/lib/auth/client";
 import { signInWithGoogle } from "@/lib/auth/client";
@@ -14,7 +15,15 @@ const FEATURES = [
   { command: "goal.runway --all", title: "Convierte tus metas en trayectorias.", copy: "Visualiza avance, distancia y reservas sin perder el contexto de tu día a día.", view: "goals" },
 ] as const;
 
-export function DesktopOnboarding({ authSuccess, userName }: { authSuccess: boolean; userName: string }) {
+export function DesktopOnboarding({
+  authSuccess,
+  userName,
+  initialMode = "login",
+}: {
+  authSuccess: boolean;
+  userName: string;
+  initialMode?: "login" | "signup";
+}) {
   const [feature, setFeature] = useState(0);
   const [paused, setPaused] = useState(false);
   const { sam } = useSam();
@@ -46,13 +55,13 @@ export function DesktopOnboarding({ authSuccess, userName }: { authSuccess: bool
       <small className="desk-auth-security"><ShieldCheck size={13}/> Tus credenciales y datos permanecen protegidos.</small>
     </section>
     <section className="desk-auth-access">
-      {authSuccess ? <div className="desk-auth-success"><span><Check size={22}/></span><h2>Sesión verificada</h2><p>Hola, {userName}. Preparando tu libro financiero…</p><i/></div> : <DesktopAuthForm/>}
+      {authSuccess ? <div className="desk-auth-success"><span><Check size={22}/></span><h2>Sesión verificada</h2><p>Hola, {userName}. Preparando tu libro financiero…</p><i/></div> : <DesktopAuthForm initialMode={initialMode}/>}
     </section>
   </main>;
 }
 
-function DesktopAuthForm() {
-  const [mode, setMode] = useState<"login" | "signup">("login");
+function DesktopAuthForm({ initialMode = "login" }: { initialMode?: "login" | "signup" }) {
+  const [mode, setMode] = useState<"login" | "signup">(initialMode);
   const [busy, setBusy] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
@@ -109,6 +118,9 @@ function DesktopAuthForm() {
       <button type="submit" className="desk-auth-submit" disabled={busy}>{busy ? <LoaderCircle className="desk-spin" size={16}/> : <ArrowRight size={16}/>} {busy ? "Verificando…" : mode === "login" ? "Entrar a SAM" : "Crear mi cuenta"}</button>
     </form>
     <small className="desk-auth-legal">Al continuar aceptas los términos y la política de privacidad de SAM.</small>
+    <Link href="/" style={{ display: "block", marginTop: 14, textAlign: "center", fontSize: 12, color: "var(--desk-muted)", textDecoration: "none" }} onMouseOver={(e) => (e.currentTarget.style.color = "var(--desk-info)")} onMouseOut={(e) => (e.currentTarget.style.color = "var(--desk-muted)")}>
+      ← Volver a la presentación
+    </Link>
   </div>;
 }
 

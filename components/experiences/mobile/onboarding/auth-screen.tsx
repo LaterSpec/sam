@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useSam } from "@/lib/theme/sam-theme";
 import { Mono } from "@/components/ui/sam-primitives";
 import { useTypewriter } from "./hooks/use-typewriter";
@@ -14,11 +15,13 @@ type AuthView = "picker" | "login" | "signup";
 export function AuthScreen({
   onBack,
   onEmailSuccess,
+  initialMode,
 }: {
   onBack: () => void;
   onEmailSuccess: (mode: "login" | "signup", displayName?: string) => void;
+  initialMode?: "login" | "signup";
 }) {
-  const [view, setView] = useState<AuthView>("picker");
+  const [view, setView] = useState<AuthView>(initialMode ?? "picker");
 
   if (view === "login") {
     return (
@@ -276,6 +279,20 @@ function AuthPicker({
 
         <div style={{ marginTop: 16, fontSize: 10, color: sam.comment, textAlign: "center", lineHeight: 1.4 }}>
           {`// by continuing you agree to terms · privacy`}
+        </div>
+
+        <div style={{ marginTop: 12, textAlign: "center" }}>
+          <Link
+            href="/"
+            style={{
+              fontSize: 11,
+              color: sam.comment,
+              textDecoration: "none",
+              fontFamily: sam.font,
+            }}
+          >
+            ← Volver a la presentación
+          </Link>
         </div>
       </footer>
     </div>

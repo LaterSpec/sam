@@ -5,14 +5,14 @@ Locked product limits for Free / Pro / Agent. Enforcement and billing are
 display-only in Settings.
 
 This is the source of truth for later metering, paywalls, and Stripe (or
-equivalent). Related: [Neon compute](./NEON-COMPUTE.md), [MCP](./MCP.md),
-[MCP architecture](./MCP-ARCHITECTURE.md).
+equivalent). Related: [Business & AI Model](./BUSINESS-PLAN-SAMY-AI.md),
+[Neon compute](./NEON-COMPUTE.md), [MCP](./MCP.md), [MCP architecture](./MCP-ARCHITECTURE.md).
 
 ## Prices
 
 | Plan | Price |
 | --- | --- |
-| **Free** | $0 |
+| **Free** | $0 *(incluye 7 días de trial Premium con 50 consultas de Samy, máx. 10/día)* |
 | **Pro** | $5 / month |
 | **Agent** | $10 / month |
 
@@ -20,6 +20,7 @@ equivalent). Related: [Neon compute](./NEON-COMPUTE.md), [MCP](./MCP.md),
 
 | | **Free** | **Pro · $5** | **Agent · $10** |
 | --- | --- | --- | --- |
+| Samy AI messages | 0 / month *(50 en trial 7 días, máx 10/día)* | 150 / month | 500 / month |
 | Transactions | 100 / month | 500 / month | Unlimited (fair use) |
 | Accounts | 2 | 8 | Unlimited |
 | Currencies | 1 (USD **or** PEN) | USD + PEN | USD + PEN |
@@ -47,9 +48,11 @@ Manual ledger for trying the app and a single read-only MCP token.
 - One active currency (USD or PEN)
 - MCP `sam:read` only, 1 token, 100 tool calls / month
 - Single default theme, browser-only (no PWA install)
+- 7-day Pro Trial on signup: 50 Samy AI messages during first 7 days (max 10/day)
 
 **Excluded**
 
+- Samy AI chatbot (after 7-day trial expires)
 - Recurring rules / scheduled posting
 - PWA
 - Multi-theme
@@ -65,6 +68,7 @@ Daily Living Ledger plus a useful agent.
 **Includes**
 
 - 500 new transactions / month, 8 accounts, USD + PEN
+- Samy AI chatbot: **150 messages / month** (powered by `gpt-5.6-luna` with multi-tool execution)
 - Recurring payments (when production cron is re-enabled; not on Free)
 - PWA (installable iOS/Android)
 - All themes
@@ -83,6 +87,7 @@ Full MCP backend for people who live in Cursor / Claude / Hermes / OpenClaw.
 **Includes**
 
 - Everything in Pro
+- Samy AI chatbot: **500 messages / month** (all tools + transfer support)
 - Unlimited accounts, transactions (fair use), MCP tokens, Phase 1 integrations
 - 25 000 tool calls / month
 - `sam:accounts.transfer` with existing `confirm: true` gate
@@ -115,6 +120,7 @@ count as tool calls. Only `tools/call` counts, via `mcp_audit_logs`.
 
 | Limit | Source of truth |
 | --- | --- |
+| Samy AI messages / month | `samy_messages` rows where `role = 'user'` and `created_at` in timezone month |
 | Tool calls | `mcp_audit_logs` rows with a real tool name (not keep-alives) |
 | Transactions / month | `transactions` with `occurred_at` in the user’s timezone month |
 | MCP tokens | Non-revoked rows in `mcp_tokens` |
@@ -133,7 +139,7 @@ These are **not** plan SKUs and must not be promised on any tier:
 
 - Bank aggregation (Plaid / Open Banking) as a SAM-operated core
 - Households / teams / orgs (one `userId` per ledger)
-- Embedded LLM inside the Worker (the user’s agent is the model)
+- Unconstrained LLM completions or arbitrary code execution (Samy is strictly scoped to 100/300 msgs/mo; external MCP agents bring their own model via BYOM)
 - Investments / trading (removed; see `docs/migrations/investments-removal.md`)
 - Marketplace take rate / Phase 2 sandboxed workers (connectors Phase 1 only)
 

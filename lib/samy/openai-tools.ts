@@ -78,9 +78,8 @@ export function buildSamyToolSet(ctx: ActorContext, conversationId: string): Too
 
 export function createSamyModel() {
   const apiKey = process.env.OPENAI_API_KEY;
-  const modelId = process.env.OPENAI_MODEL;
+  const modelId = process.env.OPENAI_MODEL || "gpt-5.6-luna";
   if (!apiKey) throw new Error("OPENAI_API_KEY is not set");
-  if (!modelId) throw new Error("OPENAI_MODEL is not set");
   const openai = createOpenAI({
     apiKey,
     baseURL: process.env.OPENAI_BASE_URL || undefined,

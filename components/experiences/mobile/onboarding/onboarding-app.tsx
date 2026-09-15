@@ -14,13 +14,17 @@ export function OnboardingApp({
   authSuccess = false,
   userName = "there",
   userCreatedAt,
+  initialMode,
 }: {
   authSuccess?: boolean;
   userName?: string;
   userCreatedAt?: Date | string | null;
+  initialMode?: "login" | "signup";
 }) {
-  const [stage, setStage] = useState<Stage>(authSuccess ? "success" : "landing");
-  const [successMode, setSuccessMode] = useState<"login" | "signup">("login");
+  const [stage, setStage] = useState<Stage>(
+    authSuccess ? "success" : initialMode ? "auth" : "landing"
+  );
+  const [successMode, setSuccessMode] = useState<"login" | "signup">(initialMode ?? "login");
   const [successName, setSuccessName] = useState(userName);
   const [successLogs, setSuccessLogs] = useState<AuthLogLine[]>(
     authSuccess
@@ -57,6 +61,7 @@ export function OnboardingApp({
         {stage === "landing" && <LandingCarousel onDone={() => setStage("auth")} />}
         {stage === "auth" && (
           <AuthScreen
+            initialMode={initialMode}
             onBack={() => setStage("landing")}
             onEmailSuccess={(mode, displayName) => {
               setSuccessMode(mode);
