@@ -17,6 +17,7 @@
     "db:push": "drizzle-kit push",
     "db:seed:demo": "tsx drizzle/seed-demo.ts",
     "db:studio": "drizzle-kit studio",
+    "plan:set": "tsx scripts/plans/set-plan.ts",
     "icons:generate": "node scripts/generate-pwa-icons.mjs",
     "test": "tsx --test tests/*.test.ts",
     "typecheck": "tsc --noEmit"

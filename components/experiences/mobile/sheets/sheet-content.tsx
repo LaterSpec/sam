@@ -87,7 +87,7 @@ export function SheetContent({ sheet, state, setState, onClose, openSheet }: She
     case "change-credentials":
       return <ChangeCredentialsSheet onClose={onClose} />;
     case "mcp-connect":
-      return <McpConnectSheet onClose={onClose} />;
+      return <McpConnectSheet state={state} onClose={onClose} />;
     case "bucket":
       return <BucketSheet sheet={sheet} setState={setState} onClose={onClose} />;
     default:
@@ -2008,12 +2008,15 @@ function ChangeCredentialsSheet({ onClose }: { onClose: () => void }) {
   );
 }
 
-function McpConnectSheet({ onClose }: { onClose: () => void }) {
+function McpConnectSheet({ state, onClose }: { state: ClientAppState; onClose: () => void }) {
   const { sam } = useSam();
   const t = useT();
   const [tokens, setTokens] = useState<McpTokenSummary[] | null>(null);
   const [name, setName] = useState("My assistant");
-  const [scopes, setScopes] = useState<Scope[]>([...DEFAULT_SCOPES]);
+  const allowedScopes = state.plan.limits.mcpScopes;
+  const [scopes, setScopes] = useState<Scope[]>(
+    DEFAULT_SCOPES.filter((scope) => allowedScopes.includes(scope))
+  );
   const { busy, run } = useMutationLock();
   const [error, setError] = useState("");
   const [newToken, setNewToken] = useState<string | null>(null);
@@ -2081,6 +2084,8 @@ function McpConnectSheet({ onClose }: { onClose: () => void }) {
   };
 
   const activeTokens = (tokens || []).filter((t) => !t.revokedAt);
+  const tokenLimit = state.plan.usage.mcpTokens.limit;
+  const tokenLimitReached = tokenLimit != null && activeTokens.length >= tokenLimit;
 
   return (
     <div>
@@ -2094,7 +2099,7 @@ function McpConnectSheet({ onClose }: { onClose: () => void }) {
         <span style={{ width: 44 }} />
       </div>
       <div style={{ fontSize: 11, color: sam.comment, marginBottom: 12 }}>
-        {`// connect an AI assistant to SAM over MCP`}
+        {`// ${state.plan.label} · ${activeTokens.length}/${tokenLimit ?? "∞"} tokens`}
       </div>
 
       <div style={{ marginBottom: 14 }}>
@@ -2198,7 +2203,7 @@ function McpConnectSheet({ onClose }: { onClose: () => void }) {
           </div>
           <div style={{ marginTop: 10, fontSize: 11, color: sam.comment }}>{`// scopes`}</div>
           <div style={{ marginTop: 6, border: `1px solid ${sam.border}` }}>
-            {ALL_SCOPES.map((scope, i) => {
+            {ALL_SCOPES.filter((scope) => allowedScopes.includes(scope)).map((scope, i, visibleScopes) => {
               const on = scopes.includes(scope);
               return (
                 <div
@@ -2209,7 +2214,7 @@ function McpConnectSheet({ onClose }: { onClose: () => void }) {
                     alignItems: "flex-start",
                     gap: 8,
                     padding: "8px 10px",
-                    borderBottom: i === ALL_SCOPES.length - 1 ? 0 : `1px solid ${sam.border}`,
+                    borderBottom: i === visibleScopes.length - 1 ? 0 : `1px solid ${sam.border}`,
                     cursor: "pointer",
                   }}
                 >
@@ -2235,15 +2240,15 @@ function McpConnectSheet({ onClose }: { onClose: () => void }) {
               marginTop: 12,
               padding: "10px 0",
               textAlign: "center",
-              background: name.trim() && scopes.length > 0 && !busy ? sam.cyan : sam.surface,
-              color: name.trim() && scopes.length > 0 && !busy ? sam.bg : sam.comment,
+              background: name.trim() && scopes.length > 0 && !busy && !tokenLimitReached ? sam.cyan : sam.surface,
+              color: name.trim() && scopes.length > 0 && !busy && !tokenLimitReached ? sam.bg : sam.comment,
               fontWeight: 700,
-              cursor: name.trim() && scopes.length > 0 && !busy ? "pointer" : "default",
-              pointerEvents: name.trim() && scopes.length > 0 && !busy ? "auto" : "none",
+              cursor: name.trim() && scopes.length > 0 && !busy && !tokenLimitReached ? "pointer" : "default",
+              pointerEvents: name.trim() && scopes.length > 0 && !busy && !tokenLimitReached ? "auto" : "none",
               fontSize: 14,
             }}
           >
-            {busy ? t("[saving...]") : "[connect mcp]"}
+            {tokenLimitReached ? "[plan token limit reached]" : busy ? t("[saving...]") : "[connect mcp]"}
           </div>
         </div>
       )}

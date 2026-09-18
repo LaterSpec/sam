@@ -8,6 +8,7 @@ import { DomainError, DomainErrorCodes, type ActorContext } from "./types";
 import type { TxDto } from "./expenses";
 import { mapRawAccountRow, type AccountDto, type RawAccountRow } from "./accounts";
 import { normalizeCurrency } from "@/lib/finance/currency";
+import { assertTransactionAllowed } from "@/lib/plans/guard";
 
 export type IncomeSourceDto = {
   id: string;
@@ -209,6 +210,7 @@ export async function addIncomeTransaction(
   const accountId = uuidSchema.parse(input.accountId);
   const occurredAt = input.occurredAt ? new Date(input.occurredAt) : new Date();
   if (Number.isNaN(occurredAt.getTime())) throw new Error("invalid occurredAt date");
+  await assertTransactionAllowed(ctx.userId, occurredAt, accountId);
   const sql = getSql();
   const rows = (await sql.query(
     `

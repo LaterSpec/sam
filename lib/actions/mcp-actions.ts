@@ -7,6 +7,7 @@ import { requireSession } from "@/lib/auth/session";
 import { generateToken } from "@/lib/mcp/token";
 import { DEFAULT_SCOPES, isValidScope, type Scope } from "@/lib/mcp/scopes";
 import { z } from "zod";
+import { allowedScopesForUser, assertMcpTokenCreationAllowed } from "@/lib/plans/guard";
 
 const tokenNameSchema = z.string().trim().min(1).max(60);
 
@@ -21,10 +22,14 @@ export type McpTokenSummary = {
   revokedAt: string | null;
 };
 
-function sanitizeScopes(scopes?: string[]): Scope[] {
-  if (!scopes || scopes.length === 0) return DEFAULT_SCOPES;
+function sanitizeScopes(scopes: string[] | undefined, allowed: Scope[]): Scope[] {
+  const allowedSet = new Set(allowed);
+  if (!scopes || scopes.length === 0) return DEFAULT_SCOPES.filter((scope) => allowedSet.has(scope));
   const valid = scopes.filter(isValidScope);
-  return valid.length > 0 ? Array.from(new Set(valid)) : DEFAULT_SCOPES;
+  const permitted = valid.filter((scope) => allowedSet.has(scope));
+  return permitted.length > 0
+    ? Array.from(new Set(permitted))
+    : DEFAULT_SCOPES.filter((scope) => allowedSet.has(scope));
 }
 
 export async function listMcpTokensAction(): Promise<McpTokenSummary[]> {
@@ -52,8 +57,9 @@ export async function createMcpTokenAction(input: {
   expiresInDays?: number;
 }): Promise<{ token: string; summary: McpTokenSummary }> {
   const session = await requireSession();
+  await assertMcpTokenCreationAllowed(session.user.id);
   const name = tokenNameSchema.parse(input.name);
-  const scopes = sanitizeScopes(input.scopes);
+  const scopes = sanitizeScopes(input.scopes, await allowedScopesForUser(session.user.id));
   const expiresAt =
     input.expiresInDays && input.expiresInDays > 0
       ? new Date(Date.now() + Math.min(input.expiresInDays, 3650) * 864e5)

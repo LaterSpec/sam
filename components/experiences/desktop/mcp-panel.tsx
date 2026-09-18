@@ -5,8 +5,9 @@ import { Check, Copy, KeyRound, LoaderCircle, Trash2 } from "lucide-react";
 import { createMcpTokenAction, listMcpTokensAction, revokeMcpTokenAction, type McpTokenSummary } from "@/lib/actions/mcp-actions";
 import { ALL_SCOPES, SCOPE_DESCRIPTIONS } from "@/lib/mcp/scopes";
 import { useMutationLock } from "@/lib/hooks/use-mutation-lock";
+import type { AppState } from "@/lib/db/queries/load-user-data";
 
-export function McpPanel() {
+export function McpPanel({ state }: { state: AppState }) {
   const [tokens, setTokens] = useState<McpTokenSummary[]>([]);
   const [revealed, setRevealed] = useState("");
   const [loading, setLoading] = useState(true);
@@ -52,6 +53,9 @@ export function McpPanel() {
   };
 
   const submitting = busy || loading;
+  const allowedScopes = state.plan.limits.mcpScopes;
+  const tokenLimit = state.plan.usage.mcpTokens.limit;
+  const tokenLimitReached = tokenLimit != null && state.plan.usage.mcpTokens.used >= tokenLimit;
 
   return (
     <div className="desk-mcp-panel">
@@ -59,7 +63,7 @@ export function McpPanel() {
         <KeyRound size={20} />
         <div>
           <h2>Connect SAM MCP</h2>
-          <p>Create a scoped credential. The secret is shown once.</p>
+          <p>{state.plan.label} · {state.plan.usage.mcpTokens.used}/{tokenLimit ?? "∞"} tokens. The secret is shown once.</p>
         </div>
       </div>
       {revealed && (
@@ -83,7 +87,7 @@ export function McpPanel() {
         </label>
         <fieldset className="desk-scope-list">
           <legend>Permissions</legend>
-          {ALL_SCOPES.map((scope) => (
+          {ALL_SCOPES.filter((scope) => allowedScopes.includes(scope)).map((scope) => (
             <label key={scope}>
               <input type="checkbox" name="scopes" value={scope} defaultChecked={["sam:read", "sam:expenses.write", "sam:categories.write"].includes(scope)} />
               <span>
@@ -94,9 +98,9 @@ export function McpPanel() {
           ))}
         </fieldset>
         {error && <p className="desk-form-error" role="alert">{error}</p>}
-        <button type="submit" className="desk-primary-button" disabled={submitting}>
+        <button type="submit" className="desk-primary-button" disabled={submitting || tokenLimitReached}>
           {submitting ? <LoaderCircle className="desk-spin" size={15} /> : <KeyRound size={15} />}
-          Generate token
+          {tokenLimitReached ? "Plan token limit reached" : "Generate token"}
         </button>
       </form>
       <div className="desk-token-list">

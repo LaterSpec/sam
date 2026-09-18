@@ -171,7 +171,10 @@ More examples: [examples.md](../.agents/skills/sam-mcp/examples.md).
 | `sam:accounts.transfer` | Transfer between accounts (high risk) |
 | `sam:profile.write` | Update username and preferences |
 
-**Default scopes** on new tokens: `sam:read`, `sam:expenses.write`, `sam:categories.write`.
+Available scopes are limited by the current plan even if a token stored broader
+scopes previously. Free tokens are read-only; Trial/Pro allow standard writes;
+only Agent allows `sam:accounts.transfer`. Token counts and tool calls are also
+plan-limited. See [PLANS.md](./PLANS.md).
 
 `sam_get_profile` returns the token's effective `capabilities` array — check it before calling write tools.
 
@@ -184,6 +187,7 @@ More examples: [examples.md](../.agents/skills/sam-mcp/examples.md).
 | 401 | `invalid_token` | Unknown prefix or wrong secret |
 | 401 | `token_revoked` | Revoked in Profile |
 | 401 | `token_expired` | Past `expires_at` |
+| 401 | `token_locked_by_plan` | Token is above the active plan's token allowance |
 
 ### Domain error codes (in tool responses)
 
@@ -196,6 +200,9 @@ More examples: [examples.md](../.agents/skills/sam-mcp/examples.md).
 | `transaction_not_found` | Invalid expense id |
 | `insufficient_balance` | Transfer or debit would overdraw |
 | `invalid_amount` | Non-positive or invalid money value |
+| `plan_required` / `trial_expired` | Current access does not include the tool |
+| `quota_exceeded` / `rate_limited` | Plan or burst counter is exhausted |
+| `resource_locked` | Resource is preserved but inactive after downgrade |
 
 ---
 

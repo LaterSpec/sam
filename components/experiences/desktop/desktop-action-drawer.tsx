@@ -72,7 +72,7 @@ export function DesktopActionDrawer({
         </div>
         <div className="desk-action-scroll">
           {action === "mcp" ? (
-            <McpPanel />
+            <McpPanel state={state} />
           ) : action === "integrations" ? (
             <IntegrationsPanel />
           ) : action ? (

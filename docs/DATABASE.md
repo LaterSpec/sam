@@ -41,7 +41,16 @@ Every query or mutation for these tables must include the authenticated user id.
 
 ### `profiles`
 
-One row per Better Auth user. Stores full name, optional username, plan, streak, membership date and JSON preferences (`theme`, `language`, `defaultCurrency`, `timezone`).
+One row per Better Auth user. Stores full name, optional username, assigned plan, trial/paid start and expiry, entitlement version, metering timezone, streak, membership date and JSON preferences (`theme`, `language`, `defaultCurrency`, `timezone`). Effective access must be resolved server-side; `plan` alone is insufficient.
+
+### Plan tables
+
+- `plan_change_events`: append-only audit of manual/migration plan changes.
+- `plan_usage_buckets`: atomic counters for Samy and MCP windows.
+- `plan_resource_selections`: the accounts/currency that remain editable after a downgrade to Free, versioned by entitlement.
+
+Migration: `drizzle/migrations/plans_and_entitlements.sql`. It also installs
+`reserve_plan_usage(jsonb)`, the transaction-safe quota reservation function.
 
 ### `accounts`
 

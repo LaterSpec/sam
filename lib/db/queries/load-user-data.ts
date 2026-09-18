@@ -12,6 +12,7 @@ import { eq, asc } from "drizzle-orm";
 import { formatTime, num } from "@/lib/utils";
 import { normalizeCurrency, type Currency } from "@/lib/finance/currency";
 import type { UserPrefs } from "@/lib/db/schema";
+import { getPlanSnapshot, type PlanSnapshot } from "@/lib/plans/resolve";
 import {
   listRecurringOccurrences,
   listRecurringRules,
@@ -25,10 +26,11 @@ export type AppState = {
     email: string;
     full_name: string;
     username: string | null;
-    plan: string;
+    plan: "free" | "pro" | "agent";
     streak: number;
     member_since: string | null;
   };
+  plan: PlanSnapshot;
   prefs: UserPrefs;
   streak: number;
   accounts: Array<{
@@ -128,6 +130,7 @@ export async function loadUserData(userId: string, email: string): Promise<AppSt
     bucketsRows,
     recurringRuleRows,
     recurringOccurrenceResult,
+    planSnapshot,
   ] = await Promise.all([
     db.select().from(profiles).where(eq(profiles.id, userId)).limit(1),
     db.select().from(accounts).where(eq(accounts.userId, userId)).orderBy(asc(accounts.sort)),
@@ -144,6 +147,7 @@ export async function loadUserData(userId: string, email: string): Promise<AppSt
       { userId, email, authMethod: "session", scopes: [] },
       { limit: 100 }
     ),
+    getPlanSnapshot(userId),
   ]);
 
   const profile = profileRow[0];
@@ -169,10 +173,11 @@ export async function loadUserData(userId: string, email: string): Promise<AppSt
       email,
       full_name: profile.fullName || email.split("@")[0],
       username: profile.username,
-      plan: profile.plan,
+      plan: planSnapshot.effectivePlan,
       streak: profile.streak,
       member_since: profile.memberSince,
     },
+    plan: planSnapshot,
     prefs,
     streak: profile.streak,
     accounts: accountsRows.map((a) => ({

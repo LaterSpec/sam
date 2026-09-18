@@ -4,6 +4,7 @@ import {
   accounts,
   categories,
 } from "@/lib/db/schema";
+import { TRIAL_DURATION_MS } from "@/lib/plans/catalog";
 
 const BASE_CATEGORIES = [
   { key: "food", name: "Food & Dining", icon: "◉", color: "#e8824a", monthlyCap: "400", sort: 0 },
@@ -16,11 +17,17 @@ const BASE_CATEGORIES = [
 
 export async function bootstrapNewUser(userId: string, name: string, email: string) {
   const displayName = name || email.split("@")[0] || "there";
+  const trialStartedAt = new Date();
+  const trialEndsAt = new Date(trialStartedAt.getTime() + TRIAL_DURATION_MS);
 
   await db.insert(profiles).values({
     id: userId,
     fullName: displayName,
     username: null,
+    plan: "free",
+    trialStartedAt,
+    trialEndsAt,
+    meteringTimezone: "America/Lima",
   });
 
   await db.insert(accounts).values([

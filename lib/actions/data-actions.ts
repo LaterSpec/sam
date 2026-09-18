@@ -792,6 +792,16 @@ export async function setBucketBalanceAction(bucketId: string, balance: number) 
 export async function updatePrefsAction(prefs: Record<string, unknown>) {
   const session = await requireSession();
   const parsed = prefsSchema.parse(prefs);
+  const [current] = await db
+    .select({ prefs: profiles.prefs })
+    .from(profiles)
+    .where(eq(profiles.id, session.user.id))
+    .limit(1);
+  const currentTheme = (current?.prefs as { theme?: string } | null)?.theme;
+  if (currentTheme && parsed.theme !== currentTheme) {
+    const { assertThemeSelectionAllowed } = await import("@/lib/plans/guard");
+    await assertThemeSelectionAllowed(session.user.id);
+  }
   await db.update(profiles).set({ prefs: parsed }).where(eq(profiles.id, session.user.id));
   revalidatePath("/app");
 }

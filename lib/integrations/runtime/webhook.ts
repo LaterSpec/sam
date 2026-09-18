@@ -10,6 +10,7 @@ import { decryptSecretPayload, hashWebhookToken } from "../secrets";
 import { getInstallWithManifest } from "../install";
 import { dispatchIntegrationWorker } from "./dispatch";
 import type { IntegrationManifest } from "../manifest";
+import { assertIntegrationUsable } from "@/lib/plans/guard";
 
 const webhookExpenseSchema = z.object({
   name: z.string().min(1).max(120),
@@ -27,6 +28,15 @@ export async function handleWebhookIngress(input: {
   const loaded = await getInstallWithManifest(input.installId);
   if (!loaded) return { ok: false as const, status: 404, error: "install not found" };
   const { install, manifest, email } = loaded;
+  try {
+    await assertIntegrationUsable(install.userId, install.id);
+  } catch (error) {
+    return {
+      ok: false as const,
+      status: 403,
+      error: error instanceof Error ? error.message : "integration locked by plan",
+    };
+  }
   if (install.status !== "connected" && install.status !== "installed") {
     return { ok: false as const, status: 409, error: "install is not connected" };
   }
@@ -125,6 +135,7 @@ export async function runHttpPullSync(installId: string) {
   const loaded = await getInstallWithManifest(installId);
   if (!loaded) throw new Error("install not found");
   const { install, manifest, email } = loaded;
+  await assertIntegrationUsable(install.userId, install.id);
   if (install.status !== "connected") throw new Error("install not connected");
 
   const handler = manifest.capabilities.sync?.handler ?? "builtin:webhook-echo";

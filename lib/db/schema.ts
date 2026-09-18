@@ -73,7 +73,14 @@ export const profiles = pgTable("profiles", {
     .references(() => user.id, { onDelete: "cascade" }),
   fullName: text("full_name").notNull().default("there"),
   username: text("username"),
-  plan: text("plan").notNull().default("pro"),
+  plan: text("plan").notNull().default("free"),
+  trialStartedAt: timestamp("trial_started_at", { withTimezone: true }),
+  trialEndsAt: timestamp("trial_ends_at", { withTimezone: true }),
+  planStartedAt: timestamp("plan_started_at", { withTimezone: true }),
+  planExpiresAt: timestamp("plan_expires_at", { withTimezone: true }),
+  planUpdatedAt: timestamp("plan_updated_at", { withTimezone: true }).notNull().defaultNow(),
+  entitlementVersion: integer("entitlement_version").notNull().default(1),
+  meteringTimezone: text("metering_timezone").notNull().default("America/Lima"),
   streak: integer("streak").notNull().default(0),
   currency: text("currency").notNull().default("USD"),
   prefs: jsonb("prefs")
@@ -88,6 +95,71 @@ export const profiles = pgTable("profiles", {
   memberSince: date("member_since").notNull().defaultNow(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
+
+export const planChangeEvents = pgTable(
+  "plan_change_events",
+  {
+    id: bigint("id", { mode: "number" }).primaryKey().generatedAlwaysAsIdentity(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    fromPlan: text("from_plan").notNull(),
+    toPlan: text("to_plan").notNull(),
+    effectiveAt: timestamp("effective_at", { withTimezone: true }).notNull().defaultNow(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+    operator: text("operator").notNull(),
+    reason: text("reason").notNull(),
+    source: text("source").notNull().default("manual_db"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("plan_change_events_user_created_idx").on(t.userId, t.createdAt)]
+);
+
+export const planUsageBuckets = pgTable(
+  "plan_usage_buckets",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    subjectType: text("subject_type").notNull(),
+    subjectId: text("subject_id").notNull(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    metric: text("metric").notNull(),
+    windowKey: text("window_key").notNull(),
+    windowStart: timestamp("window_start", { withTimezone: true }).notNull(),
+    windowEnd: timestamp("window_end", { withTimezone: true }).notNull(),
+    used: integer("used").notNull().default(0),
+    limitSnapshot: integer("limit_snapshot").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("plan_usage_subject_metric_window_idx").on(
+      t.subjectType,
+      t.subjectId,
+      t.metric,
+      t.windowKey
+    ),
+    index("plan_usage_user_window_idx").on(t.userId, t.windowStart),
+  ]
+);
+
+export const planResourceSelections = pgTable(
+  "plan_resource_selections",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    entitlementVersion: integer("entitlement_version").notNull(),
+    activeCurrency: text("active_currency").notNull(),
+    activeAccountIds: uuid("active_account_ids").array().notNull().default([]),
+    finalizedAt: timestamp("finalized_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("plan_resource_selection_user_version_idx").on(t.userId, t.entitlementVersion),
+  ]
+);
 
 export const accounts = pgTable(
   "accounts",

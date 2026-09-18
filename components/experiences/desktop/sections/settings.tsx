@@ -6,6 +6,7 @@ import type { Lang } from "@/lib/i18n/i18n-context";
 import type { Currency } from "@/lib/finance/currency";
 import type { AppState } from "@/lib/db/queries/load-user-data";
 import type { DesktopCopy } from "../desktop-copy";
+import { PlanOverview } from "@/components/plans/plan-overview";
 
 export function SettingsSection({
   state,
@@ -38,6 +39,7 @@ export function SettingsSection({
           <h1>{copy.settings}</h1>
         </div>
       </div>
+      <PlanOverview state={state} />
       <section className="desk-panel">
         <div className="desk-panel-heading">
           <div className="desk-inline-title">
@@ -56,6 +58,8 @@ export function SettingsSection({
                 className={theme === id ? "is-active" : ""}
                 onClick={() => onTheme(id as SamTheme)}
                 aria-pressed={theme === id}
+                disabled={!state.plan.limits.multiTheme && theme !== id}
+                title={!state.plan.limits.multiTheme && theme !== id ? "Additional themes require Pro" : undefined}
               >
                 <span>
                   {swatches.map((color) => (

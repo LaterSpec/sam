@@ -41,8 +41,16 @@ export function PwaProvider() {
   useEffect(() => {
     if (!isPhoneRequest()) return;
     if (document.querySelector(".sam-desktop, .sam-desktop-auth")) return;
-    setEligible(true);
     if (isStandalone()) return;
+
+    let cancelled = false;
+    void fetch("/api/plan", { cache: "no-store" })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((raw) => {
+        const payload = raw as { pwa?: boolean } | null;
+        if (!cancelled) setEligible(payload?.pwa === true);
+      })
+      .catch(() => undefined);
 
     const dismissedKey = "sam-pwa-install-dismissed";
     if (sessionStorage.getItem(dismissedKey) === "1") {
@@ -60,12 +68,16 @@ export function PwaProvider() {
     if (isIos()) {
       const timer = window.setTimeout(() => setShowIosHint(true), 2500);
       return () => {
+        cancelled = true;
         window.removeEventListener("beforeinstallprompt", onBeforeInstall);
         window.clearTimeout(timer);
       };
     }
 
-    return () => window.removeEventListener("beforeinstallprompt", onBeforeInstall);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("beforeinstallprompt", onBeforeInstall);
+    };
   }, []);
 
   const dismiss = () => {

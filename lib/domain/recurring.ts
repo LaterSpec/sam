@@ -17,6 +17,7 @@ import {
   type RecurrenceUnit,
 } from "@/lib/finance/recurrence";
 import { DomainError, DomainErrorCodes, type ActorContext } from "./types";
+import { assertRecurringAllowed, assertTransactionAllowed } from "@/lib/plans/guard";
 import { positiveMoneySchema, shortTextSchema, uuidSchema } from "./validation";
 
 export type RecurringKind = "expense" | "income";
@@ -235,6 +236,7 @@ export async function createRecurringRule(
   ctx: ActorContext,
   rawInput: CreateRecurringRuleInput
 ): Promise<RecurringRuleDto> {
+  await assertRecurringAllowed(ctx.userId);
   const input = createRuleSchema.parse(rawInput);
   if (input.endDate && input.endDate < input.startDate) {
     throw new Error("end date must be on or after start date");
@@ -293,6 +295,7 @@ export async function updateRecurringRule(
   ctx: ActorContext,
   rawInput: UpdateRecurringRuleInput
 ): Promise<RecurringRuleDto> {
+  await assertRecurringAllowed(ctx.userId);
   const id = uuidSchema.parse(rawInput.id);
   const current = await getOwnedRule(ctx.userId, id);
   const candidate = createRuleSchema.omit({ confirmCatchUp: true }).parse({
@@ -403,8 +406,10 @@ async function setRuleStatus(
 
 export const pauseRecurringRule = (ctx: ActorContext, id: string) =>
   setRuleStatus(ctx, id, "paused");
-export const resumeRecurringRule = (ctx: ActorContext, id: string) =>
-  setRuleStatus(ctx, id, "active");
+export const resumeRecurringRule = async (ctx: ActorContext, id: string) => {
+  await assertRecurringAllowed(ctx.userId);
+  return setRuleStatus(ctx, id, "active");
+};
 export const archiveRecurringRule = (ctx: ActorContext, id: string) =>
   setRuleStatus(ctx, id, "archived");
 
@@ -617,6 +622,11 @@ export async function processDueRecurring(input: {
   const perRuleLimit = Math.min(Math.max(Math.trunc(input.perRuleLimit ?? 100), 1), 100);
 
   for (const rule of rules) {
+    try {
+      await assertRecurringAllowed(rule.userId);
+    } catch {
+      continue;
+    }
     const today = todayInTimeZone(rule.timezone);
     let scheduledDate = rule.nextOccurrenceDate;
     let count = 0;
@@ -640,6 +650,16 @@ export async function processDueRecurring(input: {
         rule.frequencyUnit as RecurrenceUnit,
         rule.frequencyInterval
       );
+      try {
+        await assertTransactionAllowed(
+          rule.userId,
+          new Date(`${scheduledDate}T12:00:00.000Z`),
+          rule.accountId
+        );
+      } catch {
+        failed += 1;
+        break;
+      }
       const result = await postScheduledOccurrence({
         userId: rule.userId,
         ruleId: rule.id,
@@ -667,6 +687,7 @@ export async function retryRecurringOccurrence(
   ctx: ActorContext,
   idValue: string
 ): Promise<RecurringOccurrenceDto> {
+  await assertRecurringAllowed(ctx.userId);
   const id = uuidSchema.parse(idValue);
   const sql = getSql();
   const rows = (await sql.query(

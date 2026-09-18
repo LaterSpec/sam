@@ -16,6 +16,7 @@ import {
 } from "./secrets";
 import { writeIntegrationAudit } from "./audit";
 import { loadPublishedManifest } from "./catalog";
+import { assertIntegrationInstallAllowed, assertIntegrationUsable } from "@/lib/plans/guard";
 
 export type InstallSummary = {
   id: string;
@@ -81,6 +82,7 @@ export async function installIntegration(input: {
   integrationId: string;
   scopes?: string[];
 }) {
+  await assertIntegrationInstallAllowed(input.userId);
   const [integration] = await db
     .select()
     .from(integrations)
@@ -165,6 +167,7 @@ export async function connectInstall(input: {
   installId: string;
   secretPayload?: Record<string, unknown>;
 }) {
+  await assertIntegrationUsable(input.userId, input.installId);
   const [install] = await db
     .select()
     .from(userIntegrationInstalls)

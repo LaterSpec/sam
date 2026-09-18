@@ -154,6 +154,14 @@ The desktop assistant streams from `POST /api/samy/chat` as a **finite** SSE res
 - Local: set them in `.env.local`. Production: `wrangler secret put`.
 - Apply `drizzle/migrations/samy_tables.sql` (or `npm run db:push`) before using Samy in a new database.
 
+## Plans and entitlements
+
+`lib/plans/resolve.ts` resolves paid, trial or Free access for every request.
+Server Actions, shared finance domains, Samy and MCP all use the same catalog
+and guards; the UI consumes a server `PlanSnapshot` and never infers a plan.
+Samy/MCP counters are reserved atomically in Postgres. Expiry is request-time,
+so it does not depend on scheduled work. See [PLANS.md](./PLANS.md).
+
 ## Server Actions
 
 Server Actions currently own most app mutations:

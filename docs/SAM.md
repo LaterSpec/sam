@@ -207,9 +207,9 @@ Supabase quedó solo como archivo de migración. `sam-demo/` no forma parte del 
 
 ---
 
-## Planes (producto, aún no cobrados)
+## Planes (activación manual)
 
-Los límites Free / Pro / Agent están definidos; **no hay billing ni enforcement**. `profiles.plan` existe y es display-only (default `pro`). Fuente: [PLANS.md](./PLANS.md).
+Los límites Free / Pro / Agent y el trial Pro de siete días se validan en el servidor. El panel de Profile/Settings muestra el plan efectivo y consumo real de Neon; no usa mocks ni un fallback visual a Pro. Todavía no hay checkout: para activar Pro o Agent el usuario escribe a `manuel@devnyro.com` y un operador realiza el cambio auditado en base de datos. Fuente: [PLANS.md](./PLANS.md) y [PLAN-OPERATIONS.md](./PLAN-OPERATIONS.md).
 
 | | Free | Pro · $5/mes | Agent · $10/mes |
 | --- | --- | --- | --- |

@@ -5,6 +5,7 @@ import { getCachedMcpAuth, setCachedMcpAuth } from "./auth-cache";
 import type { AuthResult } from "./auth-result";
 import { hashSecret, parseToken, timingSafeEqual } from "./token";
 import { isValidScope } from "./scopes";
+import { allowedScopesForUser, assertMcpTokenUsable } from "@/lib/plans/guard";
 
 export type { AuthResult } from "./auth-result";
 
@@ -66,13 +67,19 @@ export async function authenticate(
     } else if (row.expiresAt && row.expiresAt.getTime() <= Date.now()) {
       result = { ok: false, status: 401, error: "token_expired" };
     } else {
+      try {
+        await assertMcpTokenUsable(row.userId, row.id);
+      } catch {
+        return { ok: false, status: 401, error: "token_locked_by_plan" };
+      }
+      const planScopes = new Set(await allowedScopesForUser(row.userId));
       result = {
         ok: true,
         ctx: {
           userId: row.userId,
           email: row.email,
           authMethod: "mcp_token",
-          scopes: (row.scopes ?? []).filter(isValidScope),
+          scopes: (row.scopes ?? []).filter(isValidScope).filter((scope) => planScopes.has(scope)),
           tokenId: row.id,
         },
       };

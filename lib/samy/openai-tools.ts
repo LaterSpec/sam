@@ -7,6 +7,7 @@ import { getFinanceToolDefs } from "@/lib/tools/catalog";
 import { SAMY_LIST_TRANSACTIONS_MAX, SAMY_TOOL_RESULT_MAX } from "./constants";
 import { memoryToolDefs } from "./memory-tools";
 import { truncateToolResult } from "./parse";
+import type { Scope } from "@/lib/mcp/scopes";
 
 function shapeToObject(def: {
   inputSchema?: Record<string, z.ZodTypeAny>;
@@ -19,10 +20,15 @@ function shapeToObject(def: {
   return z.object(base);
 }
 
-export function buildSamyToolSet(ctx: ActorContext, conversationId: string): ToolSet {
+export function buildSamyToolSet(
+  ctx: ActorContext,
+  conversationId: string,
+  allowedScopes: readonly Scope[]
+): ToolSet {
   const tools: ToolSet = {};
 
   for (const def of getFinanceToolDefs()) {
+    if (!allowedScopes.includes(def.scope)) continue;
     const inputSchema = shapeToObject(def);
     tools[def.name] = tool({
       description: def.description,

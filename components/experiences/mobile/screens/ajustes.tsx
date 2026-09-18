@@ -23,6 +23,7 @@ export function AjustesScreen({ state, setState }: ScreenProps) {
   const currentTheme = resolveSamTheme(state.prefs.theme);
 
   const selectTheme = (theme: SamTheme) => {
+    if (!state.plan.limits.multiTheme && theme !== currentTheme) return;
     const prefs = { ...state.prefs, theme };
     setState((s) => ({ ...s, prefs }));
     void updatePrefsAction(prefs);
@@ -52,6 +53,8 @@ export function AjustesScreen({ state, setState }: ScreenProps) {
                   key={theme}
                   type="button"
                   onClick={() => selectTheme(theme)}
+                  disabled={!state.plan.limits.multiTheme && theme !== currentTheme}
+                  title={!state.plan.limits.multiTheme && theme !== currentTheme ? t("Additional themes require Pro") : undefined}
                   style={{
                     width: "100%",
                     display: "flex",
@@ -63,7 +66,8 @@ export function AjustesScreen({ state, setState }: ScreenProps) {
                     background: active ? sam.active : "transparent",
                     color: active ? sam.accent : sam.text,
                     fontFamily: sam.font,
-                    cursor: "pointer",
+                    cursor: !state.plan.limits.multiTheme && theme !== currentTheme ? "not-allowed" : "pointer",
+                    opacity: !state.plan.limits.multiTheme && theme !== currentTheme ? 0.5 : 1,
                     textAlign: "left",
                   }}
                 >

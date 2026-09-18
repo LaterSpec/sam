@@ -6,6 +6,7 @@ import { accountColor, accountDefaultIcon } from "@/lib/accounts/account-types";
 import { colorSchema, moneySchema, positiveMoneySchema, shortTextSchema, uuidSchema, ACCOUNT_TYPE_SET } from "./validation";
 import { DomainError, DomainErrorCodes, type ActorContext } from "./types";
 import { normalizeCurrency, type Currency } from "@/lib/finance/currency";
+import { assertAccountCreationAllowed, assertTransferAllowed } from "@/lib/plans/guard";
 
 export type AccountDto = {
   id: string;
@@ -109,6 +110,8 @@ export async function createAccount(
 ): Promise<AccountDto> {
   const uid = ctx.userId;
   const trimmed = shortTextSchema.parse(input.name);
+  const requestedCurrency = normalizeCurrency(input.currency);
+  await assertAccountCreationAllowed(uid, requestedCurrency);
 
   const existing = await db
     .select({ sort: accounts.sort })
@@ -130,7 +133,7 @@ export async function createAccount(
       name: trimmed,
       type,
       balance: "0",
-      currency: normalizeCurrency(input.currency),
+      currency: requestedCurrency,
       icon,
       color: colorSchema.parse(input.color) || accountColor(type),
       creditLimit: type === "card" && creditLimit != null ? String(creditLimit) : null,
@@ -226,6 +229,7 @@ export async function transferBetweenAccounts(
   input: { fromId: string; toId: string; amount: number }
 ) {
   const uid = ctx.userId;
+  await assertTransferAllowed(uid);
   const amount = positiveMoneySchema.parse(input.amount);
   const fromId = uuidSchema.parse(input.fromId);
   const toId = uuidSchema.parse(input.toId);

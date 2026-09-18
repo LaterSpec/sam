@@ -8,12 +8,11 @@ import {
   createConversation,
   getOwnedConversation,
   insertMessage,
-  isRateLimited,
   loadRecentMessages,
   maybeSetTitle,
-  countRecentUserMessages,
 } from "./store";
 import { isBlatantlyOffTopic, offTopicRefusal } from "./topic-guard";
+import { reserveSamyMessage } from "@/lib/plans/usage";
 
 type SessionUser = { id: string; email: string; name?: string | null };
 
@@ -67,10 +66,7 @@ export async function runSamyChat(input: {
     return Response.json({ error: "message_required" }, { status: 400 });
   }
 
-  const recent = await countRecentUserMessages(input.sessionUser.id);
-  if (isRateLimited(recent)) {
-    return Response.json({ error: "rate_limited" }, { status: 429 });
-  }
+  const entitlement = await reserveSamyMessage(input.sessionUser.id);
 
   let conversationId = typeof input.body.conversationId === "string" ? input.body.conversationId : null;
   if (conversationId) {
@@ -105,7 +101,7 @@ export async function runSamyChat(input: {
 
   const memories = await loadActiveMemories(input.sessionUser.id);
   const actor = sessionActor({ user: { id: input.sessionUser.id, email: input.sessionUser.email } });
-  const tools = buildSamyToolSet(actor, conversationId);
+  const tools = buildSamyToolSet(actor, conversationId, entitlement.limits.mcpScopes);
   const model = createSamyModel();
   const system = buildSamySystemPrompt({
     fullName: input.fullName,

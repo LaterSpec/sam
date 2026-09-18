@@ -11,6 +11,7 @@ import { LanguageToggle } from "@/components/ui/language-toggle";
 import { SUPPORTED_CURRENCIES, normalizeCurrency, type Currency } from "@/lib/finance/currency";
 import type { ScreenProps } from "./types";
 import { SCREEN_PAD } from "./types";
+import { PlanOverview } from "@/components/plans/plan-overview";
 
 function samUserHandle(state: ScreenProps["state"]) {
   const u = state.user;
@@ -228,6 +229,9 @@ export function ProfileScreen({ state, setState, openSheet }: ScreenProps) {
               {memberSince} · {accountCount} {t("accounts")}
             </div>
           </div>
+        </div>
+        <div style={{ marginTop: 12 }}>
+          <PlanOverview state={state} />
         </div>
         {editingUsername && (
           <div style={{ marginTop: 12, padding: 12, border: `1px solid ${sam.border}`, background: sam.surface }}>

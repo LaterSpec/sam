@@ -3,6 +3,8 @@ import type { ZodRawShape } from "zod";
 import { DomainError, type ActorContext } from "@/lib/domain/types";
 import { requireScope, hasScope, type Scope } from "../scopes";
 import { writeAudit } from "../audit";
+import { reserveMcpToolCall } from "@/lib/plans/usage";
+import { PlanError } from "@/lib/plans/errors";
 
 export type ToolAnnotations = {
   readOnlyHint?: boolean;
@@ -74,13 +76,20 @@ export function defineTool(server: McpServer, ctx: ActorContext, def: AnyToolDef
 
     try {
       requireScope(ctx, def.scope);
+      if (ctx.authMethod === "mcp_token" && ctx.tokenId) {
+        await reserveMcpToolCall({
+          userId: ctx.userId,
+          tokenId: ctx.tokenId,
+          write: def.annotations?.readOnlyHint !== true,
+        });
+      }
       const data = await def.handler(ctx, (args ?? {}) as Record<string, unknown>);
       await writeAudit({ ctx, toolName: def.name, input: args, resultStatus: "ok", requestId });
       return jsonResult(data);
     } catch (e) {
-      const code = e instanceof DomainError ? e.code : "tool_error";
+      const code = e instanceof PlanError ? e.code : e instanceof DomainError ? e.code : "tool_error";
       const internalMessage =
-        e instanceof DomainError
+        e instanceof PlanError || e instanceof DomainError
           ? e.message
           : e instanceof Error
             ? e.message
@@ -93,7 +102,7 @@ export function defineTool(server: McpServer, ctx: ActorContext, def: AnyToolDef
         errorMessage: `${code}: ${internalMessage}`,
         requestId,
       });
-      return errorResult(code, e instanceof DomainError ? e.message : "tool failed");
+      return errorResult(code, e instanceof PlanError || e instanceof DomainError ? e.message : "tool failed");
     }
   };
 

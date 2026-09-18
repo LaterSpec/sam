@@ -1,160 +1,117 @@
 # SAM plans
 
-Locked product limits for Free / Pro / Agent. Enforcement and billing are
-**not** implemented yet: `profiles.plan` exists (default `"pro"`) and is
-display-only in Settings.
+This is the product and enforcement contract for Free, Pro, Agent and the
+seven-day Pro trial. The runtime source of truth is `lib/plans/catalog.ts`;
+this document explains its behavior. There is no payment provider yet.
 
-This is the source of truth for later metering, paywalls, and Stripe (or
-equivalent). Related: [Business & AI Model](./BUSINESS-PLAN-SAMY-AI.md),
-[Neon compute](./NEON-COMPUTE.md), [MCP](./MCP.md), [MCP architecture](./MCP-ARCHITECTURE.md).
+Paid access is activated manually in Neon after the user contacts
+`manuel@devnyro.com`. SAM must never ask for a card or wallet until a billing
+provider is deliberately integrated.
 
-## Prices
+## Prices and limits
 
-| Plan | Price |
-| --- | --- |
-| **Free** | $0 *(incluye 7 días de trial Premium con 50 consultas de Samy, máx. 10/día)* |
-| **Pro** | $5 / month |
-| **Agent** | $10 / month |
-
-## Limits
-
-| | **Free** | **Pro · $5** | **Agent · $10** |
+| | **Free · $0** | **Pro · $5/month** | **Agent · $10/month** |
 | --- | --- | --- | --- |
-| Samy AI messages | 0 / month *(50 en trial 7 días, máx 10/día)* | 150 / month | 500 / month |
-| Transactions | 100 / month | 500 / month | Unlimited (fair use) |
+| Samy AI | 0/month after trial | 150/month | 500/month |
+| Transactions | 100/month | 500/month | Unlimited (fair use) |
 | Accounts | 2 | 8 | Unlimited |
-| Currencies | 1 (USD **or** PEN) | USD + PEN | USD + PEN |
-| Recurring payments | No | Yes | Yes |
-| PWA | No | Yes | Yes |
-| Themes | 1 (default) | Multi-theme | Multi-theme |
-| MCP | Read only | Read + write | Read + write |
+| Currencies | 1 (USD or PEN) | 2 | 2 |
+| Recurring / PWA / all themes | No | Yes | Yes |
+| MCP scopes | Read only | Read + write | Read + write + transfer |
 | MCP tokens | 1 | 3 | Unlimited |
-| `sam:accounts.transfer` | No | **No** | Yes (`confirm: true`) |
-| Tool calls / month | 100 (read only) | 5 000 | 25 000 |
-| Integrations | 0 | 3 | Unlimited (Phase 1 connectors) |
+| MCP tool calls | 100/month | 5,000/month | 25,000/month |
+| Integrations | 0 | 3 | Unlimited |
+| Internal transfer | No | No | Yes |
 
-Free transactions are **100 per month** (same window as Pro), not a lifetime
-cap on rows in the ledger.
+Calendar-month quotas use the user's `metering_timezone`. Historical data is
+never deleted when a plan expires or is downgraded.
 
-## What each plan includes
+## Seven-day trial
 
-### Free
+Every newly bootstrapped profile receives one trial. The cutover migration
+also grants the trial once to existing profiles whose old `plan = 'pro'` value
+was only a UI placeholder.
 
-Manual ledger for trying the app and a single read-only MCP token.
+- Duration: exactly seven days from `trial_started_at` to `trial_ends_at`.
+- Effective capabilities: Pro, except internal transfers.
+- Samy: 50 messages total, hard maximum 10/day and 20/minute.
+- MCP: one token, Pro read/write scopes, 100 tool calls total.
+- Trial expiry is evaluated on every server-side capability check; no cron is
+  required to downgrade the user.
+- The trial is not extended or restarted by a later paid-plan change.
 
-**Includes**
+## Resolution precedence
 
-- Capture: expenses, 2 accounts, categories, goals, reports
-- One active currency (USD or PEN)
-- MCP `sam:read` only, 1 token, 100 tool calls / month
-- Single default theme, browser-only (no PWA install)
-- 7-day Pro Trial on signup: 50 Samy AI messages during first 7 days (max 10/day)
+`resolveEntitlements()` is the only plan resolver:
 
-**Excluded**
+1. A non-Free assigned plan is active only between `plan_started_at` and
+   `plan_expires_at`.
+2. Otherwise an unexpired trial is active.
+3. Otherwise access is Free.
 
-- Samy AI chatbot (after 7-day trial expires)
-- Recurring rules / scheduled posting
-- PWA
-- Multi-theme
-- MCP write scopes
-- `sam:accounts.transfer`
-- Second currency, more than 2 accounts, extra MCP tokens
-- Integrations
+The client receives a `PlanSnapshot` from the server. It does not infer plans,
+use mock values, or treat missing values as Pro. The Settings/Profile panel
+shows effective plan, access mode, end time, limits and current usage.
 
-### Pro — $5 / month
+## Downgrade behavior
 
-Daily Living Ledger plus a useful agent.
+Data is preserved. Excess resources become read-only/inactive:
 
-**Includes**
+- On Free, the user chooses one currency and up to two accounts to keep
+  editable. Other accounts and all their history remain visible.
+- The oldest allowed active MCP tokens and integration installs remain usable;
+  excess rows are locked but not revoked or deleted.
+- Existing recurring rules can be paused or archived, but cannot resume or
+  execute without Trial/Pro/Agent.
+- Existing themes are preserved, but selecting another theme requires
+  Trial/Pro/Agent.
+- The PWA install prompt is shown only when the server reports PWA access.
 
-- 500 new transactions / month, 8 accounts, USD + PEN
-- Samy AI chatbot: **150 messages / month** (powered by `gpt-5.6-luna` with multi-tool execution)
-- Recurring payments (when production cron is re-enabled; not on Free)
-- PWA (installable iOS/Android)
-- All themes
-- MCP read + write, 3 tokens, 5 000 tool calls / month
-- Writes: expenses, categories, income, recurring, goals, savings, create/update accounts
-- Up to 3 Phase 1 integrations
+## MCP scopes
 
-**Excluded**
-
-- High-risk transfers: `sam:accounts.transfer` (app and MCP)
-
-### Agent — $10 / month
-
-Full MCP backend for people who live in Cursor / Claude / Hermes / OpenClaw.
-
-**Includes**
-
-- Everything in Pro
-- Samy AI chatbot: **500 messages / month** (all tools + transfer support)
-- Unlimited accounts, transactions (fair use), MCP tokens, Phase 1 integrations
-- 25 000 tool calls / month
-- `sam:accounts.transfer` with existing `confirm: true` gate
-
-## MCP scopes vs plans
-
-Token scopes stay as implemented in `lib/mcp/scopes.ts`. Plans gate **whether
-those scopes may be granted**, not a second permission system.
-
-| Scope | Free | Pro | Agent |
+| Scope | Free | Trial/Pro | Agent |
 | --- | --- | --- | --- |
 | `sam:read` | Yes | Yes | Yes |
-| `sam:expenses.write` | No | Yes | Yes |
-| `sam:categories.write` | No | Yes | Yes |
-| `sam:income.write` | No | Yes | Yes |
-| `sam:recurring.write` | No | Yes | Yes |
-| `sam:savings.write` | No | Yes | Yes |
-| `sam:goals.write` | No | Yes | Yes |
-| `sam:accounts.write` | No | Yes | Yes |
+| expense/category/income/recurring/savings/goal/account/profile writes | No | Yes | Yes |
 | `sam:accounts.transfer` | No | No | Yes |
-| `sam:profile.write` | No | Yes | Yes |
 
-Free default token: `sam:read` only (today new tokens also get expense and
-category write; that must change when plans are enforced).
+Requested token scopes are intersected with current plan scopes at
+authentication. `tools/call` consumes both a per-token burst bucket (60 read
+or 20 write calls/minute) and a user plan bucket atomically. Setup and
+keep-alive methods (`initialize`, `ping`, `tools/list`, notifications) do not
+consume tool-call quota.
 
-Keep-alives (`initialize`, `ping`, `tools/list`, `notifications/*`) **do not**
-count as tool calls. Only `tools/call` counts, via `mcp_audit_logs`.
+## Metering and concurrency
 
-## Metering (when built)
+`plan_usage_buckets` stores Samy and MCP counters. The
+`reserve_plan_usage(jsonb)` Postgres function takes stable advisory locks,
+validates all supplied buckets, and increments them in one transaction. This
+prevents concurrent requests from exceeding a counter.
 
-| Limit | Source of truth |
+Transactions, accounts, tokens, integrations and selected Free resources are
+calculated from their owning rows. Domain guards run before mutation. Plan
+errors carry a stable code (`plan_required`, `trial_expired`,
+`quota_exceeded`, `rate_limited`, `resource_limit_reached`, or
+`resource_locked`) and optional limit/reset metadata.
+
+## Manual activation
+
+See [PLAN-OPERATIONS.md](./PLAN-OPERATIONS.md). The supported command is
+`npm run plan:set -- ...`; it requires an explicit expiry, operator and reason,
+locks exactly one profile, increments `entitlement_version`, and writes an
+append-only `plan_change_events` record. Always run `--dry-run` first.
+
+## Implementation map
+
+| Concern | Location |
 | --- | --- |
-| Samy AI messages / month | `samy_messages` rows where `role = 'user'` and `created_at` in timezone month |
-| Tool calls | `mcp_audit_logs` rows with a real tool name (not keep-alives) |
-| Transactions / month | `transactions` with `occurred_at` in the user’s timezone month |
-| MCP tokens | Non-revoked rows in `mcp_tokens` |
-| Accounts | `accounts` for `user_id` |
-| Integrations | `user_integration_installs` with status installed/connected |
-| Recurring | Creating rules + running cron: Pro/Agent only |
-| PWA | Product gate (install prompt / manifest), not infra |
-| Transfer | Deny `sam:accounts.transfer` unless plan is `agent` |
+| Catalog | `lib/plans/catalog.ts` |
+| Resolution / UI snapshot | `lib/plans/resolve.ts` |
+| Domain feature guards | `lib/plans/guard.ts` |
+| Atomic Samy/MCP metering | `lib/plans/usage.ts` |
+| Schema and migration | `lib/db/schema.ts`, `drizzle/migrations/plans_and_entitlements.sql` |
+| Manual operations | `scripts/plans/set-plan.ts` |
+| UI | `components/plans/plan-overview.tsx` |
 
-`profiles.plan` should become an enum-like text: `free` \| `pro` \| `agent`.
-New users default to **`free`** (today the schema default is `"pro"`).
-
-## Explicitly out of scope
-
-These are **not** plan SKUs and must not be promised on any tier:
-
-- Bank aggregation (Plaid / Open Banking) as a SAM-operated core
-- Households / teams / orgs (one `userId` per ledger)
-- Unconstrained LLM completions or arbitrary code execution (Samy is strictly scoped to 100/300 msgs/mo; external MCP agents bring their own model via BYOM)
-- Investments / trading (removed; see `docs/migrations/investments-removal.md`)
-- Marketplace take rate / Phase 2 sandboxed workers (connectors Phase 1 only)
-
-## Implementation status
-
-| Item | Status |
-| --- | --- |
-| This document | Source of truth |
-| `profiles.plan` column | Exists; unused for gating |
-| Stripe / Polar / Lemon | Not integrated |
-| Quotas in domain / MCP | Not enforced |
-| Recurring cron | Off in production |
-| MCP keep-alive Neon pin | Mitigated; see [NEON-COMPUTE.md](./NEON-COMPUTE.md) |
-
-Do not ship billing until tool-call metering and MCP rate limits exist. A
-connected Agent plan without those limits can hold Neon compute awake
-whenever the user actually calls tools (expected) **and** must not hold it
-awake on ping/list (already the keep-alive contract).
+Related: [Business & AI Model](./BUSINESS-PLAN-SAMY-AI.md),
+[Neon compute](./NEON-COMPUTE.md), [MCP](./MCP.md).

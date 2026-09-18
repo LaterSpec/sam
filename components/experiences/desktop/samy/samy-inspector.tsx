@@ -206,8 +206,11 @@ export function SamyInspector({
         signal: abort.signal,
       });
       if (!response.ok) {
-        const payload = (await response.json().catch(() => null)) as { error?: string } | null;
-        throw new Error(payload?.error ?? "send_failed");
+        const payload = (await response.json().catch(() => null)) as { error?: string; message?: string; resetAt?: string | null } | null;
+        const reset = payload?.resetAt
+          ? ` Try again after ${new Date(payload.resetAt).toLocaleString()}.`
+          : "";
+        throw new Error(`${payload?.message ?? payload?.error ?? "send_failed"}${reset}`);
       }
       await readSse(response, (event, data) => {
         if (abort.signal.aborted) return;
@@ -232,7 +235,7 @@ export function SamyInspector({
       });
     } catch (caught) {
       if (abort.signal.aborted) return;
-      setError(copy.samyError);
+      setError(caught instanceof Error ? caught.message : copy.samyError);
       setMessages((current) => current.filter((item) => item.id !== assistantId || item.text));
     } finally {
       if (abort.signal.aborted) return;

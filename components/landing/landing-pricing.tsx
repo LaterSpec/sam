@@ -53,7 +53,7 @@ const PLANS: Plan[] = [
     description: "Tu cockpit financiero diario con PWA instalable, Samy AI y MCP de lectura y escritura.",
     highlight: true,
     ctaText: "Probar Pro 7 días gratis",
-    ctaHref: "/onboarding?mode=signup",
+    ctaHref: "mailto:manuel@devnyro.com?subject=Activar%20SAM%20Pro",
     features: [
       "500 transacciones nuevas / mes",
       "8 cuentas con soporte USD + PEN sin mezclar",
@@ -74,7 +74,7 @@ const PLANS: Plan[] = [
     period: "al mes",
     description: "Control plane completo para quienes operan desde Cursor, Claude Code u OpenClaw.",
     ctaText: "Activar Plan Agent",
-    ctaHref: "/onboarding?mode=signup",
+    ctaHref: "mailto:manuel@devnyro.com?subject=Activar%20SAM%20Agent",
     features: [
       "Transacciones ilimitadas (fair use)",
       "Cuentas ilimitadas",
@@ -120,8 +120,8 @@ export function LandingPricing() {
             Planes diseñados para personas y agentes
           </h2>
           <p className="mt-3 text-sm text-[#9cb0b8] sm:text-base [text-wrap:pretty]">
-            Comienza gratis con 7 días de prueba completa. Sube a Pro para tu día a día o elige Agent si
-            trabajas continuamente desde Cursor o Claude Code.
+            Comienza gratis con 7 días de prueba Pro y límites de seguridad. Las activaciones pagadas son
+            manuales: escríbenos a manuel@devnyro.com y nunca ingreses una tarjeta en SAM.
           </p>
         </div>
 

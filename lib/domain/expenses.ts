@@ -9,6 +9,7 @@ import {
 import { DomainError, DomainErrorCodes, type ActorContext } from "./types";
 import { mapRawAccountRow, type RawAccountRow, type AccountDto } from "./accounts";
 import { normalizeCurrency, type Currency } from "@/lib/finance/currency";
+import { assertTransactionAllowed } from "@/lib/plans/guard";
 
 export type RawTxRow = {
   id: string;
@@ -88,6 +89,7 @@ export async function addExpense(
   const catKey = shortTextSchema.parse(input.catKey);
   const occurredAt = input.occurredAt ? new Date(input.occurredAt) : new Date();
   if (Number.isNaN(occurredAt.getTime())) throw new Error("invalid occurredAt date");
+  await assertTransactionAllowed(uid, occurredAt, accountId);
   const sql = getSql();
 
   const rows = (await sql.query(

@@ -168,6 +168,8 @@ Agent skill for this repo: [`.agents/skills/sam-mcp/SKILL.md`](.agents/skills/sa
 - [MCP client guide](docs/MCP.md)
 - [Priority 0 financial reliability plan](docs/FINANCIAL-RELIABILITY-PLAN.md)
 - [MCP architecture](docs/MCP-ARCHITECTURE.md)
+- [Plans and seven-day trial](docs/PLANS.md)
+- [Manual plan operations](docs/PLAN-OPERATIONS.md)
 
 ## Legacy And Migration Notes
 
