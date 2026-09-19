@@ -9,7 +9,7 @@ export const summaryToolDefs: AnyToolDef[] = [
   {
     name: "sam_get_spending_summary",
     description:
-      "Summarize expense totals over a date range, optionally filtered by category, grouped by category / day / month.",
+      "SQL sum and count of ALL matching expenses, not a page. Optional category and category/day/month grouping (day/month buckets are UTC). Inclusive from/to require ISO datetimes with timezone offset. Omitted bounds mean all recorded history. Separate totals per currency; never combine currencies.",
     scope: SCOPES.read,
     annotations: { readOnlyHint: true },
     inputSchema: {
@@ -22,7 +22,7 @@ export const summaryToolDefs: AnyToolDef[] = [
   },
   {
     name: "sam_get_cashflow",
-    description: "Get income vs expense totals and net cashflow over a date range.",
+    description: "SQL income/expense sums and counts over ALL matching records, with net per currency. Inclusive from/to require ISO datetimes with timezone offset. Omitted bounds mean all recorded history. Never combine currencies.",
     scope: SCOPES.read,
     annotations: { readOnlyHint: true },
     inputSchema: {

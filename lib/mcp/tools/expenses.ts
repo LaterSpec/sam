@@ -10,9 +10,24 @@ import { defineTool, type AnyToolDef } from "./helpers";
 
 export const expenseToolDefs: AnyToolDef[] = [
   {
+    name: "sam_get_latest_transaction",
+    description: "Get the latest confirmed transaction across the actual ledger, without artificial date bounds. Use registered for 'last recorded/registered' (created_at), occurred for latest expense date. Returns null for an empty ledger. registeredAt and occurred_at describe different events.",
+    scope: SCOPES.read,
+    annotations: { readOnlyHint: true },
+    inputSchema: {
+      kind: z.enum(["expense", "income"]).optional(),
+      order: z.enum(["registered", "occurred"]).default("registered"),
+    },
+    handler: async (ctx, args) => {
+      const result = await expenses.listTransactions(ctx, { kind: args.kind, orderBy: args.order === "occurred" ? "occurred_at" : "created_at", limit: 1 });
+      const transaction = result.transactions[0];
+      return { order: args.order, transaction: transaction ? { ...presentTransaction(transaction), registeredAt: transaction.registeredAt } : null };
+    },
+  },
+  {
     name: "sam_list_transactions",
     description:
-      "List transactions with optional filters: date range (from/to ISO), kind (expense|income), category display name, accountId, free-text search. Category inputs and outputs use user-facing text, never internal keys. Newest first, paginated.",
+      "List transactions with optional filters: inclusive date range (from/to ISO datetimes with timezone offset), kind, category display name, accountId, search. Newest first, paginated. count and totals cover ONLY the returned page, never the complete ledger. Use summary/cashflow tools for SQL totals and counts. Omit date bounds to search all history; never invent sentinel years.",
     scope: SCOPES.read,
     annotations: { readOnlyHint: true },
     inputSchema: {

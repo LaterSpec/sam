@@ -1,4 +1,5 @@
 import { getSql } from "@/lib/db/sql";
+import { parseQueryRange } from "./query-range";
 import { shortTextSchema } from "./validation";
 import type { ActorContext } from "./types";
 
@@ -10,14 +11,7 @@ export type SpendingSummaryInput = {
 };
 
 function parseRange(from?: string, to?: string) {
-  const fromDate = from ? new Date(from) : null;
-  const toDate = to ? new Date(to) : null;
-  if (fromDate && Number.isNaN(fromDate.getTime())) throw new Error("invalid 'from' date");
-  if (toDate && Number.isNaN(toDate.getTime())) throw new Error("invalid 'to' date");
-  return {
-    from: fromDate ? fromDate.toISOString() : null,
-    to: toDate ? toDate.toISOString() : null,
-  };
+  return parseQueryRange(from, to);
 }
 
 type GroupRow = { bucket: string; currency: string; total: string | number; count: string | number };

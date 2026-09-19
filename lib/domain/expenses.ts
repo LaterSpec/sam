@@ -1,4 +1,5 @@
 import { getSql } from "@/lib/db/sql";
+import { parseQueryRange } from "./query-range";
 import { formatTime } from "@/lib/utils";
 import {
   positiveMoneySchema,
@@ -406,6 +407,7 @@ export type ListTransactionsInput = {
   search?: string;
   limit?: number;
   offset?: number;
+  orderBy?: "occurred_at" | "created_at";
 };
 
 /**
@@ -415,10 +417,7 @@ export type ListTransactionsInput = {
  */
 export async function listTransactions(ctx: ActorContext, input: ListTransactionsInput = {}) {
   const uid = ctx.userId;
-  const from = input.from ? new Date(input.from) : null;
-  const to = input.to ? new Date(input.to) : null;
-  if (from && Number.isNaN(from.getTime())) throw new Error("invalid 'from' date");
-  if (to && Number.isNaN(to.getTime())) throw new Error("invalid 'to' date");
+  const { from, to } = parseQueryRange(input.from, input.to);
   const kind = input.kind === "expense" || input.kind === "income" ? input.kind : null;
   const category = input.category ? shortTextSchema.parse(input.category) : null;
   const accountId = input.accountId ? uuidSchema.parse(input.accountId) : null;
@@ -438,6 +437,7 @@ export async function listTransactions(ctx: ActorContext, input: ListTransaction
       t.account_id,
       t.notes,
       t.occurred_at,
+      t.created_at,
       coalesce(c.name, 'Miscellaneous') as category,
       coalesce(c.key, 'misc') as cat_key,
       coalesce(c.color, '#8b949e') as cat_color,
@@ -452,13 +452,13 @@ export async function listTransactions(ctx: ActorContext, input: ListTransaction
       and ($5::text is null or lower(c.name) = lower($5::text))
       and ($6::uuid is null or t.account_id = $6::uuid)
       and ($7::text is null or t.name ilike '%' || $7::text || '%' or coalesce(t.notes, '') ilike '%' || $7::text || '%')
-    order by t.occurred_at desc, t.created_at desc
+    order by ${input.orderBy === "created_at" ? "t.created_at" : "t.occurred_at"} desc, t.created_at desc, t.id desc
     limit $8 offset $9
     `,
     [
       uid,
-      from ? from.toISOString() : null,
-      to ? to.toISOString() : null,
+      from,
+      to,
       kind,
       category,
       accountId,
@@ -466,9 +466,9 @@ export async function listTransactions(ctx: ActorContext, input: ListTransaction
       limit,
       offset,
     ]
-  )) as RawTxRow[];
+  )) as (RawTxRow & { created_at: Date | string })[];
 
-  const items = rows.map(mapRawTxRow);
+  const items = rows.map(row => ({ ...mapRawTxRow(row), registeredAt: new Date(row.created_at).toISOString() }));
   const totalsByCurrency = Array.from(
     items.reduce((totals, item) => {
       totals.set(item.currency, (totals.get(item.currency) ?? 0) + item.amount);
@@ -478,6 +478,9 @@ export async function listTransactions(ctx: ActorContext, input: ListTransaction
   );
   return {
     count: items.length,
+    totalsScope: "returned_page_only" as const,
+    from,
+    to,
     total: totalsByCurrency.length === 1 ? totalsByCurrency[0].total : null,
     currency: totalsByCurrency.length === 1 ? totalsByCurrency[0].currency : null,
     mixedCurrency: totalsByCurrency.length > 1,

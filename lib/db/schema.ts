@@ -579,6 +579,9 @@ export type SamyMemoryKind = "preference" | "fact" | "instruction" | "insight";
 export type SamyMessageContent = {
   text?: string;
   toolsUsed?: string[];
+  progress?: import("@/lib/samy/progress").ToolProgress[];
+  elapsed?: number;
+  failed?: boolean;
 };
 
 export const samyConversations = pgTable(

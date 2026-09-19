@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { PlanBadge } from "./plan-badge";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Activity, ArrowDownLeft, ArrowLeftRight, ArrowUpRight, CalendarClock, ChartNoAxesCombined, ChevronDown, Flag, Landmark, LayoutDashboard, LogOut, Menu, ReceiptText, Search, Settings, Tags, UserRound } from "lucide-react";
 import { signOutAction } from "@/lib/actions/data-actions";
@@ -168,6 +169,7 @@ export function DesktopShell({
         ) : null}
       </div>
       <div className="desk-top-actions">
+        <PlanBadge plan={state.plan} locale={locale}/>
         <label className="desk-currency"><span className="sr-only">{copy.currency}</span><select value={currency} onChange={(event) => onCurrency(event.target.value as Currency)}><option value="USD">USD</option><option value="PEN">PEN</option></select><ChevronDown size={12}/></label>
         <Link href="/app/settings" className="desk-user"><span><UserRound size={14}/></span><b>{userName}</b></Link>
       </div>

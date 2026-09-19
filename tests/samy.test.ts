@@ -7,7 +7,8 @@ import { isBlatantlyOffTopic, offTopicRefusal } from "../lib/samy/topic-guard";
 describe("finance tool catalog", () => {
   it("exposes the shared MCP tool names", () => {
     const names = getFinanceToolDefs().map((def) => def.name);
-    assert.equal(names.length, 36);
+    assert.equal(names.length, 37);
+    assert.ok(names.includes("sam_get_latest_transaction"));
     assert.ok(names.includes("sam_get_spending_summary"));
     assert.ok(names.includes("sam_list_transactions"));
     assert.ok(names.includes("sam_transfer_between_accounts"));

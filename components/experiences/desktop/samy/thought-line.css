@@ -1,0 +1,22 @@
+.thought-line { width: 100%; min-width: 0; margin: 2px 0 12px; color: var(--desk-ink); font-size: 12px; line-height: 1.5; }
+.thought-line__head { display: flex; align-items: center; gap: 7px; width: 100%; min-width: 0; padding: 4px 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; }
+button.thought-line__head { cursor: pointer; }
+button.thought-line__head:hover { color: var(--desk-info); }
+button.thought-line__head:focus-visible { outline: 2px solid var(--desk-info); outline-offset: 3px; }
+.thought-line__glyph { display: flex; flex: none; color: var(--desk-info); }
+.thought-line__label { min-width: 0; overflow-wrap: anywhere; }
+.thought-line[data-working] .thought-line__label { background: linear-gradient(100deg, var(--desk-ink) 30%, var(--desk-info) 50%, var(--desk-ink) 70%); background-size: 250% 100%; background-position: 125% 0; background-clip: text; -webkit-background-clip: text; color: transparent; animation: thought-line-shimmer 1.8s linear infinite; }
+@keyframes thought-line-shimmer { to { background-position: -125% 0; } }
+.thought-line__timer { flex: none; margin-left: auto; font-variant-numeric: tabular-nums; font-size: 11px; }
+.thought-line__chevron { flex: none; transition: transform 200ms ease-out; }
+.thought-line[data-open] .thought-line__chevron { transform: rotate(180deg); }
+.thought-line__trace ol { display: flex; flex-direction: column; gap: 9px; margin: 8px 0 0; padding: 0 0 4px 3px; list-style: none; }
+.thought-line__sr { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.thought-line__trace li { display: flex; gap: 9px; align-items: flex-start; overflow-wrap: anywhere; }
+.thought-line__trace small { display: block; font-size: 10px; }
+.thought-line__mark { display: grid; place-items: center; flex: 0 0 14px; height: 18px; color: var(--desk-info); }
+.thought-line__mark i { width: 5px; height: 5px; border-radius: 50%; background: currentColor; animation: thought-line-pulse 1.6s ease-in-out infinite; }
+.thought-line__trace li[data-state="error"] .thought-line__mark, .thought-line__trace li[data-state="interrupted"] .thought-line__mark { color: var(--desk-risk); }
+@keyframes thought-line-pulse { 50% { opacity: .45; } }
+@media (prefers-reduced-motion: reduce) { .thought-line__mark i { animation: none; } .thought-line__chevron { transition: none; } .thought-line[data-working] .thought-line__label { animation: none; background: none; color: var(--desk-ink); } }
+@media (forced-colors: active) { .thought-line[data-working] .thought-line__label { animation: none; background: none; color: CanvasText; } }

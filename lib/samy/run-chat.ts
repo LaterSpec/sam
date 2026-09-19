@@ -13,6 +13,7 @@ import {
 } from "./store";
 import { isBlatantlyOffTopic, offTopicRefusal } from "./topic-guard";
 import { reserveSamyMessage } from "@/lib/plans/usage";
+import { toolOutputStatus, updateToolProgress, type ToolProgress } from "./progress";
 
 type SessionUser = { id: string; email: string; name?: string | null };
 
@@ -136,6 +137,9 @@ export async function runSamyChat(input: {
       };
       send("meta", { conversationId });
       let fullText = "";
+      const startedAt = Date.now();
+      let progress: ToolProgress[] = [];
+      let failed = false;
       const toolsUsed: string[] = [];
       let mutated = false;
       try {
@@ -146,37 +150,52 @@ export async function runSamyChat(input: {
           } else if (part.type === "tool-call") {
             const name = "toolName" in part ? String(part.toolName) : "tool";
             toolsUsed.push(name);
-            send("tool-call", { name });
-            if (SAMY_WRITE_TOOL_NAMES.has(name)) mutated = true;
+            const step: ToolProgress = { id: part.toolCallId, name, status: "running" };
+            progress = updateToolProgress(progress, step);
+            send("tool-call", step);
+          } else if (part.type === "tool-result" || part.type === "tool-error") {
+            const status = part.type === "tool-error" ? "error" : toolOutputStatus(part.output);
+            const step: ToolProgress = { id: part.toolCallId, name: part.toolName, status };
+            progress = updateToolProgress(progress, step);
+            send("tool-result", step);
+            if (status === "done" && SAMY_WRITE_TOOL_NAMES.has(part.toolName)) mutated = true;
           } else if (part.type === "error") {
+            failed = true;
             send("error", { message: "model_error" });
+          } else if (part.type === "abort") {
+            throw new Error("stream_aborted");
           }
         }
         const text = fullText.trim();
+        if (!text) { failed = true; send("error", { message: "empty_response" }); }
+        const elapsed = (Date.now() - startedAt) / 1000;
+        progress = progress.map(step => step.status === "running" ? { ...step, status: "interrupted" } : step);
         if (text) {
           await insertMessage({
             conversationId,
             role: "assistant",
-            content: { text, toolsUsed: toolsUsed.length ? [...new Set(toolsUsed)] : undefined },
+            content: { text, toolsUsed: toolsUsed.length ? [...new Set(toolsUsed)] : undefined, progress, elapsed, failed },
           });
         }
         if (mutated) send("finance_mutated", {});
-        send("done", { conversationId });
+        send("done", { conversationId, elapsed, failed });
       } catch {
         try {
           const fallback =
             input.language === "es"
               ? "No pude completar esa consulta. Inténtalo de nuevo."
               : "I could not complete that request. Try again.";
-          if (!fullText.trim()) {
-            await insertMessage({
-              conversationId,
-              role: "assistant",
-              content: { text: fallback },
-            });
-            send("text-delta", { text: fallback });
-          }
+          const elapsed = (Date.now() - startedAt) / 1000;
+          progress = progress.map(step => step.status === "running" ? { ...step, status: "interrupted" } : step);
+          await insertMessage({
+            conversationId,
+            role: "assistant",
+            content: { text: fullText.trim() || fallback, progress, elapsed, failed: true },
+          });
+          if (!fullText.trim()) send("text-delta", { text: fallback });
+          if (mutated) send("finance_mutated", {});
           send("error", { message: "stream_failed" });
+          send("done", { conversationId, elapsed, failed: true });
         } catch {
           /* stream already closed */
         }

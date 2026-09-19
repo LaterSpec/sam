@@ -72,7 +72,7 @@ export function DesktopApp({ initialData, section }: { initialData: AppState; se
       onAction={openAction}
       onSelect={openSelection}
       inspector={samyOpen
-        ? <SamyInspector userId={state.user.id} userName={state.user.full_name} timezone={state.prefs.timezone ?? "America/Lima"} copy={copy} onClose={() => setSamyOpen(false)} onMutated={() => void hydrate()}/>
+        ? <SamyInspector userId={state.user.id} userName={state.user.full_name} timezone={state.prefs.timezone ?? "America/Lima"} language={activeLanguage} copy={copy} onClose={() => setSamyOpen(false)} onMutated={() => void hydrate()}/>
         : <DesktopInspector state={state} selection={selection} currency={currency} locale={locale} copy={copy} onClose={() => setSelection(null)} onAction={openAction}/>}
       actionDrawer={<DesktopActionDrawer action={action} state={state} currency={currency} copy={copy} onClose={() => setAction(null)} onDone={hydrate} onDeleted={hydrateAndCloseSelection}/>}
     >

@@ -27,6 +27,9 @@ export async function loadSamyConversationAction(conversationId: string) {
       role: item.role,
       text: item.content.text ?? "",
       toolsUsed: item.content.toolsUsed ?? [],
+      progress: item.content.progress,
+      elapsed: item.content.elapsed,
+      failed: item.content.failed,
     })),
   };
 }

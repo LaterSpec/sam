@@ -13,6 +13,9 @@ import { firstNameFrom } from "@/lib/samy/prompt";
 import { greetingPeriod } from "@/lib/samy/parse";
 import type { DesktopCopy } from "../desktop-copy";
 import { SamyMarkdown } from "./samy-markdown";
+import { ThoughtLine } from "./thought-line";
+import { updateToolProgress, type ToolProgress } from "@/lib/samy/progress";
+import { readSamySse } from "@/lib/samy/sse";
 
 const CONVO_KEY_PREFIX = "samy.conversationId.";
 
@@ -22,6 +25,9 @@ type ChatMessage = {
   text: string;
   toolsUsed?: string[];
   pending?: boolean;
+  progress?: ToolProgress[];
+  elapsed?: number;
+  failed?: boolean;
 };
 
 type HistoryRow = { id: string; title: string; updatedAt: Date | string };
@@ -47,41 +53,11 @@ function writeStoredConversationId(userId: string, id: string | null) {
   }
 }
 
-async function readSse(
-  response: Response,
-  onEvent: (event: string, data: unknown) => void
-) {
-  if (!response.body) throw new Error("no stream");
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = "";
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
-    const chunks = buffer.split("\n\n");
-    buffer = chunks.pop() ?? "";
-    for (const chunk of chunks) {
-      let event = "message";
-      let dataLine = "";
-      for (const line of chunk.split("\n")) {
-        if (line.startsWith("event:")) event = line.slice(6).trim();
-        if (line.startsWith("data:")) dataLine += line.slice(5).trim();
-      }
-      if (!dataLine) continue;
-      try {
-        onEvent(event, JSON.parse(dataLine) as unknown);
-      } catch {
-        onEvent(event, dataLine);
-      }
-    }
-  }
-}
-
 export function SamyInspector({
   userId,
   userName,
   timezone,
+  language,
   copy,
   onClose,
   onMutated,
@@ -89,6 +65,7 @@ export function SamyInspector({
   userId: string;
   userName: string;
   timezone: string;
+  language: "es" | "en";
   copy: DesktopCopy;
   onClose: () => void;
   onMutated: () => void;
@@ -97,20 +74,22 @@ export function SamyInspector({
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
-  const [usingTools, setUsingTools] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [history, setHistory] = useState<HistoryRow[] | null>(null);
   const threadRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const followThread = useRef(true);
+  const interactionVersion = useRef(0);
   const firstName = firstNameFrom(userName);
 
   useEffect(() => {
     const stored = readStoredConversationId(userId);
     if (!stored) return;
     let cancelled = false;
+    const version = interactionVersion.current;
     void loadSamyConversationAction(stored).then((loaded) => {
-      if (cancelled || !loaded) return;
+      if (cancelled || !loaded || version !== interactionVersion.current) return;
       setConversationId(loaded.id);
       setMessages(
         loaded.messages.map((item) => ({
@@ -118,6 +97,9 @@ export function SamyInspector({
           role: item.role,
           text: item.text,
           toolsUsed: item.toolsUsed,
+          progress: item.progress,
+          elapsed: item.elapsed,
+          failed: item.failed,
         }))
       );
     });
@@ -133,10 +115,11 @@ export function SamyInspector({
   }, []);
 
   useEffect(() => {
-    threadRef.current?.scrollTo({ top: threadRef.current.scrollHeight });
-  }, [messages, usingTools, busy]);
+    if (followThread.current) threadRef.current?.scrollTo({ top: threadRef.current.scrollHeight });
+  }, [messages, busy]);
 
   const selectConversation = useCallback(async (id: string) => {
+    interactionVersion.current += 1;
     const loaded = await loadSamyConversationAction(id);
     if (!loaded) return;
     setConversationId(loaded.id);
@@ -147,6 +130,9 @@ export function SamyInspector({
         role: item.role,
         text: item.text,
         toolsUsed: item.toolsUsed,
+        progress: item.progress,
+        elapsed: item.elapsed,
+        failed: item.failed,
       }))
     );
     setHistoryOpen(false);
@@ -154,6 +140,7 @@ export function SamyInspector({
   }, [userId]);
 
   const startNew = useCallback(async () => {
+    interactionVersion.current += 1;
     const created = await createSamyConversationAction();
     setConversationId(created.id);
     writeStoredConversationId(userId, created.id);
@@ -183,10 +170,13 @@ export function SamyInspector({
   const send = useCallback(async () => {
     const text = draft.trim();
     if (!text || busy) return;
+    interactionVersion.current += 1;
     setDraft("");
     setError(null);
     setBusy(true);
-    setUsingTools(false);
+    followThread.current = true;
+    const startedAt = performance.now();
+    let finished = false;
     const userMessageId = crypto.randomUUID();
     const assistantId = crypto.randomUUID();
     abortRef.current?.abort();
@@ -195,7 +185,7 @@ export function SamyInspector({
     setMessages((current) => [
       ...current,
       { id: userMessageId, role: "user", text },
-      { id: assistantId, role: "assistant", text: "", pending: true },
+      { id: assistantId, role: "assistant", text: "", pending: true, progress: [] },
     ]);
 
     try {
@@ -212,39 +202,48 @@ export function SamyInspector({
           : "";
         throw new Error(`${payload?.message ?? payload?.error ?? "send_failed"}${reset}`);
       }
-      await readSse(response, (event, data) => {
+      await readSamySse(response, (event, data) => {
         if (abort.signal.aborted) return;
-        const payload = data as { conversationId?: string; text?: string; message?: string };
+        if (!data || typeof data !== "object") return;
+        const payload = data as { conversationId?: string; text?: string; message?: string; id?: string; name?: string; status?: ToolProgress["status"]; elapsed?: number; failed?: boolean };
         if (event === "meta" && payload.conversationId) {
           setConversationId(payload.conversationId);
           writeStoredConversationId(userId, payload.conversationId);
         }
         if (event === "text-delta" && payload.text) {
-          setUsingTools(false);
           setMessages((current) =>
             current.map((item) =>
               item.id === assistantId
-                ? { ...item, text: item.text + payload.text, pending: false }
+                ? { ...item, text: item.text + payload.text }
                 : item
             )
           );
         }
-        if (event === "tool-call") setUsingTools(true);
+        if ((event === "tool-call" || event === "tool-result") && payload.id && payload.name) {
+          const step: ToolProgress = { id: payload.id, name: payload.name, status: event === "tool-call" ? "running" : payload.status ?? "error" };
+          setMessages(current => current.map(item => item.id === assistantId ? { ...item, progress: updateToolProgress(item.progress ?? [], step) } : item));
+        }
+        if (event === "done") {
+          finished = true;
+          setMessages(current => current.map(item => item.id === assistantId ? { ...item, elapsed: payload.elapsed, failed: item.failed || payload.failed } : item));
+        }
         if (event === "finance_mutated") onMutated();
-        if (event === "error") setError(copy.samyError);
+        if (event === "error") {
+          setError(copy.samyError);
+          setMessages(current => current.map(item => item.id === assistantId ? { ...item, failed: true } : item));
+        }
       });
+      if (!finished) throw new Error(copy.samyError);
     } catch (caught) {
       if (abort.signal.aborted) return;
       setError(caught instanceof Error ? caught.message : copy.samyError);
-      setMessages((current) => current.filter((item) => item.id !== assistantId || item.text));
+      setMessages(current => current.map(item => item.id === assistantId ? { ...item, failed: true } : item));
     } finally {
       if (abort.signal.aborted) return;
       setBusy(false);
-      setUsingTools(false);
       setMessages((current) =>
         current
-          .map((item) => (item.id === assistantId ? { ...item, pending: false } : item))
-          .filter((item) => item.id !== assistantId || item.text.trim().length > 0)
+          .map((item) => (item.id === assistantId ? { ...item, pending: false, elapsed: item.elapsed ?? (performance.now() - startedAt) / 1000, progress: item.progress?.map(step => step.status === "running" ? { ...step, status: "interrupted" as const } : step) } : item))
       );
     }
   }, [busy, conversationId, copy.samyError, draft, onMutated, userId]);
@@ -264,7 +263,7 @@ export function SamyInspector({
           Samy
         </span>
         <div className="samy-top-actions">
-          <button type="button" onClick={() => void openHistory()} aria-label={copy.samyHistory} title={copy.samyHistory}>
+          <button type="button" disabled={busy} onClick={() => void openHistory()} aria-label={copy.samyHistory} title={copy.samyHistory}>
             <History size={16} />
           </button>
           <button type="button" onClick={onClose} aria-label={copy.close}>
@@ -288,7 +287,7 @@ export function SamyInspector({
             {(history ?? []).map((row) => (
               <li key={row.id}>
                 <button type="button" onClick={() => void selectConversation(row.id)}>
-                  <strong>{row.title}</strong>
+                  <strong title={row.title}>{row.title}</strong>
                   <small>{new Date(row.updatedAt).toLocaleString()}</small>
                 </button>
                 <button type="button" className="samy-history-delete" onClick={() => void removeConversation(row.id)} aria-label={copy.samyDeleteChat}>
@@ -300,7 +299,10 @@ export function SamyInspector({
         </div>
       ) : (
         <>
-          <div className="samy-thread" ref={threadRef}>
+          <div className="samy-thread" ref={threadRef} onScroll={event => {
+            const node = event.currentTarget;
+            followThread.current = node.scrollHeight - node.scrollTop - node.clientHeight < 64;
+          }}>
             {empty ? (
               <div className="samy-empty">
                 <SamBrandIcon size={42} color="var(--desk-ink)" />
@@ -310,14 +312,11 @@ export function SamyInspector({
             ) : (
               messages.map((item) => (
                 <div key={item.id} className={`samy-bubble is-${item.role}`}>
-                  {item.role === "assistant" && item.toolsUsed?.length ? (
+                  {item.role === "assistant" && item.progress === undefined && item.toolsUsed?.length ? (
                     <small className="samy-tool-note">{copy.samyUsingTools}</small>
                   ) : null}
-                  {item.role === "assistant" && item.pending && !item.text && !usingTools ? (
-                    <span className="samy-thinking" aria-label={copy.samyThinking}>
-                      <i /><i /><i />
-                    </span>
-                  ) : item.role === "assistant" ? (
+                  {item.role === "assistant" && item.progress !== undefined && <ThoughtLine working={Boolean(item.pending)} steps={item.progress} language={language} phase={item.text ? "responding" : "preparing"} elapsed={item.elapsed} failed={item.failed}/>}
+                  {item.role === "assistant" ? (
                     <SamyMarkdown text={item.text} />
                   ) : (
                     <p>{item.text}</p>
@@ -325,7 +324,6 @@ export function SamyInspector({
                 </div>
               ))
             )}
-            {usingTools ? <div className="samy-tool-live">{copy.samyUsingTools}</div> : null}
             {error ? <p className="samy-error">{error}</p> : null}
           </div>
           <form
