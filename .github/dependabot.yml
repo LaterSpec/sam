@@ -1,0 +1,20 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      next-framework:
+        patterns:
+          - next
+          - eslint-config-next
+      cloudflare-tooling:
+        patterns:
+          - '@opennextjs/cloudflare'
+          - wrangler
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

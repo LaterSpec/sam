@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import type { AppState } from "@/lib/db/queries/load-user-data";
 import { fetchUserDataAction, updatePrefsAction } from "@/lib/actions/data-actions";
 import { normalizeCurrency, type Currency } from "@/lib/finance/currency";
@@ -29,7 +29,19 @@ export function DesktopApp({ initialData, section }: { initialData: AppState; se
   const [activeLanguage, setActiveLanguage] = useState<Lang>(language);
   const copy = DESKTOP_COPY[activeLanguage];
   const locale = activeLanguage === "es" ? "es-PE" : "en-US";
-  const hydrate = useCallback(async () => { const data = await fetchUserDataAction(); if (data) setState(data); }, []);
+  const hydratingRef = useRef(false);
+  const hydrate = useCallback(async () => {
+    if (hydratingRef.current) return;
+    hydratingRef.current = true;
+    try {
+      const data = await fetchUserDataAction();
+      if (data) setState(data);
+    } catch (error) {
+      console.warn("Hydration failed (worker busy or offline):", error);
+    } finally {
+      hydratingRef.current = false;
+    }
+  }, []);
 
   useEffect(() => { setLang(activeLanguage); }, [activeLanguage, setLang]);
   useEffect(() => { document.body.style.background = theme === "ayu-mirage" ? "#07131c" : SAM_PALETTES[theme].bg; }, [theme]);
@@ -37,7 +49,11 @@ export function DesktopApp({ initialData, section }: { initialData: AppState; se
   const persistPrefs = useCallback(async (patch: Partial<AppState["prefs"]>) => {
     const prefs = { ...state.prefs, ...patch };
     setState((current) => ({ ...current, prefs }));
-    await updatePrefsAction(prefs);
+    try {
+      await updatePrefsAction(prefs);
+    } catch (error) {
+      console.warn("Failed to persist prefs:", error);
+    }
   }, [state.prefs]);
   const changeTheme = useCallback((next: SamTheme) => { setTheme(next); void persistPrefs({ theme: next }); }, [persistPrefs]);
   const changeLanguage = useCallback((next: Lang) => { setActiveLanguage(next); void persistPrefs({ language: next }); }, [persistPrefs]);

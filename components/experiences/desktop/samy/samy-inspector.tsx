@@ -177,6 +177,7 @@ export function SamyInspector({
     followThread.current = true;
     const startedAt = performance.now();
     let finished = false;
+    let mutatedInTurn = false;
     const userMessageId = crypto.randomUUID();
     const assistantId = crypto.randomUUID();
     abortRef.current?.abort();
@@ -196,11 +197,14 @@ export function SamyInspector({
         signal: abort.signal,
       });
       if (!response.ok) {
+        if (response.status === 503 || response.status === 504 || response.status === 502) {
+          throw new Error(copy.samyError);
+        }
         const payload = (await response.json().catch(() => null)) as { error?: string; message?: string; resetAt?: string | null } | null;
         const reset = payload?.resetAt
           ? ` Try again after ${new Date(payload.resetAt).toLocaleString()}.`
           : "";
-        throw new Error(`${payload?.message ?? payload?.error ?? "send_failed"}${reset}`);
+        throw new Error(`${payload?.message ?? payload?.error ?? copy.samyError}${reset}`);
       }
       await readSamySse(response, (event, data) => {
         if (abort.signal.aborted) return;
@@ -227,17 +231,31 @@ export function SamyInspector({
           finished = true;
           setMessages(current => current.map(item => item.id === assistantId ? { ...item, elapsed: payload.elapsed, failed: item.failed || payload.failed } : item));
         }
-        if (event === "finance_mutated") onMutated();
+        if (event === "finance_mutated") mutatedInTurn = true;
         if (event === "error") {
           setError(copy.samyError);
           setMessages(current => current.map(item => item.id === assistantId ? { ...item, failed: true } : item));
         }
       });
       if (!finished) throw new Error(copy.samyError);
+      if (mutatedInTurn) {
+        try {
+          onMutated();
+        } catch {
+          /* hydration errors handled safely */
+        }
+      }
     } catch (caught) {
       if (abort.signal.aborted) return;
       setError(caught instanceof Error ? caught.message : copy.samyError);
       setMessages(current => current.map(item => item.id === assistantId ? { ...item, failed: true } : item));
+      if (mutatedInTurn) {
+        try {
+          onMutated();
+        } catch {
+          /* ignore */
+        }
+      }
     } finally {
       if (abort.signal.aborted) return;
       setBusy(false);

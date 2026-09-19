@@ -22,7 +22,7 @@ const serwist = new Serwist({
       matcher({ sameOrigin, url }) {
         if (!sameOrigin) return false;
         return (
-          url.pathname === "/app" ||
+          url.pathname.startsWith("/app") ||
           url.pathname.startsWith("/api/") ||
           url.pathname.startsWith("/_next/data/") ||
           url.pathname.includes(".rsc")

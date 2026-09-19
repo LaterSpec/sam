@@ -14,6 +14,9 @@ const withSerwist = withSerwistInit({
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  // SAM currently serves static assets without next/image. Do not enable a
+  // server-side image decoder unless an explicit product use case requires it.
+  images: { unoptimized: true },
   // @better-auth/core ships workerd-specific instrumentation (pure.index.mjs).
   // OpenNext copies those files only for packages listed here — see:
   // https://opennext.js.org/cloudflare/howtos/workerd
