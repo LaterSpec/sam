@@ -412,7 +412,7 @@ function ActionForm({
             {flowKind === "expense" && (
               <Field label={copy.category}>
                 <select name="category" required defaultValue={rule?.categoryId ?? budgets[0]?.id}>
-                  {state.budgets.map((item) => <option key={item.id} value={item.id}>{item.icon} {item.name}</option>)}
+                  {budgets.map((item) => <option key={item.id} value={item.id}>{item.icon} {item.name}</option>)}
                 </select>
               </Field>
             )}

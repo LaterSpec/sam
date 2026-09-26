@@ -10,6 +10,7 @@ import {
   keyFromName,
 } from "./validation";
 import { DomainError, DomainErrorCodes, type ActorContext } from "./types";
+import { isCurrency, type Currency } from "@/lib/finance/currency";
 
 export type CategoryDto = {
   id: string;
@@ -42,8 +43,17 @@ function normalizeCategoryName(value: string): string {
   return value.normalize("NFKC").trim().toLocaleLowerCase();
 }
 
+function parseCurrencyFilter(currency?: string): Currency | undefined {
+  if (currency == null) return undefined;
+  if (!isCurrency(currency)) {
+    throw new DomainError("invalid_currency", "currency must be USD or PEN");
+  }
+  return currency;
+}
+
 /** Categories with the current calendar-month expense spend per category. */
-export async function listCategories(ctx: ActorContext): Promise<CategoryWithSpendDto[]> {
+export async function listCategories(ctx: ActorContext, currency?: string): Promise<CategoryWithSpendDto[]> {
+  const currencyFilter = parseCurrencyFilter(currency);
   const sql = getSql();
   const rows = (await sql.query(
     `
@@ -85,7 +95,7 @@ export async function listCategories(ctx: ActorContext): Promise<CategoryWithSpe
       remaining: Math.round((cap - spent) * 100) / 100,
       pctUsed: cap > 0 ? Math.round((spent / cap) * 1000) / 10 : null,
     };
-  });
+  }).filter((category) => currencyFilter == null || category.currency === currencyFilter);
 }
 
 /** Resolve the user-facing category name to its internal storage key. */
@@ -108,8 +118,8 @@ export async function resolveCategoryKeyByName(
 }
 
 /** Categories at or near their monthly cap (default >= 80% used). */
-export async function getBudgetStatus(ctx: ActorContext, nearThresholdPct = 80) {
-  const cats = await listCategories(ctx);
+export async function getBudgetStatus(ctx: ActorContext, nearThresholdPct = 80, currency?: string) {
+  const cats = await listCategories(ctx, currency);
   const withCap = cats.filter((c) => c.cap > 0);
   const overBudget = withCap.filter((c) => c.spentThisMonth > c.cap);
   const nearLimit = withCap.filter(
@@ -183,12 +193,13 @@ export async function createCategory(
 
 export async function updateCategory(
   ctx: ActorContext,
-  input: { id: string; name: string; monthlyCap: number; icon?: string; color?: string }
+  input: { id: string; name: string; monthlyCap: number; icon?: string; color?: string; currency?: string }
 ): Promise<CategoryDto> {
   const uid = ctx.userId;
   const id = uuidSchema.parse(input.id);
   const icon = input.icon || "●";
   const color = colorSchema.parse(input.color) || "#8b949e";
+  const currency = parseCurrencyFilter(input.currency);
   const [row] = await db
     .update(categories)
     .set({
@@ -196,6 +207,7 @@ export async function updateCategory(
       monthlyCap: String(moneySchema.parse(input.monthlyCap)),
       icon,
       color,
+      ...(currency ? { currency } : {}),
     })
     .where(and(eq(categories.id, id), eq(categories.userId, uid)))
     .returning();

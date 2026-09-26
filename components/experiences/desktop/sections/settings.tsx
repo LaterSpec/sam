@@ -140,7 +140,7 @@ export function SettingsSection({
           <h2>SAM MCP</h2>
           <p>Connect assistants to your financial tools with scoped, revocable access.</p>
         </div>
-        <button type="button" className="desk-secondary-button" onClick={onMcp}>
+        <button type="button" className="desk-primary-button" onClick={onMcp}>
           {copy.connectMcp}
         </button>
       </section>

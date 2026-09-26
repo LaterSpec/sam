@@ -95,7 +95,7 @@ export function DesktopInspector({
   }
 
   return (
-    <aside className={`desk-inspector ${selection ? "is-open" : ""}`} aria-label={copy.context} aria-hidden={!selection}>
+    <aside className={`desk-inspector ${selection ? "is-open" : ""}`} aria-label={copy.context} aria-hidden={!selection} inert={!selection}>
       <div className="desk-inspector-top">
         <span><WalletCards size={15} /> {copy.context}</span>
         <button type="button" onClick={onClose} aria-label={copy.close}><X size={17} /></button>

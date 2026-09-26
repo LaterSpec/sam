@@ -140,15 +140,20 @@ Restores affected account balance.
 
 ### `sam_list_categories`
 
-Returns categories with `id`, user-facing `name`, icon/color, monthly cap, current-month spend, remaining, and percent used. Internal category keys are not returned.
+Returns categories with `id`, user-facing `name`, icon/color, `currency` (`USD` or `PEN`), monthly cap, current-month spend in that currency, remaining, and percent used. Internal category keys are not returned.
+
+| Field | Type | Default |
+| --- | --- | --- |
+| `currency` | `USD` \| `PEN` | all currencies |
 
 ### `sam_get_budget_status`
 
 | Field | Type | Default |
 | --- | --- | --- |
 | `nearThresholdPct` | number 1–100 | 80 |
+| `currency` | `USD` \| `PEN` | all currencies |
 
-Returns categories over budget and near cap.
+Returns categories over budget and near cap. Totals stay separated by currency.
 
 ### `sam_create_category`
 
@@ -158,8 +163,11 @@ Scope: `sam:categories.write`
 | --- | --- | --- |
 | `name` | string (1–120) | yes |
 | `monthlyCap` | number ≥0 | optional |
+| `currency` | `USD` \| `PEN` | optional, default `USD` |
 | `icon` | string (≤8) | optional |
 | `color` | `#RRGGBB` | optional |
+
+The cap applies only to expenses in the same currency.
 
 ### `sam_update_category`
 
@@ -170,6 +178,7 @@ Scope: `sam:categories.write`
 | `id` | uuid | yes |
 | `name` | string (1–120) | yes |
 | `monthlyCap` | number ≥0 | yes |
+| `currency` | `USD` \| `PEN` | optional; omit to keep the current currency |
 | `icon` | string | optional |
 | `color` | `#RRGGBB` | optional |
 

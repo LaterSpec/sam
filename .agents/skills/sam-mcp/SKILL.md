@@ -39,8 +39,8 @@ Human-readable guide: [docs/MCP.md](../../../docs/MCP.md)
 | Income vs expense | `sam_get_cashflow` |
 | Add / edit / delete expense | `sam_add_expense` (optional `occurredAt`: `YYYY-MM-DD` or ISO with Z/offset; omit → now), `sam_update_expense`, `sam_delete_expense` |
 | Accounts / balances / net worth | `sam_list_accounts`, `sam_get_net_worth` |
-| Budget categories / caps | `sam_list_categories`, `sam_get_budget_status` |
-| Create / update category | `sam_create_category`, `sam_update_category`, `sam_update_category_cap` |
+| Budget categories / caps | `sam_list_categories`, `sam_get_budget_status` (optional `currency`: `USD` or `PEN`) |
+| Create / update category | `sam_create_category` (`currency`), `sam_update_category` (optional `currency`), `sam_update_category_cap` |
 | Transfer money | `sam_list_accounts` → `sam_transfer_between_accounts` (`confirm: true`) |
 | Goals | `sam_list_goals`, `sam_create_goal`, `sam_update_goal`, `sam_set_goal_saved` |
 | One-time income | `sam_add_income` (optional `occurredAt`: `YYYY-MM-DD` or ISO with Z/offset; omit → now) |

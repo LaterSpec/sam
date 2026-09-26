@@ -61,9 +61,8 @@ export function desktopSummary(state: AppState, currency: Currency) {
 
 export function budgetRows(state: AppState, currency: Currency) {
   const monthExpenses = currentMonthTransactions(state, currency).filter((tx) => tx.kind === "expense");
-  // Show every category envelope. Cap is category-level; spent is scoped to the
-  // active currency so PEN spend does not hide USD default categories.
   return state.budgets
+    .filter((budget) => budget.currency === currency)
     .map((budget) => {
       const spent = monthExpenses
         .filter((tx) => tx.catKey === budget.key)
@@ -74,9 +73,11 @@ export function budgetRows(state: AppState, currency: Currency) {
     .sort((a, b) => b.ratio - a.ratio || a.name.localeCompare(b.name));
 }
 
-/** Categories selectable when recording an expense. */
-export function expenseCategoryOptions(state: AppState, _currency: Currency) {
-  return [...state.budgets].sort((a, b) => a.name.localeCompare(b.name));
+/** Categories selectable when recording an expense in the active currency. */
+export function expenseCategoryOptions(state: AppState, currency: Currency) {
+  return state.budgets
+    .filter((budget) => budget.currency === currency)
+    .sort((a, b) => a.name.localeCompare(b.name));
 }
 
 export function accountName(state: AppState, id?: string): string {

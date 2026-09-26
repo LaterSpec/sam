@@ -63,13 +63,13 @@ async function main() {
     await client.query(
       `update profiles
        set plan = $2,
-           plan_started_at = case when $2 = 'free' then null else $3 end,
-           plan_expires_at = $4,
+           plan_started_at = case when $2 = 'free' then null else $3::timestamptz end,
+           plan_expires_at = $4::timestamptz,
            trial_ends_at = case
-             when $2 = 'free' and trial_ends_at > $3 then $3
+             when $2 = 'free' and trial_ends_at > $3::timestamptz then $3::timestamptz
              else trial_ends_at
            end,
-           plan_updated_at = $3,
+           plan_updated_at = $3::timestamptz,
            entitlement_version = entitlement_version + 1
        where id = $1`,
       [current.id, input.plan, now, expiresAt]
@@ -77,7 +77,7 @@ async function main() {
     await client.query(
       `insert into plan_change_events
        (user_id, from_plan, to_plan, effective_at, expires_at, operator, reason, source)
-       values ($1, $2, $3, $4, $5, $6, $7, 'manual_db')`,
+       values ($1, $2, $3, $4::timestamptz, $5::timestamptz, $6, $7, 'manual_db')`,
       [current.id, current.plan, input.plan, now, expiresAt, input.operator, input.reason]
     );
     if (input.dryRun) await client.query("rollback");
