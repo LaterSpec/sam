@@ -13,7 +13,7 @@ export function AccountsSection({ state, currency, onSelect, onAction, copy, loc
     <div className="desk-section">
       <div className="desk-section-heading">
         <div><span className="desk-eyebrow">accounts / registry</span><h1>{copy.accounts}</h1></div>
-        <div className="desk-heading-actions"><button type="button" className="desk-secondary-button" onClick={() => onAction("transfer")}><ArrowLeftRight size={15} /> {copy.transfer}</button><button type="button" className="desk-primary-button" onClick={() => onAction("account")}><Plus size={15} /> {copy.addAccount}</button></div>
+        <div className="desk-heading-actions" data-tour="accounts-actions"><button type="button" className="desk-secondary-button" onClick={() => onAction("transfer")}><ArrowLeftRight size={15} /> {copy.transfer}</button><button type="button" className="desk-primary-button" onClick={() => onAction("account")}><Plus size={15} /> {copy.addAccount}</button></div>
       </div>
       <section className="desk-account-summary" aria-label={copy.availableBalance}>
         <span>liquidity.total --currency={currency}</span><strong>{formatMoney(total, currency, locale)}</strong><small>{liquid.length} active accounts · {cards.length} cards</small>

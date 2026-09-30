@@ -40,7 +40,7 @@ export function SettingsSection({
         </div>
       </div>
       <PlanOverview state={state} />
-      <section className="desk-panel">
+      <section className="desk-panel" data-tour="themes">
         <div className="desk-panel-heading">
           <div className="desk-inline-title">
             <Palette size={16} />
@@ -119,7 +119,7 @@ export function SettingsSection({
           </label>
         </section>
       </div>
-      <section className="desk-panel desk-mcp-banner">
+      <section className="desk-panel desk-mcp-banner" data-tour="connect">
         <PlugZap size={20} />
         <div>
           <h2>{copy.integrations}</h2>

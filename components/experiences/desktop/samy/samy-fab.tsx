@@ -41,6 +41,7 @@ export function SamyFab({
         onOpen();
       }}
       aria-label={copy.samyOpen}
+      data-tour="samy-fab"
     >
       <SamBrandIcon size={22} color="var(--desk-canvas)" />
       {unread ? <i className="samy-fab-dot" aria-hidden="true" /> : null}

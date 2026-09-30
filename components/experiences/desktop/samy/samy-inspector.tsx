@@ -274,7 +274,7 @@ export function SamyInspector({
   const prompt = prompts[Math.abs(firstName.length) % prompts.length].replaceAll("{name}", firstName);
 
   return (
-    <aside className="desk-inspector is-open samy-panel" aria-label="Samy">
+    <aside className="desk-inspector is-open samy-panel" aria-label="Samy" data-tour="samy-panel">
       <div className="desk-inspector-top">
         <span>
           <SamBrandIcon size={15} color="var(--desk-info)" />

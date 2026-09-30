@@ -14,6 +14,7 @@ import { DesktopActionDrawer } from "./desktop-action-drawer";
 import { DesktopSectionContent } from "./sections";
 import { SamyFab } from "./samy/samy-fab";
 import { SamyInspector } from "./samy/samy-inspector";
+import { TourHelpButton, TourLayer, type TourBridge } from "./tour/desktop-tour";
 import type { DesktopAction, DesktopSelection } from "./types";
 
 export function DesktopApp({ initialData, section }: { initialData: AppState; section: DesktopSection }) {
@@ -72,6 +73,17 @@ export function DesktopApp({ initialData, section }: { initialData: AppState; se
     void persistPrefs({ hideBalance: !state.prefs.hideBalance });
   }, [persistPrefs, state.prefs.hideBalance]);
   const vars = useMemo(() => desktopThemeVars(theme), [theme]);
+  const tourBridge = useMemo<TourBridge>(() => ({
+    open: (overlay) => {
+      if (overlay === "samy") openSamy();
+      else setAction(overlay);
+    },
+    closeOverlays: (keep) => {
+      setSelection(null);
+      if (keep !== "samy") setSamyOpen(false);
+      if (keep !== "expense") setAction(null);
+    },
+  }), [openSamy]);
 
   return <SamThemeProvider theme={theme}><div className="sam-desktop" style={vars} data-theme={theme}>
     <DesktopShell
@@ -83,6 +95,7 @@ export function DesktopApp({ initialData, section }: { initialData: AppState; se
       state={state}
       userName={state.user.full_name}
       hasInspector={Boolean(selection) || samyOpen}
+      helpSlot={<TourHelpButton userId={state.user.id} lang={activeLanguage} />}
       onQuery={setQuery}
       onCurrency={changeCurrency}
       onAction={openAction}
@@ -95,6 +108,7 @@ export function DesktopApp({ initialData, section }: { initialData: AppState; se
       <DesktopSectionContent state={state} section={section} currency={currency} onSelect={openSelection} onAction={openAction} copy={copy} locale={locale} theme={theme} language={activeLanguage} onTheme={changeTheme} onLanguage={changeLanguage} onCurrency={changeCurrency} hideSummary={Boolean(state.prefs.hideBalance)} onToggleSummary={toggleSummaryPrivacy}/>
     </DesktopShell>
     <SamyFab hidden={samyOpen || Boolean(selection)} copy={copy} onOpen={openSamy} />
+    <TourLayer userId={state.user.id} lang={activeLanguage} copy={copy} bridge={tourBridge} />
   </div></SamThemeProvider>;
 }
 

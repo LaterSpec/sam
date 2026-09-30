@@ -40,6 +40,7 @@ export function DesktopShell({
   state,
   userName,
   hasInspector,
+  helpSlot,
   children,
   inspector,
   actionDrawer,
@@ -56,6 +57,7 @@ export function DesktopShell({
   state: AppState;
   userName: string;
   hasInspector: boolean;
+  helpSlot?: React.ReactNode;
   children: React.ReactNode;
   inspector: React.ReactNode;
   actionDrawer: React.ReactNode;
@@ -113,14 +115,14 @@ export function DesktopShell({
         <strong>SAM</strong>
         <small>living ledger</small>
       </Link>
-      <nav aria-label="Primary">{NAV.map((group) => <div key={group.label} className="desk-nav-group"><span>{group.label}</span>{group.items.map((item) => <Link key={item.section} href={item.section === "overview" ? "/app" : `/app/${item.section}`} className={section === item.section ? "is-active" : ""} aria-current={section === item.section ? "page" : undefined}>{item.icon}<b>{copy[item.key]}</b><i/></Link>)}</div>)}</nav>
+      <nav aria-label="Primary" data-tour="nav">{NAV.map((group) => <div key={group.label} className="desk-nav-group"><span>{group.label}</span>{group.items.map((item) => <Link key={item.section} href={item.section === "overview" ? "/app" : `/app/${item.section}`} className={section === item.section ? "is-active" : ""} aria-current={section === item.section ? "page" : undefined}>{item.icon}<b>{copy[item.key]}</b><i/></Link>)}</div>)}</nav>
       <div className="desk-index-footer"><Link href="/app/settings" className={section === "settings" ? "is-active" : ""}><Settings size={15}/><b>{copy.settings}</b></Link><button type="button" onClick={async () => { await signOutAction(); window.location.assign("/onboarding"); }}><LogOut size={15}/><b>Sign out</b></button></div>
     </aside>
 
     <header className="desk-topbar">
       <button type="button" className="desk-menu-button" aria-label="Open navigation"><Menu size={17}/></button>
       <div className="desk-search-wrap" ref={searchWrapRef}>
-        <label className="desk-search">
+        <label className="desk-search" data-tour="search">
           <Search size={15}/>
           <input
             ref={searchRef}
@@ -169,16 +171,17 @@ export function DesktopShell({
         ) : null}
       </div>
       <div className="desk-top-actions">
+        {helpSlot}
         <PlanBadge plan={state.plan} locale={locale}/>
-        <label className="desk-currency"><span className="sr-only">{copy.currency}</span><select value={currency} onChange={(event) => onCurrency(event.target.value as Currency)}><option value="USD">USD</option><option value="PEN">PEN</option></select><ChevronDown size={12}/></label>
+        <label className="desk-currency" data-tour="currency"><span className="sr-only">{copy.currency}</span><select value={currency} onChange={(event) => onCurrency(event.target.value as Currency)}><option value="USD">USD</option><option value="PEN">PEN</option></select><ChevronDown size={12}/></label>
         <Link href="/app/settings" className="desk-user"><span><UserRound size={14}/></span><b>{userName}</b></Link>
       </div>
     </header>
 
     <main id="desk-main" className="desk-main">{children}</main>
     {inspector}
-    <footer className="desk-tray" aria-label={copy.actionTray}>
-      <TrayAction icon={<ArrowUpRight size={15}/>} label={copy.addExpense} shortcut="N" onClick={() => onAction("expense")}/>
+    <footer className="desk-tray" aria-label={copy.actionTray} data-tour="tray">
+      <TrayAction icon={<ArrowUpRight size={15}/>} label={copy.addExpense} shortcut="N" tour="tray-expense" onClick={() => onAction("expense")}/>
       <TrayAction icon={<ArrowDownLeft size={15}/>} label={copy.addIncome} onClick={() => onAction("income")}/>
       <TrayAction icon={<ArrowLeftRight size={15}/>} label={copy.transfer} onClick={() => onAction("transfer")}/>
       <TrayAction icon={<Landmark size={15}/>} label={copy.addAccount} onClick={() => onAction("account")}/>
@@ -190,6 +193,6 @@ export function DesktopShell({
   </div>;
 }
 
-function TrayAction({ icon, label, shortcut, onClick }: { icon: React.ReactNode; label: string; shortcut?: string; onClick: () => void }) {
-  return <button type="button" onClick={onClick}>{icon}<span>{label}</span>{shortcut && <kbd>{shortcut}</kbd>}</button>;
+function TrayAction({ icon, label, shortcut, tour, onClick }: { icon: React.ReactNode; label: string; shortcut?: string; tour?: string; onClick: () => void }) {
+  return <button type="button" onClick={onClick} data-tour={tour}>{icon}<span>{label}</span>{shortcut && <kbd>{shortcut}</kbd>}</button>;
 }

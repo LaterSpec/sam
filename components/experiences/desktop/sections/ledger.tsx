@@ -68,7 +68,7 @@ export function LedgerSection({ state, section, currency, onSelect, onAction, co
           <button type="button" className="desk-primary-button" onClick={() => onAction("expense")}><ArrowUpRight size={15} /> {copy.addExpense}</button>
         </div>
       </div>
-      <div className="desk-filter-line">
+      <div className="desk-filter-line" data-tour="ledger-filters">
         <Filter size={14} aria-hidden="true" />
         <label>{copy.account} <select value={account} onChange={(event) => setAccount(event.target.value)}><option value="all">{copy.allAccounts}</option>{state.accounts.filter((item) => item.currency === currency).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
         <label>{copy.category} <select value={category} onChange={(event) => setCategory(event.target.value)}><option value="all">{copy.allCategories}</option>{categories.map(([key, name]) => <option key={key} value={key}>{name}</option>)}</select></label>
@@ -87,7 +87,7 @@ export function LedgerSection({ state, section, currency, onSelect, onAction, co
         ) : null}
         <span>{rows.length} entries · {currency}</span>
       </div>
-      <section className="desk-panel desk-ledger-panel" aria-label={title}>
+      <section className="desk-panel desk-ledger-panel" aria-label={title} data-tour="ledger-panel">
         {rows.length ? (
           <div className="desk-table-wrap">
             <table className="desk-ledger-table">

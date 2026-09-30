@@ -43,7 +43,7 @@ export function ReportsSection({ state, currency, onSelect, copy, locale }: Desk
         </div>
         <span className="desk-sync"><i /> live ledger</span>
       </div>
-      <dl className="desk-strip-metrics">
+      <dl className="desk-strip-metrics" data-tour="report-metrics">
         <div><dt>Net flow</dt><dd className={summary.income - summary.expenses >= 0 ? "is-positive" : "is-negative"}>{formatMoney(summary.income - summary.expenses, currency, locale)}</dd></div>
         <div><dt>Save rate</dt><dd>{summary.income ? Math.round((summary.saved / summary.income) * 100) : 0}%</dd></div>
         <div><dt>Scheduled outflow</dt><dd>{formatMoney(summary.upcomingExpense, currency, locale)}</dd></div>

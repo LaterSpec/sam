@@ -1,0 +1,111 @@
+.sam-desktop {
+  --tour-z-pill: 65;
+  --tour-z-dim: 70;
+  --tour-z-card: 72;
+  --tour-z-roadmap: 74;
+  --tour-ease: cubic-bezier(.25, 1, .5, 1);
+  --tour-scrim: color-mix(in srgb, #000 58%, transparent);
+  --tour-index: 194px;
+}
+
+/* Help button + roadmap ------------------------------------------------- */
+
+.tour-help { position: relative; display: flex; }
+.tour-help-button { position: relative; display: grid; width: 30px; height: 30px; place-items: center; padding: 0; color: var(--desk-muted); border: 1px solid var(--desk-line-soft); border-radius: 4px; background: var(--desk-index); cursor: pointer; transition: color 140ms ease, border-color 140ms ease, background 140ms ease; }
+.tour-help-button:hover { color: var(--desk-ink); border-color: var(--desk-info); background: var(--desk-hover); }
+.tour-help-button[aria-expanded="true"] { color: var(--desk-info); border-color: var(--desk-info); background: var(--desk-active); }
+.tour-help-dot { position: absolute; top: -3px; right: -3px; width: 8px; height: 8px; border: 2px solid var(--desk-canvas); border-radius: 50%; background: var(--desk-pending); }
+
+.tour-roadmap { position: absolute; z-index: var(--tour-z-roadmap); top: calc(100% + 10px); right: 0; width: 384px; max-width: calc(100vw - 32px); max-height: calc(100dvh - 80px); overflow-y: auto; color: var(--desk-ink); border: 1px solid var(--desk-line); border-radius: 8px; background: var(--desk-inspector); box-shadow: 0 6px 8px rgb(0 0 0 / .24); animation: tour-rise 200ms var(--tour-ease) both; }
+.tour-roadmap-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 16px 16px 0; }
+.tour-roadmap-head h2 { margin: 3px 0 0; font-size: 17px; line-height: 1.25; font-weight: 680; letter-spacing: -.02em; text-wrap: balance; }
+.tour-roadmap-intro { margin: 8px 16px 14px; color: var(--desk-muted); font-size: 12px; line-height: 1.55; text-wrap: pretty; }
+.tour-roadmap-list { margin: 0; padding: 0; list-style: none; border-top: 1px solid var(--desk-line-soft); }
+.tour-roadmap-list li { border-bottom: 1px solid var(--desk-line-soft); }
+.tour-roadmap-list button { width: 100%; min-height: 54px; display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 8px 16px; color: var(--desk-ink); text-align: left; border: 0; background: transparent; cursor: pointer; transition: background 140ms ease; }
+.tour-roadmap-list button:hover { background: var(--desk-hover); }
+.tour-roadmap-list button:focus-visible { outline: 2px solid var(--desk-info); outline-offset: -2px; }
+.tour-roadmap-mark { display: grid; width: 26px; height: 26px; place-items: center; color: var(--desk-muted); border: 1px solid var(--desk-line); border-radius: 4px; font: 10px var(--font-jetbrains), monospace; }
+.tour-roadmap-list .is-done .tour-roadmap-mark { color: var(--desk-canvas); border-color: var(--desk-positive); background: var(--desk-positive); }
+.tour-roadmap-list .is-current { background: var(--desk-active); }
+.tour-roadmap-list .is-current .tour-roadmap-mark { color: var(--desk-info); border-color: var(--desk-info); }
+.tour-roadmap-copy { display: flex; min-width: 0; flex-direction: column; gap: 1px; }
+.tour-roadmap-copy strong { font-size: 12.5px; font-weight: 620; }
+.tour-roadmap-copy small { overflow: hidden; color: var(--desk-muted); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.tour-roadmap-list .is-current .tour-roadmap-copy small { color: var(--desk-info); }
+.tour-roadmap-count { color: var(--desk-muted); font: 9.5px var(--font-jetbrains), monospace; white-space: nowrap; }
+.tour-roadmap-foot { display: flex; flex-direction: column; gap: 10px; padding: 14px 16px 16px; }
+.tour-roadmap-foot > span { color: var(--desk-muted); font-size: 11px; }
+.tour-roadmap-foot > div { display: flex; justify-content: flex-end; gap: 8px; }
+
+/* Shared bits ------------------------------------------------------------ */
+
+.tour-kicker { color: var(--desk-info); font: 10px var(--font-jetbrains), monospace; letter-spacing: .02em; }
+.tour-icon-button { display: grid; width: 28px; height: 28px; flex: 0 0 auto; place-items: center; padding: 0; color: var(--desk-muted); border: 0; border-radius: 4px; background: transparent; cursor: pointer; transition: color 140ms ease, background 140ms ease; }
+.tour-icon-button:hover { color: var(--desk-ink); background: var(--desk-hover); }
+
+/* Spotlight -------------------------------------------------------------- */
+
+.tour-layer { position: fixed; inset: 0; z-index: var(--tour-z-dim); pointer-events: none; }
+.tour-spot { position: fixed; top: 0; left: 0; border-radius: 6px; box-shadow: 0 0 0 200vmax var(--tour-scrim); }
+.tour-spot::before { content: ""; position: absolute; inset: 0; border: 2px solid var(--desk-info); border-radius: inherit; animation: tour-ring 220ms var(--tour-ease) both; }
+.tour-spot.is-task::after { content: ""; position: absolute; inset: -2px; border: 2px solid var(--desk-info); border-radius: 8px; opacity: 0; animation: tour-beacon 1.8s var(--tour-ease) 220ms infinite; }
+.tour-dim { position: fixed; inset: 0; background: var(--tour-scrim); }
+
+/* Step card -------------------------------------------------------------- */
+
+.tour-card { position: fixed; z-index: var(--tour-z-card); top: 0; left: 0; width: 344px; max-width: calc(100vw - 24px); color: var(--desk-ink); border: 1px solid var(--desk-line); border-radius: 8px; background: var(--desk-inspector); box-shadow: 0 6px 8px rgb(0 0 0 / .26); pointer-events: auto; outline: 0; transition: transform 260ms var(--tour-ease); animation: tour-fade 160ms ease-out both; }
+.tour-card:focus-visible { outline: 2px solid var(--desk-info); outline-offset: 2px; }
+.tour-card-head { display: flex; align-items: center; gap: 6px; padding: 8px 8px 0 14px; }
+.tour-card-head .tour-kicker { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tour-count { margin-right: 2px; color: var(--desk-muted); font: 10px var(--font-jetbrains), monospace; font-variant-numeric: tabular-nums; }
+.tour-segments { display: flex; gap: 3px; padding: 8px 14px 0; }
+.tour-segments i { flex: 1; height: 3px; overflow: hidden; border-radius: 2px; background: var(--desk-line-soft); }
+.tour-segments b { display: block; height: 100%; background: var(--desk-info); transform-origin: left; transition: transform 260ms var(--tour-ease); }
+.tour-segments i.is-done b { background: var(--desk-positive); }
+.tour-card-body { padding: 12px 14px 4px; }
+.tour-card-body h2 { margin: 0; font-size: 15px; line-height: 1.3; font-weight: 680; letter-spacing: -.015em; text-wrap: balance; }
+.tour-body { margin: 6px 0 0; color: color-mix(in srgb, var(--desk-ink) 84%, var(--desk-muted)); font-size: 12.5px; line-height: 1.55; text-wrap: pretty; }
+.tour-status { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin: 12px 0 0; padding: 8px 10px; color: var(--desk-muted); border: 1px solid var(--desk-line-soft); border-radius: 6px; font-size: 11.5px; }
+.tour-task { display: flex; align-items: center; gap: 10px; margin-top: 12px; padding: 9px 10px; border: 1px solid color-mix(in srgb, var(--desk-info) 45%, var(--desk-line)); border-radius: 6px; background: color-mix(in srgb, var(--desk-info) 8%, transparent); transition: border-color 180ms ease, background 180ms ease; }
+.tour-task > span:last-child { display: flex; min-width: 0; flex-direction: column; gap: 1px; }
+.tour-task small { color: var(--desk-info); font: 9.5px var(--font-jetbrains), monospace; }
+.tour-task strong { font-size: 12px; font-weight: 600; }
+.tour-task-mark { display: grid; width: 18px; height: 18px; flex: 0 0 auto; place-items: center; border: 1.5px solid var(--desk-info); border-radius: 4px; color: var(--desk-canvas); transition: background 180ms ease, border-color 180ms ease; }
+.tour-task.is-done { border-color: color-mix(in srgb, var(--desk-positive) 55%, var(--desk-line)); background: color-mix(in srgb, var(--desk-positive) 9%, transparent); }
+.tour-task.is-done small { color: var(--desk-positive); }
+.tour-task.is-done .tour-task-mark { border-color: var(--desk-positive); background: var(--desk-positive); }
+.tour-practice { display: flex; align-items: center; gap: 6px; margin: 10px 0 0; color: var(--desk-info); font: 10px var(--font-jetbrains), monospace; }
+.tour-card-foot { display: flex; align-items: center; gap: 8px; padding: 12px 14px 14px; }
+.tour-keys { flex: 1; min-width: 0; color: var(--desk-muted); font: 9.5px var(--font-jetbrains), monospace; }
+
+/* Paused pill ------------------------------------------------------------ */
+
+.tour-paused { position: fixed; z-index: var(--tour-z-pill); left: calc(var(--tour-index) + 16px); bottom: calc(var(--desk-tray) + 16px); display: flex; align-items: center; gap: 10px; padding: 7px 7px 7px 12px; color: var(--desk-ink); border: 1px solid var(--desk-line); border-radius: 8px; background: var(--desk-inspector); box-shadow: 0 6px 8px rgb(0 0 0 / .24); animation: tour-rise 200ms var(--tour-ease) both; }
+.tour-paused > svg { color: var(--desk-pending); }
+.tour-paused > span { display: flex; flex-direction: column; margin-right: 4px; }
+.tour-paused strong { font-size: 12px; font-weight: 620; }
+.tour-paused small { color: var(--desk-muted); font: 9.5px var(--font-jetbrains), monospace; }
+.tour-paused .desk-primary-button { min-height: 30px; }
+
+@keyframes tour-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes tour-rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes tour-ring { from { opacity: 0; } to { opacity: 1; } }
+@keyframes tour-beacon { 0% { opacity: .9; transform: scale(1); } 70%, 100% { opacity: 0; transform: scale(1.06); } }
+
+@media (max-width: 1180px) {
+  .sam-desktop { --tour-index: 62px; }
+}
+
+@media (max-width: 860px) {
+  .tour-keys { display: none; }
+  .tour-card-foot { justify-content: flex-end; }
+  .tour-roadmap { position: fixed; top: calc(var(--desk-top) + 8px); right: 16px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tour-card, .tour-segments b { transition: none; }
+  .tour-spot::before { animation: none; }
+  .tour-spot.is-task::after { animation: none; opacity: .6; }
+  .tour-roadmap, .tour-paused { animation: tour-fade 120ms ease-out both; }
+}

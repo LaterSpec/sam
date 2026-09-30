@@ -6,6 +6,7 @@ import { ServiceWorkerRegistration } from "@/components/pwa/service-worker-regis
 import { I18nProvider } from "@/lib/i18n/i18n-context";
 import "./globals.css";
 import "@/components/experiences/desktop/desktop.css";
+import "@/components/experiences/desktop/tour/tour.css";
 
 const jetbrains = JetBrains_Mono({
   subsets: ["latin"],

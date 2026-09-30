@@ -65,7 +65,7 @@ export function DesktopActionDrawer({
   return (
     <div className={`desk-action-layer ${action ? "is-open" : ""}`} aria-hidden={!action}>
       <button type="button" className="desk-action-backdrop" onClick={onClose} aria-label={copy.close} />
-      <aside className="desk-action-drawer" role="dialog" aria-modal="true" aria-label={copy.actionTray}>
+      <aside className="desk-action-drawer" role="dialog" aria-modal="true" aria-label={copy.actionTray} data-tour={action ? "action-drawer" : undefined}>
         <div className="desk-action-top">
           <span>{copy.actionTray}</span>
           <button type="button" onClick={onClose} aria-label={copy.close}><X size={17} /></button>

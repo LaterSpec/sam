@@ -29,7 +29,7 @@ export function OverviewSection({
 
   return (
     <div className="desk-section desk-overview">
-      <section className="desk-position" aria-labelledby="position-heading">
+      <section className="desk-position" aria-labelledby="position-heading" data-tour="position">
         <div className="desk-section-heading">
           <div>
             <span className="desk-eyebrow">SAM / {currency} / {new Date().toLocaleDateString(locale, { month: "long" })}</span>
@@ -64,7 +64,7 @@ export function OverviewSection({
         </div>
       </section>
 
-      <section className="desk-panel desk-cash-panel" aria-labelledby="cash-heading">
+      <section className="desk-panel desk-cash-panel" aria-labelledby="cash-heading" data-tour="cashflow">
         <div className="desk-panel-heading">
           <div><span className="desk-command">flow.inspect --month=current</span><h2 id="cash-heading">{copy.cashFlow}</h2></div>
           <span className="desk-panel-note">actual → projected</span>
